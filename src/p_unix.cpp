@@ -660,10 +660,14 @@ void PackUnix::unpack(OutputFile *fo)
                 throwCompressedDataViolation();
             break;
         }
-        if (sz_unc <= 0 || sz_cpr <= 0)
-            throwCompressedDataViolation();
-        if (sz_cpr > sz_unc || sz_unc > blocksize)
-            throwCompressedDataViolation();
+        // Minimum compressed length: LZMA has 5-byte info header.
+        // NRV_d8 has 1-byte initial 8 flag bits, plus end-of-block marker
+        // (32 bit look-back offset of all 1s: encoded as 24 pairs of bits
+        // {not last, 1} then low 8-bits of 0xff; total: 8 + 2*24 + 8 bits
+        // ==> 8 bytes)
+        if (sz_unc <= 0 || sz_cpr <= 5u
+        ||  sz_cpr > sz_unc || sz_unc > blocksize)
+            throwCantUnpack("corrupt b_info %#x %#x", sz_unc, sz_cpr);
 
         // Compressed output has control bytes such as the 32-bit
         // first flag bits of NRV_d32, the 5-byte info of LZMA, etc.
@@ -671,7 +675,7 @@ void PackUnix::unpack(OutputFile *fo)
         // Use some OVERHEAD for safety.
         i = blocksize + OVERHEAD - upx::umax(12u, sz_cpr);
         if (i < 0)
-            throwCantUnpack("corrupt b_info");
+            throwCantUnpack("corrupt b_info %#x %#x", sz_cpr, blocksize);
         fi->readx(buf+i, sz_cpr);
         // update checksum of compressed data
         c_adler = upx_adler32(buf + i, sz_cpr, c_adler);
