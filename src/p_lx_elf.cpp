@@ -294,7 +294,7 @@ PackLinuxElf32::PackLinuxElf32help1(InputFile *f)
     if (last_Phdr < e_phoff  // wrap-around
     ||  e_phoff != sizeof(Elf32_Ehdr)  // must be contiguous
     ||  (unsigned long)file_size < last_Phdr) {
-        throwCantUnpack("bad e_phoff");
+        throwCantUnpack("bad e_phoff %#x", e_phoff);
     }
     e_shoff = get_te32(&ehdri.e_shoff);
     e_shstrndx = get_te16(&ehdri.e_shstrndx);
@@ -303,7 +303,7 @@ PackLinuxElf32::PackLinuxElf32help1(InputFile *f)
     ||  (e_shnum && e_shoff < last_Phdr)
     ||  (unsigned long)file_size < last_Shdr) {
         if (opt->cmd == CMD_COMPRESS) {
-            throwCantUnpack("bad e_shoff");
+            throwCantUnpack("bad e_shoff %#x", e_shoff);
         }
     }
     sz_phdrs = e_phnum * e_phentsize;
@@ -438,11 +438,21 @@ off_t PackLinuxElf::pack3(OutputFile *fo, Filter &ft) // return length of output
     return total_out;
 }
 
+static unsigned
+is_pow2(u64_t x)
+{
+    return !((-1+ x) & x);
+}
+
 Elf32_Phdr const *
 PackLinuxElf32::elf_find_Phdr_for_va(upx_uint32_t addr, Elf32_Phdr const *phdr, unsigned phnum)
 {
-    for (unsigned j = 0; j < phnum; ++phdr) {
-        if ((addr - get_te32(&phdr->p_vaddr)) < get_te32(&phdr->p_filesz)) {
+    for (unsigned j = 0; j < phnum; ++j, ++phdr) {
+        u32_t align = get_te32(&phdr->p_align);
+        if (PT_LOAD32 == get_te32(&phdr->p_type)
+        && is_pow2(align) && !((-1+ align) &
+            (get_te32(&phdr->p_vaddr) ^ get_te32(&phdr->p_offset)))
+        &&  (addr - get_te32(&phdr->p_vaddr)) < get_te32(&phdr->p_filesz)) {
             return phdr;
         }
     }
@@ -452,8 +462,12 @@ PackLinuxElf32::elf_find_Phdr_for_va(upx_uint32_t addr, Elf32_Phdr const *phdr, 
 Elf64_Phdr const *
 PackLinuxElf64::elf_find_Phdr_for_va(upx_uint64_t addr, Elf64_Phdr const *phdr, unsigned phnum)
 {
-    for (unsigned j = 0; j < phnum; ++phdr) {
-        if ((addr - get_te64(&phdr->p_vaddr)) < get_te64(&phdr->p_filesz)) {
+    for (unsigned j = 0; j < phnum; ++j, ++phdr) {
+        u64_t align = get_te64(&phdr->p_align);
+        if (PT_LOAD64 == get_te32(&phdr->p_type)
+        && is_pow2(align) && !((-1+ align) &
+            (get_te64(&phdr->p_vaddr) ^ get_te64(&phdr->p_offset)))
+        &&  (addr - get_te64(&phdr->p_vaddr)) < get_te64(&phdr->p_filesz)) {
             return phdr;
         }
     }
@@ -1006,7 +1020,7 @@ PackLinuxElf64::PackLinuxElf64help1(InputFile *f)
     if (last_Phdr < e_phoff  // wrap-around
     ||  e_phoff != sizeof(Elf64_Ehdr)  // must be contiguous
     ||  (unsigned long)file_size < last_Phdr) {
-        throwCantUnpack("bad e_phoff");
+        throwCantUnpack("bad e_phoff %p", (void *)e_phoff);
     }
     e_shoff = get_te64(&ehdri.e_shoff);
     upx_uint64_t const last_Shdr = e_shoff + e_shnum * sizeof(Elf64_Shdr);
@@ -1014,7 +1028,7 @@ PackLinuxElf64::PackLinuxElf64help1(InputFile *f)
     ||  (e_shnum && e_shoff < last_Phdr)
     ||  (unsigned long)file_size < last_Shdr) {
         if (opt->cmd == CMD_COMPRESS) {
-            throwCantUnpack("bad e_shoff");
+            throwCantUnpack("bad e_shoff %p", (void *)e_shoff);
         }
     }
     sz_phdrs = e_phnum * e_phentsize;
@@ -2087,8 +2101,11 @@ PackLinuxElf32::invert_pt_dynamic(Elf32_Dyn const *dynp, u32_t headway)
     unsigned const z_str = dt_table[Elf32_Dyn::DT_STRSZ];
     strtab_max = !z_str ? 0 : get_te32(&dynp0[-1+ z_str].d_val);
     unsigned const z_tab = dt_table[Elf32_Dyn::DT_STRTAB];
-    unsigned const strtab_beg = !z_tab ? 0
-        : elf_get_offset_from_address(get_te32(&dynp0[-1+ z_tab].d_val));
+    unsigned const tmp1 = get_te32(&dynp0[-1+ z_tab].d_val);
+    if (tmp1 < sz_elf_hdrs) {
+        throwCantPack("bad DT_STRTAB %#x", tmp1);
+    }
+    unsigned const strtab_beg = !z_tab ? 0 : elf_get_offset_from_address(tmp1);
 
     if (!z_str || !z_tab
     || (this->file_size - strtab_beg) < strtab_max  // strtab overlaps EOF
@@ -2101,8 +2118,9 @@ PackLinuxElf32::invert_pt_dynamic(Elf32_Dyn const *dynp, u32_t headway)
     }
 
     // Find end of DT_SYMTAB
-    symnum_max = elf_find_table_size(
-        Elf32_Dyn::DT_SYMTAB, Elf32_Shdr::SHT_DYNSYM) / sizeof(Elf32_Sym);
+    unsigned const tmp2 = elf_find_table_size(Elf32_Dyn::DT_SYMTAB,
+        Elf32_Shdr::SHT_DYNSYM);
+    symnum_max = (~0u == tmp2) ? 0 : tmp1 / sizeof(Elf32_Sym);
 
     unsigned v_sym = dt_table[Elf32_Dyn::DT_SYMTAB];
     if (v_sym) {
@@ -2365,9 +2383,8 @@ char const *PackLinuxElf64::get_str_name(unsigned st_name, unsigned symnum) cons
 char const *PackLinuxElf64::get_dynsym_name(unsigned symnum, unsigned relnum) const
 {
     if (symnum_max <= symnum) {
-        char msg[70]; snprintf(msg, sizeof(msg),
-            "bad symnum %#x in Elf64_Rel[%d]", symnum, relnum);
-        throwCantPack(msg);
+        (void)relnum;
+        return nullptr;
     }
     return get_str_name(get_te32(&dynsym[symnum].st_name), symnum);
 }
@@ -2402,9 +2419,8 @@ char const *PackLinuxElf32::get_str_name(unsigned st_name, unsigned symnum) cons
 char const *PackLinuxElf32::get_dynsym_name(unsigned symnum, unsigned relnum) const
 {
     if (symnum_max <= symnum) {
-        char msg[70]; snprintf(msg, sizeof(msg),
-            "bad symnum %#x in Elf32_Rel[%d]\n", symnum, relnum);
-        throwCantPack(msg);
+        (void)relnum;
+        return nullptr;
     }
     return get_str_name(get_te32(&dynsym[symnum].st_name), symnum);
 }
@@ -8020,8 +8036,12 @@ PackLinuxElf64::invert_pt_dynamic(Elf64_Dyn const *dynp, upx_uint64_t headway)
     unsigned const z_str = dt_table[Elf64_Dyn::DT_STRSZ];
     strtab_max = !z_str ? 0 : get_te64(&dynp0[-1+ z_str].d_val);
     unsigned const z_tab = dt_table[Elf64_Dyn::DT_STRTAB];
-    unsigned const strtab_beg = !z_tab ? 0
-        : elf_get_offset_from_address(get_te64(&dynp0[-1+ z_tab].d_val));
+    unsigned const tmp1 = get_te64(&dynp0[-1+ z_tab].d_val);
+    if (tmp1 < sz_elf_hdrs) {
+        throwCantPack("bad DT_STRTAB %#x", tmp1);
+    }
+    unsigned const strtab_beg = !z_tab ? 0 : elf_get_offset_from_address(tmp1);
+
     if (!z_str || !z_tab
     || (this->file_size - strtab_beg) < strtab_max  // strtab overlaps EOF
         // last string in table must have terminating NUL
@@ -8033,8 +8053,9 @@ PackLinuxElf64::invert_pt_dynamic(Elf64_Dyn const *dynp, upx_uint64_t headway)
     }
 
     // Find end of DT_SYMTAB
-    symnum_max = elf_find_table_size(
-        Elf64_Dyn::DT_SYMTAB, Elf64_Shdr::SHT_DYNSYM) / sizeof(Elf64_Sym);
+    unsigned const tmp2 = elf_find_table_size(Elf64_Dyn::DT_SYMTAB,
+        Elf64_Shdr::SHT_DYNSYM);
+    symnum_max = (~0u == tmp2) ? 0 : tmp1 / sizeof(Elf64_Sym);
 
     unsigned v_sym = dt_table[Elf64_Dyn::DT_SYMTAB];
     if (v_sym) {
@@ -8216,13 +8237,17 @@ Elf32_Sym const *PackLinuxElf32::elf_lookup(char const *name) const
             unsigned const m = elf_hash(name) % nbucket;
             unsigned nvisit = 0;
             unsigned si;
-            for (si= get_te32(&buckets[m]); 0!=si; si= get_te32(&chains[si])) {
+            for (si= get_te32(&buckets[m]); si; ) {
                 char const *const p= get_dynsym_name(si, (unsigned)-1);
-                if (0==strcmp(name, p)) {
+                if (p && 0==strcmp(name, p)) {
                     return &dynsym[si];
                 }
                 if (nbucket <= ++nvisit) {
                     throwCantPack("circular DT_HASH chain %d\n", si);
+                }
+                si= get_te32(&chains[si]);
+                if (nbucket <= si) { // bad hashtab
+                    break;
                 }
             }
         }
@@ -8299,13 +8324,17 @@ Elf64_Sym const *PackLinuxElf64::elf_lookup(char const *name) const
             unsigned const m = elf_hash(name) % nbucket;
             unsigned nvisit = 0;
             unsigned si;
-            for (si= get_te32(&buckets[m]); 0!=si; si= get_te32(&chains[si])) {
+            for (si= get_te32(&buckets[m]); si; ) {
                 char const *const p= get_dynsym_name(si, (unsigned)-1);
-                if (0==strcmp(name, p)) {
+                if (p && 0==strcmp(name, p)) {
                     return &dynsym[si];
                 }
                 if (nbucket <= ++nvisit) {
                     throwCantPack("circular DT_HASH chain %d\n", si);
+                }
+                si = get_te32(&chains[si]);
+                if (nbucket <= si) { // bad hashtab
+                    break;
                 }
             }
         }
