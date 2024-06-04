@@ -1754,6 +1754,10 @@ tribool PackMachBase<T>::canUnpack()
         else { // PackHeader follows loader at __LINKEDIT
             if ((off_t)bufsize > (fi->st_size() - offLINK)) {
                 bufsize = fi->st_size() - offLINK;
+                if (bufsize < sizeof(struct b_info)) {
+                    throwCantUnpack("bad offLINK %p %p",
+                        (void *)offLINK, (void *)file_size);
+                }
             }
             fi->seek(offLINK, SEEK_SET);
         }
