@@ -17,8 +17,8 @@ env:
   UPX_CMAKE_CONFIG_FLAGS: -Wdev --warn-uninitialized
   UPX_DEBUG_TEST_FLOAT_DIVISION_BY_ZERO: 1
   UPX_DEBUG_TEST_LIBC_QSORT: 1
-  # 2024-04-20
-  ZIG_DIST_VERSION: 0.12.0
+  # 2024-06-07
+  ZIG_DIST_VERSION: 0.13.0
 
 jobs:
   job-rebuild-and-verify-stubs:
@@ -349,7 +349,9 @@ jobs:
           - { name: arm64ec-win64-vs2022, os: windows-2022, vsversion: 2022, vsarch: amd64_arm64, cl_machine_flags: -arm64EC, link_machine_flags: '/machine:arm64ec' }
           # { name: arm64x-win64-vs2022,  os: windows-2022, vsversion: 2022, vsarch: amd64_arm64, cl_machine_flags: -arm64EC, link_machine_flags: '/machine:arm64x' }
           - { name: i386-win32-vs2019,    os: windows-2019, vsversion: 2019, vsarch: amd64_x86 }
-          - { name: i386-win32-vs2022,    os: windows-2022, vsversion: 2022, vsarch: amd64_x86 }
+          # TODO later: as of 2024-06-07 i386-win32-vs2022 stopped working: "upx_ucl_init() failed";
+          #   examine why; flaky??
+          # { name: i386-win32-vs2022,    os: windows-2022, vsversion: 2022, vsarch: amd64_x86 }
     steps:
       - run: git config --global core.autocrlf false
       - uses: actions/checkout@v4

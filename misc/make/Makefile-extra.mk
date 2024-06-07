@@ -256,12 +256,12 @@ build/$(UPX_XTARGET)/release: PHONY; $(call run_config_and_build,$@,Release)
 build/$(UPX_XTARGET)/%: export CC  := $(CC)
 build/$(UPX_XTARGET)/%: export CXX := $(CXX)
 # shortcuts
-xtarget/all:     xtarget/debug xtarget/release PHONY
 xtarget/debug:   build/$(UPX_XTARGET)/debug PHONY
 xtarget/release: build/$(UPX_XTARGET)/release PHONY
-xtarget/all+test:     xtarget/debug+test xtarget/release+test PHONY
+xtarget/all:     xtarget/debug xtarget/release PHONY
 xtarget/debug+test:   build/$(UPX_XTARGET)/debug+test PHONY
 xtarget/release+test: build/$(UPX_XTARGET)/release+test PHONY
+xtarget/all+test:     xtarget/debug+test xtarget/release+test PHONY
 # set new default
 .DEFAULT_GOAL := build/$(UPX_XTARGET)/release
 

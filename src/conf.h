@@ -84,7 +84,9 @@ static_assert((char) (-1) == 255);
 
 #if __cplusplus >= 202002L // C++20
 #define upx_is_constant_evaluated std::is_constant_evaluated
-#elif __has_builtin(__builtin_is_constant_evaluated) // clang-9, gcc-9
+#elif __has_builtin(__builtin_is_constant_evaluated) // clang-9, gcc-10
+#define upx_is_constant_evaluated __builtin_is_constant_evaluated
+#elif (ACC_CC_GNUC >= 0x090000) && 1 // gcc-9
 #define upx_is_constant_evaluated __builtin_is_constant_evaluated
 #endif
 

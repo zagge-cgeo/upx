@@ -146,7 +146,7 @@ void MemBuffer::fill(unsigned off, unsigned len, int value) {
 **************************************************************************/
 
 // for use_simple_mcheck()
-#define PTR_BITS32(p) ((unsigned) (ptr_get_address(p) & 0xffffffff))
+#define PTR_BITS32(p) ((upx_uint32_t) (ptr_get_address(p) & 0xffffffff))
 #define MAGIC1(p)     ((PTR_BITS32(p) ^ 0xfefdbeeb) | 1)
 #define MAGIC2(p)     ((PTR_BITS32(p) ^ 0xfefdbeeb ^ 0x88224411) | 1)
 
@@ -279,7 +279,7 @@ TEST_CASE("MemBuffer core") {
     CHECK_THROWS(mb.subref("", N, 1));
     if (use_simple_mcheck()) {
         byte *p = raw_bytes(mb, 0);
-        unsigned magic1 = get_ne32(p - 4);
+        upx_uint32_t magic1 = get_ne32(p - 4);
         set_ne32(p - 4, magic1 ^ 1);
         CHECK_THROWS(mb.checkState());
         set_ne32(p - 4, magic1);

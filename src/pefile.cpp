@@ -884,8 +884,9 @@ public:
         ACC_COMPILE_TIME_ASSERT(sizeof(C1) == 1) // "char" or "byte"
         ACC_COMPILE_TIME_ASSERT(sizeof(C2) == 1) // "char" or "byte"
         const Section *s = getThunk((const char *) dll, (const char *) proc, thunk_separator_first);
-        if (s == nullptr &&
-            (s = getThunk((const char *) dll, (const char *) proc, thunk_separator)) == nullptr)
+        if (s == nullptr)
+            s = getThunk((const char *) dll, (const char *) proc, thunk_separator);
+        if (s == nullptr)
             throwInternalError("entry not found");
         return s->offset;
     }
@@ -897,7 +898,9 @@ public:
         char ord[1 + 5 + 1];
         upx_safe_snprintf(ord, sizeof(ord), "%c%05u", ordinal_id, ordinal);
         const Section *s = getThunk((const char *) dll, ord, thunk_separator_first);
-        if (s == nullptr && (s = getThunk((const char *) dll, ord, thunk_separator)) == nullptr)
+        if (s == nullptr)
+            s = getThunk((const char *) dll, ord, thunk_separator);
+        if (s == nullptr)
             throwInternalError("entry not found");
         return s->offset;
     }
@@ -910,12 +913,13 @@ public:
     }
 
     template <typename C>
-    upx_uint64_t hasDll(const C *dll) const {
+    bool hasDll(const C *dll) const {
         ACC_COMPILE_TIME_ASSERT(sizeof(C) == 1) // "char" or "byte"
         TStr sdll(name_for_dll((const char *) dll, dll_name_id));
         return findSection(sdll, false) != nullptr;
     }
-};
+}; // class PeFile::ImportLinker
+
 /*static*/ const char PeFile::ImportLinker::zeros[sizeof(import_desc)] = {0};
 
 void PeFile::addKernelImport(const char *name) { ilinker->add_import(kernelDll(), name); }
@@ -928,8 +932,7 @@ void PeFile::addStubImports() {
     addKernelImport("VirtualProtect");
 }
 
-void PeFile::processImports2(unsigned myimport, unsigned) // pass 2
-{
+void PeFile::processImports2(unsigned myimport, unsigned) { // pass 2
     COMPILE_TIME_ASSERT(sizeof(import_desc) == 20)
     if (ilinker == nullptr)
         return;
@@ -941,8 +944,7 @@ void PeFile::processImports2(unsigned myimport, unsigned) // pass 2
 }
 
 template <typename LEXX, typename ord_mask_t>
-unsigned PeFile::processImports0(ord_mask_t ord_mask) // pass 1
-{
+unsigned PeFile::processImports0(ord_mask_t ord_mask) { // pass 1
     if (isefi) {
         if (IDSIZE(PEDIR_IMPORT))
             throwCantPack("imports not supported on EFI");
@@ -1354,8 +1356,7 @@ struct PeFile::tls_traits<LE64> final {
 
 template <typename LEXX>
 void PeFile::processTls1(Interval *iv, typename tls_traits<LEXX>::cb_value_t imagebase,
-                         unsigned imagesize) // pass 1
-{
+                         unsigned imagesize) { // pass 1
     typedef typename tls_traits<LEXX>::tls tls;
     typedef typename tls_traits<LEXX>::cb_value_t cb_value_t;
     constexpr unsigned cb_size = tls_traits<LEXX>::cb_size;
@@ -1441,8 +1442,7 @@ void PeFile::processTls1(Interval *iv, typename tls_traits<LEXX>::cb_value_t ima
 
 template <typename LEXX>
 void PeFile::processTls2(Reloc *const rel, const Interval *const iv, unsigned newaddr,
-                         typename tls_traits<LEXX>::cb_value_t imagebase) // pass 2
-{
+                         typename tls_traits<LEXX>::cb_value_t imagebase) { // pass 2
     typedef typename tls_traits<LEXX>::tls tls;
     typedef typename tls_traits<LEXX>::cb_value_t cb_value_t;
     constexpr unsigned cb_size = tls_traits<LEXX>::cb_size;
@@ -1501,8 +1501,7 @@ void PeFile::processTls2(Reloc *const rel, const Interval *const iv, unsigned ne
 // Load Configuration handling
 **************************************************************************/
 
-void PeFile::processLoadConf(Interval *iv) // pass 1
-{
+void PeFile::processLoadConf(Interval *iv) { // pass 1
     if (IDSIZE(PEDIR_LOAD_CONFIG) == 0)
         return;
 
@@ -2350,7 +2349,7 @@ void PeFile::pack0(OutputFile *fo, ht &ih, ht &oh, unsigned subsystem_mask,
     unsigned newvsize = (isection[objs - 1].vaddr + isection[objs - 1].vsize + oam1) & ~oam1;
 
     NO_fprintf(stderr, "newvsize=%x objs=%d\n", newvsize, objs);
-    if (newvsize + soimport + sorelocs > ibuf.getSize())
+    if ((upx_uint64_t) newvsize + soimport + sorelocs > ibuf.getSize())
         throwInternalError("buffer too small 2");
     memcpy(ibuf + newvsize, oimport, soimport);
     memcpy(ibuf + newvsize + soimport, orelocs, sorelocs);
@@ -3144,8 +3143,7 @@ tribool PeFile32::canUnpack() {
     return canUnpack0(getFormat() == UPX_F_WINCE_ARM ? 4 : 3, ih.objects, ih.entry, sizeof(ih));
 }
 
-unsigned PeFile32::processImports() // pass 1
-{
+unsigned PeFile32::processImports() { // pass 1
     return processImports0<LE32>(1u << 31);
 }
 
@@ -3195,8 +3193,7 @@ tribool PeFile64::canUnpack() {
     return canUnpack0(3, ih.objects, ih.entry, sizeof(ih));
 }
 
-unsigned PeFile64::processImports() // pass 1
-{
+unsigned PeFile64::processImports() { // pass 1
     return processImports0<LE64>(1ULL << 63);
 }
 

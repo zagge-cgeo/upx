@@ -743,7 +743,7 @@ inline void owner_delete(OwningPointer(T)(&object)) noexcept {
     static_assert(std::is_class_v<T>); // UPX convention
     static_assert(std::is_nothrow_destructible_v<T>);
     if (object != nullptr) {
-        delete (T *) object;
+        delete (T *) object; // single object delete
         object = nullptr;
     }
     assert_noexcept((T *) object == nullptr);
@@ -754,7 +754,7 @@ template <class T>
 inline void owner_free(OwningPointer(T)(&object)) noexcept {
     static_assert(!std::is_class_v<T>); // UPX convention
     if (object != nullptr) {
-        ::free((T *) object);
+        ::free((T *) object); // free memory from malloc()
         object = nullptr;
     }
     assert_noexcept((T *) object == nullptr);

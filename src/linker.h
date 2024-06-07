@@ -31,7 +31,7 @@
 // ElfLinker
 **************************************************************************/
 
-class ElfLinker : private upx::noncopyable {
+class ElfLinker /*not_final*/ : private upx::noncopyable {
     friend class Packer;
 
 public:
@@ -114,7 +114,7 @@ protected:
                            const char *type);
 };
 
-struct ElfLinker::Section : private upx::noncopyable {
+struct ElfLinker::Section final : private upx::noncopyable {
     char *name = nullptr;
     void *input = nullptr;
     byte *output = nullptr;
@@ -128,7 +128,7 @@ struct ElfLinker::Section : private upx::noncopyable {
     ~Section() noexcept;
 };
 
-struct ElfLinker::Symbol : private upx::noncopyable {
+struct ElfLinker::Symbol final : private upx::noncopyable {
     char *name = nullptr;
     Section *section = nullptr;
     upx_uint64_t offset = 0;
@@ -137,7 +137,7 @@ struct ElfLinker::Symbol : private upx::noncopyable {
     ~Symbol() noexcept;
 };
 
-struct ElfLinker::Relocation : private upx::noncopyable {
+struct ElfLinker::Relocation final : private upx::noncopyable {
     const Section *section = nullptr;
     unsigned offset = 0;
     const char *type = nullptr;
