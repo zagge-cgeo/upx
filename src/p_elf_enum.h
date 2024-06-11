@@ -103,6 +103,11 @@ class Dummy {
         PT_NUM = 8,                /* Number of defined types in low range */
         PT_GNU_STACK = 0x6474e551, /* Indicates stack executability */
         PT_GNU_RELRO = 0x6474e552, /* Read-only after relocation */
+        PT_MIPS_REGINFO = 0x70000000,
+        /* Register usage information. */ //
+        //      PT_MIPS_RTPROC =   0x70000001, /* Runtime procedure table. */
+        //      PT_MIPS_OPTIONS =  0x70000002,
+        PT_MIPS_ABIFLAGS = 0x70000003, /* FP mode requirement. */
     };
 
     enum {        // p_flags

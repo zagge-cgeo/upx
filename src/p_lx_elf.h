@@ -224,6 +224,10 @@ protected:
     Elf32_Shdr *shdri; // from input file
     Elf32_Shdr *shdro; // for  output file
     Elf32_Phdr const *gnu_stack;  // propagate NX
+    static unsigned const END_PHDRX = 4;
+    Elf32_Phdr const *phdrx[END_PHDRX];  // "extra" arch-specific Phdr
+    unsigned n_phdrx;  // number actually used
+    unsigned sz_phdrx;  // total size of bodies
     unsigned e_phoff;
     unsigned e_shoff;
     unsigned sz_dynseg;  // PT_DYNAMIC.p_memsz
@@ -385,6 +389,10 @@ protected:
     Elf64_Shdr *shdri; // from input file
     Elf64_Shdr *shdro; // for  output file
     Elf64_Phdr const *gnu_stack;  // propagate NX
+    static unsigned const END_PHDRX = 4;
+    Elf64_Phdr const *phdrx[END_PHDRX];  // "extra" arch-specific Phdr
+    unsigned n_phdrx;  // number actually used
+    unsigned sz_phdrx;  // total size of bodies
     upx_uint64_t e_phoff;
     upx_uint64_t e_shoff;
     upx_uint64_t sz_dynseg;  // PT_DYNAMIC.p_memsz
