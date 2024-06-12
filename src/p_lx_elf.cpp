@@ -3592,12 +3592,12 @@ PackLinuxElf32::generateElfHdr(
     sz_phdrx = off_o - (sizeof(Elf32_Ehdr) + phnum_o * sizeof(Elf32_Phdr));
     set_te32(&h2->phdr[C_BASE].p_filesz, off_o);
 
-    sz_elf_hdrs = sizeof(Elf32_Ehdr) + phnum_o * sizeof(Elf32_Phdr)
-        + sz_phdrx + sizeof(l_info);
-    o_binfo =  sz_elf_hdrs + sizeof(p_info);
+    sz_elf_hdrs = sizeof(Elf32_Ehdr) + phnum_o * sizeof(Elf32_Phdr) + sz_phdrx;
+    overlay_offset = sz_elf_hdrs + sizeof(l_info);
+    o_binfo        = sz_elf_hdrs + sizeof(l_info) + sizeof(p_info);
 
-    l_info tmp; memset(&tmp, 0, sizeof(tmp));
-    fo->write(&tmp, sizeof(tmp));
+    l_info linfo2; memset(&linfo2, 0, sizeof(linfo2));
+    fo->write(&linfo2, sizeof(linfo2));
 }
 
 void
@@ -6145,7 +6145,8 @@ void PackLinuxElf32::pack4(OutputFile *fo, Filter &ft)
 
         fo->seek(0, SEEK_SET);
         fo->rewrite(&eho->ehdr, sizeof(Elf32_Ehdr) + 2* sizeof(Elf32_Phdr));  // C_BASE, C_TEXT
-        // fo->rewrite(&linfo, sizeof(linfo));  // FIXME: need?  SEEK ?
+        fo->seek(overlay_offset - sizeof(l_info), SEEK_SET);
+        fo->rewrite(&linfo, sizeof(linfo));
     }
 }
 
