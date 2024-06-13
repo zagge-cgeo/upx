@@ -224,7 +224,6 @@ protected:
     Elf32_Phdr *phdri; // for  input file
     Elf32_Shdr *shdri; // from input file
     Elf32_Shdr *shdro; // for  output file
-    Elf32_Phdr const *gnu_stack;  // propagate NX
     static unsigned const END_PHDRX = 5;
     Elf32_Phdr const *phdrx[END_PHDRX];  // "extra" arch-specific Phdr
     unsigned n_phdrx;  // number actually used
@@ -390,7 +389,6 @@ protected:
     Elf64_Phdr *phdri; // for  input file
     Elf64_Shdr *shdri; // from input file
     Elf64_Shdr *shdro; // for  output file
-    Elf64_Phdr const *gnu_stack;  // propagate NX
     static unsigned const END_PHDRX = 5;
     Elf64_Phdr const *phdrx[END_PHDRX];  // "extra" arch-specific Phdr
     unsigned n_phdrx;  // number actually used

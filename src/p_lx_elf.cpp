@@ -953,7 +953,7 @@ void PackLinuxElf64::defineSymbols(Filter const *ft)
 
 PackLinuxElf32::PackLinuxElf32(InputFile *f)
     : super(f), phdri(nullptr), shdri(nullptr),
-    gnu_stack(nullptr), n_phdrx(0), sz_phdrx(0),
+    n_phdrx(0), sz_phdrx(0),
     page_mask(~0u<<lg2_page),
     dynseg(nullptr), hashtab(nullptr), hashend(nullptr),
                      gashtab(nullptr), gashend(nullptr), dynsym(nullptr),
@@ -983,7 +983,7 @@ void PackLinuxElf32::add_phdrx(Elf32_Phdr const *phdr)
 
 PackLinuxElf64::PackLinuxElf64(InputFile *f)
     : super(f), phdri(nullptr), shdri(nullptr),
-    gnu_stack(nullptr), n_phdrx(0), sz_phdrx(0),
+    n_phdrx(0), sz_phdrx(0),
     page_mask(~0ull<<lg2_page),
     dynseg(nullptr), hashtab(nullptr), hashend(nullptr),
                      gashtab(nullptr), gashend(nullptr), dynsym(nullptr),
@@ -2511,21 +2511,17 @@ PackLinuxElf32::canPackOSABI(Elf32_Ehdr const *ehdr)
             }
             hatch_off = ~3u & (3+ get_te32(&phdr->p_memsz));
         }
-        if (PT_GNU_STACK32 == p_type) {
-            add_phdrx(phdr);
-        }
         if (EM_MIPS == e_machine
         &&  (Elf32_Phdr::PT_MIPS_ABIFLAGS == p_type
           || Elf32_Phdr::PT_MIPS_REGINFO  == p_type)
         ) {
-            add_phdrx(phdr);
+            add_phdrx(phdr);  // PT_MIPS_*
             unsigned mask = -1+ get_te32(&phdr->p_align);
             sz_phdrx = ~mask & (mask + sz_phdrx);
             sz_phdrx += get_te32(&phdr->p_memsz);
 
         }
         if (PT_NOTE32 == p_type) {
-            add_phdrx(phdr);
             if (osabi_note && Elf32_Ehdr::ELFOSABI_NONE==osabi0) { // Still seems to be generic.
                 struct {
                     struct Elf32_Nhdr nhdr;
@@ -3476,9 +3472,6 @@ PackLinuxElf32::generateElfHdr(
     h3->ehdr =         ((cprElfHdr3 const *)proto)->ehdr;
     h3->phdr[C_BASE] = ((cprElfHdr3 const *)proto)->phdr[1];  // .data; .p_align
     h3->phdr[C_TEXT] = ((cprElfHdr3 const *)proto)->phdr[0];  // .text
-    if (3 <= get_te16(&h3->ehdr.e_phnum)) {
-        add_phdrx(&((cprElfHdr3 const *)proto)->phdr[2]);  // PT_GNU_STACK ?
-    }
 
     h3->ehdr.e_type = ehdri.e_type;  // ET_EXEC vs ET_DYN (gcc -pie -fPIC)
     h3->ehdr.e_ident[Elf32_Ehdr::EI_OSABI] = ei_osabi;
@@ -3511,9 +3504,6 @@ PackLinuxElf32::generateElfHdr(
 
     unsigned phnum_o = 2 + n_phdrx;  // C_BASE, C_TEXT
     set_te16(&h2->ehdr.e_phnum, phnum_o);
-
-    set_te32(&h2->phdr[C_TEXT].p_filesz, sizeof(*h2));  // + identsize;
-              h2->phdr[C_TEXT].p_memsz = h2->phdr[C_TEXT].p_filesz;
 
     // Info for OS kernel to set the brk()
     if (brka) {
@@ -3555,7 +3545,7 @@ PackLinuxElf32::generateElfHdr(
             unsigned pad = 0;
             if (filesz && align && is_pow2(align)) {
                 unsigned alm1 = -1 + umin(8u, align);
-                pad = alm1 & -off_o;
+                pad = alm1 & (0u - off_o);
                 off_o += pad;
                 set_te32(&phtmp.p_vaddr, off_o + uva0); phtmp.p_paddr = phtmp.p_vaddr;
             }
@@ -3771,7 +3761,6 @@ PackLinuxElf64::generateElfHdr(
     h3->ehdr =         ((cprElfHdr3 const *)proto)->ehdr;
     h3->phdr[C_BASE] = ((cprElfHdr3 const *)proto)->phdr[1];  // .data; .p_align
     h3->phdr[C_TEXT] = ((cprElfHdr3 const *)proto)->phdr[0];  // .text
-    memset(&h3->linfo, 0, sizeof(h3->linfo));
 
     h3->ehdr.e_type = ehdri.e_type;  // ET_EXEC vs ET_DYN (gcc -pie -fPIC)
     h3->ehdr.e_ident[Elf64_Ehdr::EI_OSABI] = ei_osabi;
@@ -3784,13 +3773,11 @@ PackLinuxElf64::generateElfHdr(
         h3->ehdr.e_flags = ehdri.e_flags;  // "0x1, abiv1" vs "0x2, abiv2"
     }
 
-    unsigned const phnum_i = get_te16(&h2->ehdr.e_phnum);
-    unsigned       phnum_o = phnum_i;
-
     assert(get_te64(&h2->ehdr.e_phoff)     == sizeof(Elf64_Ehdr));
-                         h2->ehdr.e_shoff = 0;
     assert(get_te16(&h2->ehdr.e_ehsize)    == sizeof(Elf64_Ehdr));
     assert(get_te16(&h2->ehdr.e_phentsize) == sizeof(Elf64_Phdr));
+
+    h2->ehdr.e_shoff = 0;
     if (o_elf_shnum) {
         set_te16(&h2->ehdr.e_shentsize, sizeof(Elf64_Shdr));
         h2->ehdr.e_shnum = o_elf_shnum;
@@ -3802,21 +3789,8 @@ PackLinuxElf64::generateElfHdr(
         h2->ehdr.e_shstrndx = 0;
     }
 
-    sz_elf_hdrs = sizeof(*h2) - sizeof(linfo);  // default
-    if (gnu_stack) {
-        sz_elf_hdrs += sizeof(Elf64_Phdr);
-        memcpy(&h2->phdr[phnum_o++], gnu_stack, sizeof(*gnu_stack));
-        set_te16(&h2->ehdr.e_phnum, phnum_o);
-    }
-    o_binfo =  sizeof(Elf64_Ehdr) + sizeof(Elf64_Phdr)*phnum_o + sizeof(l_info) + sizeof(p_info);
-    set_te64(&h2->phdr[C_TEXT].p_filesz, sizeof(*h2));  // + identsize;
-                  h2->phdr[C_TEXT].p_memsz = h2->phdr[C_TEXT].p_filesz;
-
-    for (unsigned j=0; j < phnum_i; ++j) {
-        if (PT_LOAD64==get_te32(&h3->phdr[j].p_type)) {
-            set_te64(&h3->phdr[j].p_align, page_size);
-        }
-    }
+    unsigned phnum_o = 2 + n_phdrx;  // C_BASE, C_TEXT
+    set_te16(&h2->ehdr.e_phnum, phnum_o);
 
     // Info for OS kernel to set the brk()
     if (brka) {
@@ -3839,21 +3813,50 @@ PackLinuxElf64::generateElfHdr(
         set_te64(&h2->phdr[C_BASE].p_memsz, brka - lo_va_user);
         set_te32(&h2->phdr[C_BASE].p_flags, Elf64_Phdr::PF_R | Elf64_Phdr::PF_W);
     }
-    if (ph.format==getFormat()) {
-        assert((2u+ !!gnu_stack) == phnum_o);
-        set_te32(&h2->phdr[C_TEXT].p_flags, ~Elf64_Phdr::PF_W & get_te32(&h2->phdr[C_TEXT].p_flags));
-        if (!gnu_stack) {
-            memset(&h2->linfo, 0, sizeof(h2->linfo));
-            fo->write(h2, sizeof(*h2));
-        }
-        else {
-            memset(&h3->linfo, 0, sizeof(h3->linfo));
-            fo->write(h3, sizeof(*h3));
+    set_te64(&h3->phdr[C_BASE].p_align, page_size);
+    set_te64(&h3->phdr[C_TEXT].p_align, page_size);
+    set_te32(&h2->phdr[C_TEXT].p_flags, ~Elf64_Phdr::PF_W & get_te32(&h2->phdr[C_TEXT].p_flags));
+    fo->write(h2, sizeof(Elf64_Ehdr) + 2* sizeof(Elf64_Phdr));  // C_BASE, C_TEXT
+
+    u64_t const zero_pad = 0;
+    unsigned uva0 = get_te64(&h2->phdr[C_TEXT].p_vaddr);
+    unsigned off_o = 0;
+    for (unsigned phase = 0; phase < 2; ++phase) { // 0: Phdrs;  1: bodies
+        off_o = sizeof(Elf64_Ehdr) + phnum_o * sizeof(Elf64_Phdr);
+        for (unsigned j = 0; j < n_phdrx; ++j) {
+            Elf64_Phdr phtmp = *phdrx[j];
+            phtmp.p_vaddr = phtmp.p_paddr = 0;
+            u64_t const off_i = get_te64(&phtmp.p_offset);
+            u64_t const align = get_te64(&phtmp.p_align);
+            u64_t const filesz = get_te64(&phtmp.p_filesz);
+            unsigned pad = 0;
+            if (filesz && align && is_pow2(align)) {
+                unsigned alm1 = -1 + umin(8u, (unsigned)align);
+                pad = alm1 & (0u - off_o);
+                off_o += pad;
+                set_te64(&phtmp.p_vaddr, off_o + uva0); phtmp.p_paddr = phtmp.p_vaddr;
+            }
+            if (0==phase) {
+                set_te64(&phtmp.p_offset, (filesz ? off_o : 0));
+                fo->write(&phtmp, sizeof(phtmp));  // Phdr
+            }
+            if (1==phase) {
+                if (pad) fo->write(&zero_pad, pad);
+                if (filesz) fo->write(&file_image[off_i], filesz);  // body
+            }
+            off_o += filesz;
         }
     }
-    else {
-        assert(false);  // unknown ph.format, PackLinuxElf64
-    }
+    off_o = fpad4(fo, off_o);
+    sz_phdrx = off_o - (sizeof(Elf64_Ehdr) + phnum_o * sizeof(Elf64_Phdr));
+    set_te64(&h2->phdr[C_BASE].p_filesz, off_o);
+
+    sz_elf_hdrs = sizeof(Elf64_Ehdr) + phnum_o * sizeof(Elf64_Phdr) + sz_phdrx;
+    overlay_offset = sz_elf_hdrs + sizeof(l_info);
+    o_binfo        = sz_elf_hdrs + sizeof(l_info) + sizeof(p_info);
+
+    l_info linfo2; memset(&linfo2, 0, sizeof(linfo2));
+    fo->write(&linfo2, sizeof(linfo2));
 }
 
 // Android shlib has ABS symbols that actually are relative.
@@ -4002,6 +4005,9 @@ void PackLinuxElf32::pack1(OutputFile * /*fo*/, Filter &ft)
     Elf32_Phdr *phdr = phdri;
     for (unsigned j=0; j < e_phnum; ++phdr, ++j) {
         unsigned const type = get_te32(&phdr->p_type);
+        if (PT_GNU_STACK32 == type || PT_NOTE32 == type) {
+            add_phdrx(phdr);  // PT_GNU_STACK32, PT_NOTE32
+        }
         if (PT_LOAD32 == type) {
             unsigned x = get_te32(&phdr->p_align) >> lg2_page;
             while (x>>=1) {
@@ -4028,9 +4034,6 @@ void PackLinuxElf32::pack1(OutputFile * /*fo*/, Filter &ft)
                 }
                 lg2_page = umin(lg2_page, -1+ b);
             }
-        }
-        if (PT_GNU_STACK32 == type) {
-            gnu_stack = phdr;
         }
     }
     page_size =  1u  <<lg2_page;
@@ -4852,6 +4855,9 @@ void PackLinuxElf64::pack1(OutputFile * /*fo*/, Filter &ft)
     Elf64_Phdr *phdr = phdri;
     for (unsigned j=0; j < e_phnum; ++phdr, ++j) {
         unsigned const type = get_te32(&phdr->p_type);
+        if (PT_GNU_STACK64 == type || PT_NOTE64 == type) {
+            add_phdrx(phdr);  // PT_GNU_STACK64, PT_NOTE64
+        }
         if (PT_LOAD64 == type) {
             unsigned x = get_te64(&phdr->p_align) >> lg2_page;
             while (x>>=1) {
@@ -4878,9 +4884,6 @@ void PackLinuxElf64::pack1(OutputFile * /*fo*/, Filter &ft)
                 }
                 lg2_page = umin(lg2_page, -1+ b);
             }
-        }
-        if (PT_GNU_STACK64 == type) {
-            gnu_stack = phdr;
         }
     }
     page_size =  1u  <<lg2_page;
@@ -5363,6 +5366,8 @@ int PackLinuxElf64::pack2(OutputFile *fo, Filter &ft)
                     fi->seek(x.size + x.offset, SEEK_SET);
                 }
                 if (hdr_u_len) { // first time
+                    fo->seek(sz_phdrx, SEEK_CUR);
+
                     linfo.l_checksum = 0;  // preliminary
                     linfo.l_magic = UPX_MAGIC_LE32;
                     set_le16(&linfo.l_lsize, lsize);  // preliminary (0)
@@ -6148,7 +6153,9 @@ void PackLinuxElf64::pack4(OutputFile *fo, Filter &ft)
         set_te64(&eho->phdr[C_TEXT].p_filesz, sz_pack2 + lsize);
                   eho->phdr[C_TEXT].p_memsz = eho->phdr[C_TEXT].p_filesz;
 
-        fo->rewrite(eho, sz_elf_hdrs);
+        fo->seek(0, SEEK_SET);
+        fo->rewrite(&eho->ehdr, sizeof(Elf64_Ehdr) + 2* sizeof(Elf64_Phdr));  // C_BASE, C_TEXT
+        fo->seek(overlay_offset - sizeof(l_info), SEEK_SET);
         fo->rewrite(&linfo, sizeof(linfo));
     }
 }
