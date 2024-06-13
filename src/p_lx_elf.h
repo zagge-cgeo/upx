@@ -215,6 +215,7 @@ protected:
     virtual upx_uint64_t elf_unsigned_dynamic(unsigned) const override;
     unsigned find_dt_ndx(unsigned rva);
     virtual int adjABS(Elf32_Sym *sym, unsigned delta);
+    void add_phdrx(Elf32_Phdr const *);
 
     char const *get_str_name(unsigned st_name, unsigned symnum) const;
     char const *get_dynsym_name(unsigned symnum, unsigned relnum) const;
@@ -224,7 +225,7 @@ protected:
     Elf32_Shdr *shdri; // from input file
     Elf32_Shdr *shdro; // for  output file
     Elf32_Phdr const *gnu_stack;  // propagate NX
-    static unsigned const END_PHDRX = 4;
+    static unsigned const END_PHDRX = 5;
     Elf32_Phdr const *phdrx[END_PHDRX];  // "extra" arch-specific Phdr
     unsigned n_phdrx;  // number actually used
     unsigned sz_phdrx;  // total size of bodies
@@ -380,6 +381,7 @@ protected:
     virtual upx_uint64_t elf_unsigned_dynamic(unsigned) const override;
     unsigned find_dt_ndx(u64_t rva);
     virtual int adjABS(Elf64_Sym *sym, unsigned long delta);
+    void add_phdrx(Elf64_Phdr const *);
 
     char const *get_str_name(unsigned st_name, unsigned symnum) const;
     char const *get_dynsym_name(unsigned symnum, unsigned relnum) const;
@@ -389,7 +391,7 @@ protected:
     Elf64_Shdr *shdri; // from input file
     Elf64_Shdr *shdro; // for  output file
     Elf64_Phdr const *gnu_stack;  // propagate NX
-    static unsigned const END_PHDRX = 4;
+    static unsigned const END_PHDRX = 5;
     Elf64_Phdr const *phdrx[END_PHDRX];  // "extra" arch-specific Phdr
     unsigned n_phdrx;  // number actually used
     unsigned sz_phdrx;  // total size of bodies

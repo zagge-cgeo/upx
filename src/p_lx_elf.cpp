@@ -973,6 +973,14 @@ PackLinuxElf32::~PackLinuxElf32()
 {
 }
 
+void PackLinuxElf32::add_phdrx(Elf32_Phdr const *phdr)
+{
+    if (END_PHDRX <= n_phdrx) {
+        throwCantPack("too many Phdr %u", (unsigned)(phdr - phdri));
+    }
+    phdrx[n_phdrx++] = phdr;
+}
+
 PackLinuxElf64::PackLinuxElf64(InputFile *f)
     : super(f), phdri(nullptr), shdri(nullptr),
     gnu_stack(nullptr), n_phdrx(0), sz_phdrx(0),
@@ -993,6 +1001,14 @@ PackLinuxElf64::PackLinuxElf64(InputFile *f)
 
 PackLinuxElf64::~PackLinuxElf64()
 {
+}
+
+void PackLinuxElf64::add_phdrx(Elf64_Phdr const *phdr)
+{
+    if (END_PHDRX <= n_phdrx) {
+        throwCantPack("too many Phdr %u", (unsigned)(phdr - phdri));
+    }
+    phdrx[n_phdrx++] = phdr;
 }
 
 // FIXME: should be templated with PackLinuxElf32help1
@@ -2496,31 +2512,20 @@ PackLinuxElf32::canPackOSABI(Elf32_Ehdr const *ehdr)
             hatch_off = ~3u & (3+ get_te32(&phdr->p_memsz));
         }
         if (PT_GNU_STACK32 == p_type) {
-            if (END_PHDRX <= n_phdrx) {
-                throwCantPack("too many Phdr %u", (unsigned)(phdr - phdri));
-            }
-            phdrx[n_phdrx++] = phdr;
+            add_phdrx(phdr);
         }
         if (EM_MIPS == e_machine
         &&  (Elf32_Phdr::PT_MIPS_ABIFLAGS == p_type
           || Elf32_Phdr::PT_MIPS_REGINFO  == p_type)
         ) {
-            if (END_PHDRX <= n_phdrx) {
-                throwCantPack("too many Phdr %u", (unsigned)(phdr - phdri));
-            }
-            phdrx[n_phdrx++] = phdr;
+            add_phdrx(phdr);
             unsigned mask = -1+ get_te32(&phdr->p_align);
             sz_phdrx = ~mask & (mask + sz_phdrx);
             sz_phdrx += get_te32(&phdr->p_memsz);
 
         }
         if (PT_NOTE32 == p_type) {
-            unsigned const x = get_te32(&phdr->p_memsz);
-            if ( sizeof(elfout.notes) < x  // beware overflow of note_size
-            ||  (sizeof(elfout.notes) < (note_size += x)) ) {
-                throwCantPack("PT_NOTEs too big; try '--force-execve'");
-                return false;
-            }
+            add_phdrx(phdr);
             if (osabi_note && Elf32_Ehdr::ELFOSABI_NONE==osabi0) { // Still seems to be generic.
                 struct {
                     struct Elf32_Nhdr nhdr;
@@ -2969,21 +2974,6 @@ bad:
                 throwCantPack(buf);
                 goto abandon;
             }
-            if (!opt->o_unix.android_shlib
-            &&    !saved_opt_android_shlib
-            ) {
-                phdr = phdri;
-                for (unsigned j= 0; j < e_phnum; ++phdr, ++j) {
-                    unsigned const vaddr = get_te32(&phdr->p_vaddr);
-                    if (PT_NOTE32 == get_te32(&phdr->p_type)
-                    && xct_va < vaddr) {
-                        char buf[40]; snprintf(buf, sizeof(buf),
-                           "PT_NOTE %#x above stub", vaddr);
-                        throwCantPack(buf);
-                        goto abandon;
-                    }
-                }
-            }
             xct_off = elf_get_offset_from_address(xct_va);
             if (opt->debug.debug_level) {
                 fprintf(stderr, "shlib canPack: xct_va=%#lx  xct_off=%#lx\n",
@@ -3395,21 +3385,6 @@ tribool PackLinuxElf64::canPack()
                 throwCantPack(buf);
                 goto abandon;
             }
-            if (!opt->o_unix.android_shlib
-            &&    !saved_opt_android_shlib
-            ) {
-                phdr = phdri;
-                for (unsigned j= 0; j < e_phnum; ++phdr, ++j) {
-                    upx_uint64_t const vaddr = get_te64(&phdr->p_vaddr);
-                    if (PT_NOTE64 == get_te32(&phdr->p_type)
-                    && xct_va < vaddr) {
-                        char buf[40]; snprintf(buf, sizeof(buf),
-                           "PT_NOTE %#lx above stub", (unsigned long)vaddr);
-                        throwCantPack(buf);
-                        goto abandon;
-                    }
-                }
-            }
             xct_off = elf_get_offset_from_address(xct_va);
             if (opt->debug.debug_level) {
                 fprintf(stderr, "shlib canPack: xct_va=%#lx  xct_off=%#lx\n",
@@ -3483,6 +3458,12 @@ PackLinuxElf64::getbrk(const Elf64_Phdr *phdr, int nph) const
     return brka;
 }
 
+static unsigned
+is_pow2(unsigned x)
+{
+    return !((-1 + x) & x);
+}
+
 void
 PackLinuxElf32::generateElfHdr(
     OutputFile *fo,
@@ -3496,7 +3477,7 @@ PackLinuxElf32::generateElfHdr(
     h3->phdr[C_BASE] = ((cprElfHdr3 const *)proto)->phdr[1];  // .data; .p_align
     h3->phdr[C_TEXT] = ((cprElfHdr3 const *)proto)->phdr[0];  // .text
     if (3 <= get_te16(&h3->ehdr.e_phnum)) {
-        phdrx[n_phdrx++] = &((cprElfHdr3 const *)proto)->phdr[2];  // probably PT_GNU_STACK
+        add_phdrx(&((cprElfHdr3 const *)proto)->phdr[2]);  // PT_GNU_STACK ?
     }
 
     h3->ehdr.e_type = ehdri.e_type;  // ET_EXEC vs ET_DYN (gcc -pie -fPIC)
@@ -3569,23 +3550,24 @@ PackLinuxElf32::generateElfHdr(
             Elf32_Phdr phtmp = *phdrx[j];
             phtmp.p_vaddr = phtmp.p_paddr = 0;
             unsigned const off_i = get_te32(&phtmp.p_offset);
-            unsigned const memsz = get_te32(&phtmp.p_memsz);
+            unsigned const align = get_te32(&phtmp.p_align);
+            unsigned const filesz = get_te32(&phtmp.p_filesz);
             unsigned pad = 0;
-            if (memsz) { // align
-                unsigned alm1 = -1 + umin(8u, get_te32(&phtmp.p_align));
+            if (filesz && align && is_pow2(align)) {
+                unsigned alm1 = -1 + umin(8u, align);
                 pad = alm1 & -off_o;
                 off_o += pad;
                 set_te32(&phtmp.p_vaddr, off_o + uva0); phtmp.p_paddr = phtmp.p_vaddr;
             }
             if (0==phase) {
-                set_te32(&phtmp.p_offset, (memsz ? off_o : 0));
+                set_te32(&phtmp.p_offset, (filesz ? off_o : 0));
                 fo->write(&phtmp, sizeof(phtmp));  // Phdr
             }
             if (1==phase) {
                 if (pad) fo->write(&zero_pad, pad);
-                if (memsz) fo->write(&file_image[off_i], memsz);  // body
+                if (filesz) fo->write(&file_image[off_i], filesz);  // body
             }
-            off_o += memsz;
+            off_o += filesz;
         }
     }
     off_o = fpad4(fo, off_o);
@@ -3607,8 +3589,8 @@ PackNetBSDElf32x86::generateElfHdr(
     unsigned const brka
 )
 {
-    super::generateElfHdr(fo, proto, brka);
     cprElfHdr2 *const h2 = (cprElfHdr2 *)(void *)&elfout;
+    super::generateElfHdr(fo, proto, brka);
 
     sz_elf_hdrs = sizeof(*h2) - sizeof(linfo);
     unsigned note_offset = sz_elf_hdrs;
@@ -4017,26 +3999,9 @@ void PackLinuxElf32::pack1(OutputFile * /*fo*/, Filter &ft)
         ph.method = ph_force_method(method_best);
     }
 
-    note_size = 0;
     Elf32_Phdr *phdr = phdri;
     for (unsigned j=0; j < e_phnum; ++phdr, ++j) {
-        if (PT_NOTE32 == get_te32(&phdr->p_type)) {
-            note_size += up4(get_te32(&phdr->p_filesz));
-        }
-    }
-    if (note_size) {
-        note_body.alloc(note_size);
-        note_size = 0;
-    }
-    phdr = phdri;
-    for (unsigned j=0; j < e_phnum; ++phdr, ++j) {
         unsigned const type = get_te32(&phdr->p_type);
-        unsigned const len = get_te32(&phdr->p_filesz);
-        if (PT_NOTE32 == type && len && note_body.getSize()) {
-            fi->seek(get_te32(&phdr->p_offset), SEEK_SET);
-            fi->readx(&note_body[note_size], len);
-            note_size += up4(len);
-        }
         if (PT_LOAD32 == type) {
             unsigned x = get_te32(&phdr->p_align) >> lg2_page;
             while (x>>=1) {
@@ -4275,18 +4240,7 @@ void PackLinuxElf64::asl_pack2_Shdrs(OutputFile *fo, unsigned pre_xct_top)
     for (unsigned j = 0; j < e_phnum; ++j, ++phdr) {
         upx_uint64_t offset = get_te64(&phdr->p_offset);
         if (xct_off <= offset) { // above the extra page
-            if (PT_NOTE64 == get_te32(&phdr->p_type)) {
-                upx_uint64_t memsz = get_te64(&phdr->p_memsz);
-                if (sizeof(buf_notes) < (memsz + len_notes)) {
-                    throwCantPack("PT_NOTES too big");
-                }
-                set_te64(&phdr->p_vaddr,
-                    len_notes + (e_shnum * sizeof(Elf64_Shdr)) + xct_off);
-                phdr->p_offset = phdr->p_paddr = phdr->p_vaddr;
-                memcpy(&buf_notes[len_notes], &file_image[offset], memsz);
-                len_notes += memsz;
-            }
-            else {
+            {
                 //set_te64(&phdr->p_offset, asl_delta + offset);  // physical
                 upx_uint64_t addr = get_te64(&phdr->p_paddr);
                 set_te64(&phdr->p_paddr, asl_delta + addr);
@@ -4518,18 +4472,7 @@ void PackLinuxElf32::asl_pack2_Shdrs(OutputFile *fo, unsigned pre_xct_top)
     for (unsigned j = 0; j < e_phnum; ++j, ++phdr) {
         upx_uint32_t offset = get_te32(&phdr->p_offset);
         if (xct_off <= offset) { // above the extra page
-            if (PT_NOTE32 == get_te32(&phdr->p_type)) {
-                upx_uint32_t memsz = get_te32(&phdr->p_memsz);
-                if (sizeof(buf_notes) < (memsz + len_notes)) {
-                    throwCantPack("PT_NOTES too big");
-                }
-                set_te32(&phdr->p_vaddr,
-                    len_notes + (e_shnum * sizeof(Elf32_Shdr)) + xct_off);
-                phdr->p_offset = phdr->p_paddr = phdr->p_vaddr;
-                memcpy(&buf_notes[len_notes], &file_image[offset], memsz);
-                len_notes += memsz;
-            }
-            else {
+            {
                 //set_te32(&phdr->p_offset, asl_delta + offset);  // physical
                 upx_uint32_t v_addr = get_te32(&phdr->p_vaddr);
                                       set_te32(&phdr->p_vaddr, asl_delta + v_addr);
@@ -4906,26 +4849,9 @@ void PackLinuxElf64::pack1(OutputFile * /*fo*/, Filter &ft)
         ph.method = ph_force_method(method_best);
     }
 
-    note_size = 0;
     Elf64_Phdr *phdr = phdri;
     for (unsigned j=0; j < e_phnum; ++phdr, ++j) {
-        if (PT_NOTE64 == get_te32(&phdr->p_type)) {
-            note_size += up4(get_te64(&phdr->p_filesz));
-        }
-    }
-    if (note_size) {
-        note_body.alloc(note_size);
-        note_size = 0;
-    }
-    phdr = phdri;
-    for (unsigned j=0; j < e_phnum; ++phdr, ++j) {
         unsigned const type = get_te32(&phdr->p_type);
-        if (PT_NOTE64 == type) {
-            unsigned const len = get_te64(&phdr->p_filesz);
-            fi->seek(get_te64(&phdr->p_offset), SEEK_SET);
-            fi->readx(&note_body[note_size], len);
-            note_size += up4(len);
-        }
         if (PT_LOAD64 == type) {
             unsigned x = get_te64(&phdr->p_align) >> lg2_page;
             while (x>>=1) {
@@ -6222,15 +6148,6 @@ void PackLinuxElf64::pack4(OutputFile *fo, Filter &ft)
         set_te64(&eho->phdr[C_TEXT].p_filesz, sz_pack2 + lsize);
                   eho->phdr[C_TEXT].p_memsz = eho->phdr[C_TEXT].p_filesz;
 
-        Elf64_Phdr *phdr = &eho->phdr[C_NOTE];
-        if (PT_NOTE64 == get_te32(&phdr->p_type)) {
-            upx_uint64_t const reloc = get_te64(&eho->phdr[C_TEXT].p_vaddr);
-            set_te64(            &phdr->p_vaddr,
-                reloc + get_te64(&phdr->p_vaddr));
-            set_te64(            &phdr->p_paddr,
-                reloc + get_te64(&phdr->p_paddr));
-            // FIXME   fo->rewrite(&elfnote, sizeof(elfnote));
-        }
         fo->rewrite(eho, sz_elf_hdrs);
         fo->rewrite(&linfo, sizeof(linfo));
     }
