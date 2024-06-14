@@ -14,10 +14,10 @@ RUN dpkg --add-architecture i386 \
         # the following packages are not required for rebuilding the stubs, but
         # they do make the image *much* more convenient and also allow building
         # the full UPX binary inside the container via CMake:
-        7zip bfs btop bubblewrap busybox bzip2 bzip3 cabextract ccache chrpath cmake cpio \
-        dash diffstat direnv elfutils execstack fd-find file fish fzf \
+        7zip bat bfs btop bubblewrap busybox bzip2 bzip3 cabextract ccache chrpath cmake cpio \
+        dash diffstat direnv elfutils execstack eza fd-find file fish fzf \
         g++ gawk gdb gojq ht htop hyperfine jq ksh \
-        libzstd-dev lsd lsb-release lz4 lzip lzop minify mksh moreutils musl neovim ninja-build \
+        libzstd-dev lsb-release lsd lz4 lzip lzop minify mksh moreutils musl neovim ninja-build \
         p7zip parallel patch patchelf patchutils pax-utils proot \
         python3 python3-pyasn1 python3-pycryptodome python3-pycurl python3-tomli python3-tomli-w \
         python3-yaml python3-zstd \

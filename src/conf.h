@@ -52,8 +52,8 @@ static_assert(sizeof(short) == 2);
 static_assert(sizeof(int) == 4);
 static_assert(sizeof(long long) == 8);
 // check sane compiler mandatory flags
-static_assert(-1 == ~0);      // two's complement - see http://wg21.link/P0907R4
-static_assert(0u - 1 == ~0u); // two's complement - see http://wg21.link/P0907R4
+static_assert(-1 == ~0);      // two's complement - see https://wg21.link/P0907R4
+static_assert(0u - 1 == ~0u); // two's complement - see https://wg21.link/P0907R4
 static_assert((1u << 31) << 1 == 0);
 static_assert(((int) (1u << 31)) >> 31 == -1); // arithmetic right shift
 static_assert((-1) >> 31 == -1);               // arithmetic right shift
@@ -468,13 +468,12 @@ noreturn void throwAssertFailed(const char *expr, const char *file, int line, co
 // C++ support library
 #include "util/cxxlib.h"
 using upx::tribool;
-#define usizeof(expr) (upx::UnsignedSizeOf<sizeof(expr)>::value)
-
-#define ALIGN_DOWN(a, b) upx::align_down((a), (b))
-#define ALIGN_UP(a, b)   upx::align_up((a), (b))
-#define ALIGN_GAP(a, b)  upx::align_gap((a), (b))
-#define UPX_MAX(a, b)    upx::max((a), (b))
-#define UPX_MIN(a, b)    upx::min((a), (b))
+#define usizeof(expr)    (upx::UnsignedSizeOf<sizeof(expr)>::value)
+#define ALIGN_DOWN(a, b) (upx::align_down((a), (b)))
+#define ALIGN_UP(a, b)   (upx::align_up((a), (b)))
+#define ALIGN_GAP(a, b)  (upx::align_gap((a), (b)))
+#define UPX_MAX(a, b)    (upx::max((a), (b)))
+#define UPX_MIN(a, b)    (upx::min((a), (b)))
 
 /*************************************************************************
 // constants

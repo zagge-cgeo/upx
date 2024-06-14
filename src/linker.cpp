@@ -227,7 +227,7 @@ void ElfLinker::preprocessSymbols(char *start, char const *end) {
         else if (sscanf(start, "%x%*8c %1023s %*x %1023s", &offset, section, symbol) == 3)
 #else
         // work around broken scanf() implementations
-        // http://bugs.winehq.org/show_bug.cgi?id=10401 (fixed in Wine 0.9.58)
+        // https://bugs.winehq.org/show_bug.cgi?id=10401 (fixed in Wine 0.9.58)
         else if (sscanf(start, "%x%*c%*c%*c%*c%*c%*c%*c%*c %1023s %*x %1023s", &offset, section,
                         symbol) == 3)
 #endif

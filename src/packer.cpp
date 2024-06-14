@@ -39,7 +39,7 @@
 PackerBase::PackerBase(InputFile *f)
     : fi(f), file_size(f != nullptr ? f->st_size() : 0), file_size_i32(file_size) {
     ph.reset();
-    mem_size_assert(1, file_size_u);
+    mem_size_assert(1, file_size_u); // limited by UPX_RSIZE_MAX
     assert_noexcept(file_size_i32 == file_size);
     assert_noexcept(file_size_u32 == file_size_u);
 }

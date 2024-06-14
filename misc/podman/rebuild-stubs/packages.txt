@@ -8,6 +8,7 @@ ii  base-files                    13ubuntu10                        amd64       
 ii  base-passwd                   3.6.3build1                       amd64        Debian base system master password and group files
 ii  bash                          5.2.21-2ubuntu4                   amd64        GNU Bourne Again SHell
 ii  bash-completion               1:2.11-8                          all          programmable completion for the bash shell
+ii  bat                           0.24.0-1build1                    amd64        cat(1) clone with syntax highlighting and git integration
 ii  bfs                           3.1.2-1build1                     amd64        Breadth-first version of find(1)
 ii  binutils                      2.42-4ubuntu2                     amd64        GNU assembler, linker and binary utilities
 ii  binutils-common:amd64         2.42-4ubuntu2                     amd64        Common files for the GNU assembler, linker and binary utilities
@@ -42,6 +43,7 @@ ii  dpkg                          1.22.6ubuntu6                     amd64       
 ii  e2fsprogs                     1.47.0-2.4~exp1ubuntu4            amd64        ext2/ext3/ext4 file system utilities
 ii  elfutils                      0.190-1.1build4                   amd64        collection of utilities to handle ELF objects
 ii  execstack                     0.0.20131005-1.1ubuntu1           amd64        ELF GNU_STACK program header editing utility
+ii  eza                           0.18.2-1                          amd64        Modern replacement for ls
 ii  fd-find                       9.0.0-1                           amd64        Simple, fast and user-friendly alternative to find
 ii  file                          1:5.45-3build1                    amd64        Recognize the type of data in a file using "magic" numbers
 ii  findutils                     4.9.0-5build1                     amd64        utilities for finding files--find, xargs
@@ -368,7 +370,7 @@ ii  zstd                          1.5.5+dfsg2-2build1               amd64       
 ||/ Name                          Version                           Architecture Description
 
 Packages sorted by Installed-Size:
-   978188 ===== TOTAL (362 packages)
+   984549 ===== TOTAL (364 packages)
     76943 valgrind                                 amd64
     72249 gcc-13-x86-64-linux-gnu                  amd64
     37841 g++-13-x86-64-linux-gnu                  amd64
@@ -414,6 +416,7 @@ Packages sorted by Installed-Size:
      6433 libx32stdc++-13-dev                      amd64
      6237 dpkg                                     amd64
      6158 7zip                                     amd64
+     5219 bat                                      amd64
      5210 ripgrep                                  amd64
      5169 libpython3.12-minimal                    amd64
      4879 libhwasan0                               amd64
@@ -484,6 +487,7 @@ Packages sorted by Installed-Size:
      1237 libgit2-1.7                              amd64
      1186 libmpfr6                                 amd64
      1145 libpam-modules                           amd64
+     1142 eza                                      amd64
      1136 zoxide                                   amd64
      1025 libsystemd0                              amd64
      1014 libkrb5-3                                amd64

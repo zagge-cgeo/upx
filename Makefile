@@ -9,7 +9,7 @@
 #   mkdir -p build/release
 #   cd build/release
 #   cmake ../..         # run config
-#   make -j             # and run build
+#   make -j4            # and run build
 
 CMAKE = cmake
 UPX_CMAKE_BUILD_FLAGS += --parallel

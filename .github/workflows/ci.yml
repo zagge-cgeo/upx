@@ -349,8 +349,11 @@ jobs:
           - { name: arm64ec-win64-vs2022, os: windows-2022, vsversion: 2022, vsarch: amd64_arm64, cl_machine_flags: -arm64EC, link_machine_flags: '/machine:arm64ec' }
           # { name: arm64x-win64-vs2022,  os: windows-2022, vsversion: 2022, vsarch: amd64_arm64, cl_machine_flags: -arm64EC, link_machine_flags: '/machine:arm64x' }
           - { name: i386-win32-vs2019,    os: windows-2019, vsversion: 2019, vsarch: amd64_x86 }
-          # TODO later: as of 2024-06-07 i386-win32-vs2022 stopped working: "upx_ucl_init() failed";
-          #   examine why; flaky??
+          # TODO: as of 2024-06-07 i386-win32-vs2022 stopped working: "upx_ucl_init() failed"
+          #   working: MSVC 19.39.33523 for x86
+          #   broken:  MSVC 19.40.33811 for x86
+          # caused by runner-images update 20240603.1:
+          #   https://github.com/actions/runner-images/blob/win22/20240603.1/images/windows/Windows2022-Readme.md?plain=1#L470-L480
           # { name: i386-win32-vs2022,    os: windows-2022, vsversion: 2022, vsarch: amd64_x86 }
     steps:
       - run: git config --global core.autocrlf false

@@ -82,7 +82,7 @@ public:
 
 protected:
     InputFile *const fi; // reference
-    // multiple names for "file_size" to avoid casts
+    // multiple names for "file_size" to avoid casts; limited by UPX_RSIZE_MAX
     union {                          // unnamed union
         const upx_int64_t file_size; // must get set by constructor
         const upx_uint64_t file_size_u;
@@ -275,6 +275,7 @@ protected:
     template <class T>
     static inline constexpr bool is_te64_type =
         upx::is_same_any_v<T, byte, upx_uint64_t, BE64, LE64>;
+
     template <class T>
     using enable_if_te16 = std::enable_if_t<is_te16_type<T>, T>;
     template <class T>

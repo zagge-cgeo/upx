@@ -480,12 +480,9 @@ inline bele_constexpr upx_int64_t get_le64_signed(const XE64 *p) noexcept {
 /*************************************************************************
 // classes for portable unaligned access
 //
-// Important: these classes must be PODs (Plain Old Data), i.e. no
+// Note: these classes must be PODs (Plain Old Data), i.e. no
 //   constructor, no destructor, no virtual functions and no default
-//   assignment operator, and all fields must be public(!).
-//
-// [Actually we _can_ use a safe non-POD subset, but for this we need
-//  to have gcc bug 17519 fixed - see http://gcc.gnu.org/PR17519 ]
+//   assignment operator, and all fields must be public
 **************************************************************************/
 
 struct alignas(1) BE16 final {
