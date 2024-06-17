@@ -521,6 +521,7 @@ void show_sysinfo(const char *options_var) {
             con_fprintf(f, fmt, v);
             con_fprintf(f, "\n");
         };
+
         // language
         cf_print("__cplusplus", "%lld", __cplusplus + 0, 3);
 #if defined(_MSVC_LANG)
@@ -529,6 +530,7 @@ void show_sysinfo(const char *options_var) {
 #if defined(upx_is_constant_evaluated)
         cf_print("upx_is_constant_evaluated", "%lld", 1, 3);
 #endif
+
         // compiler
 #if defined(ACC_CC_CLANG)
         cf_print("ACC_CC_CLANG", "0x%06llx", ACC_CC_CLANG + 0, 3);
@@ -566,6 +568,15 @@ void show_sysinfo(const char *options_var) {
 #if defined(_MSC_FULL_VER)
         cf_print("_MSC_FULL_VER", "%lld", _MSC_FULL_VER + 0);
 #endif
+
+        // architecture
+#if defined(__mips_hard_float)
+        cf_print("__mips_hard_float", "%lld", __mips_hard_float + 0);
+#endif
+#if defined(__mips_soft_float)
+        cf_print("__mips_soft_float", "%lld", __mips_soft_float + 0);
+#endif
+
         // OS and libc
 #if defined(WINVER)
         cf_print("WINVER", "0x%04llx", WINVER + 0);
@@ -593,6 +604,7 @@ void show_sysinfo(const char *options_var) {
 #if defined(__GLIBC_MINOR__)
         cf_print("__GLIBC_MINOR__", "%lld", __GLIBC_MINOR__ + 0);
 #endif
+
         // misc compilation options
 #if defined(UPX_CONFIG_DISABLE_WSTRICT)
         cf_print("UPX_CONFIG_DISABLE_WSTRICT", "%lld", UPX_CONFIG_DISABLE_WSTRICT + 0, 3);
@@ -603,12 +615,13 @@ void show_sysinfo(const char *options_var) {
 #if defined(WITH_THREADS)
         cf_print("WITH_THREADS", "%lld", WITH_THREADS + 0);
 #endif
+
         UNUSED(cf_count);
         UNUSED(cf_print);
         UNUSED(initial_win32_winnt);
     }
 
-    // run-time
+    // run-time settings
 #if defined(HAVE_LOCALTIME) && defined(HAVE_GMTIME)
     {
         auto tm2str = [](char *s, size_t size, const struct tm *tmp) noexcept {
@@ -627,6 +640,7 @@ void show_sysinfo(const char *options_var) {
     }
 #endif
 
+    // environment
     if (options_var && options_var[0]) {
         const char *e = upx_getenv(options_var);
         con_fprintf(f, "\n");
