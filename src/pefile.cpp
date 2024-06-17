@@ -286,6 +286,9 @@ void PeFile::Interval::dump() const {
 // relocation handling
 **************************************************************************/
 
+// do NOT allow --force to override reloc checks
+static constexpr bool CHECK_STRICT_RELOCS = true;
+
 void PeFile::Reloc::RelocationBlock::reset() noexcept {
     rel = nullptr;  // SPAN_0
     rel1 = nullptr; // SPAN_0
@@ -312,8 +315,8 @@ static int __acc_cdecl_qsort reloc_entry_compare(const void *a, const void *b) {
     const unsigned pos2 = get_ne32(b);
     if (pos1 != pos2)
         return pos1 < pos2 ? -1 : 1;
-    const unsigned reloc_type1 = ((const byte *) a)[4];
-    const unsigned reloc_type2 = ((const byte *) b)[4];
+    const unsigned reloc_type1 = ((const upx_uint8_t *) a)[4];
+    const unsigned reloc_type2 = ((const upx_uint8_t *) b)[4];
     if (reloc_type1 != reloc_type2)
         return reloc_type1 < reloc_type2 ? -1 : 1;
     return 0;
@@ -340,7 +343,7 @@ PeFile::Reloc::Reloc(byte *ptr, unsigned bytes) {
 
 PeFile::Reloc::Reloc(unsigned relocnum) {
     start_size_in_bytes = mem_size(RELOC_ENTRY_SIZE, relocnum, RELOC_INPLACE_OFFSET, 8192);
-    start = new byte[start_size_in_bytes]; // => transfer to oxrelocs[] in finish()
+    start = new byte[start_size_in_bytes]; // => transfer ownership to oxrelocs[] in finish()
     start_did_alloc = true;
     initSpans();
 }
@@ -358,8 +361,12 @@ bool PeFile::Reloc::readFromRelocationBlock(byte *next_rb) { // set rb
     const unsigned off = ptr_udiff_bytes(next_rb, start);
     assert((off & 1) == 0);
     rb.reset();
-    if (off >= start_size_in_bytes) // permissive: use ">=" instead of strict "=="
-        return false;               // EOF
+    if (off >= start_size_in_bytes) { // permissive: use ">=" instead of strict "=="
+        if (off > start_size_in_bytes) {
+            // MAYBE TODO later: could add a warning here?
+        }
+        return false; // EOF
+    }
     if (start_size_in_bytes - off < 8)
         throwCantPack("relocs overflow");
     const unsigned sob = get_le32(start_buf + (off + 4)); // size_of_block
@@ -368,7 +375,14 @@ bool PeFile::Reloc::readFromRelocationBlock(byte *next_rb) { // set rb
     if (sob == 0 && (off == 0 && start_size_in_bytes == 8))
         return false; // EOF
 #endif
-    if (!opt->force) {
+    if (CHECK_STRICT_RELOCS) {
+        if (sob < 8)
+            throwCantPack("bad reloc size_of_block %u", sob);
+        if (start_size_in_bytes - off < sob)
+            throwCantPack("overflow reloc size_of_block %u", sob);
+        if ((sob & 1) != 0)
+            throwCantPack("odd reloc size_of_block %u", sob);
+    } else if (!opt->force) {
         if (sob < 8)
             throwCantPack("bad reloc size_of_block %u (try --force)", sob);
         if (start_size_in_bytes - off < sob)
@@ -418,8 +432,9 @@ void PeFile::Reloc::add_reloc(unsigned pos, unsigned reloc_type) {
 void PeFile::Reloc::finish(byte *(&result_ptr), unsigned &result_size) {
     assert(start_did_alloc);
     // sort in-place relocs
-    upx_qsort(raw_index_bytes(start_buf, RELOC_INPLACE_OFFSET, RELOC_ENTRY_SIZE * counts[0]),
-              counts[0], RELOC_ENTRY_SIZE, reloc_entry_compare);
+    upx_qsort(
+        raw_index_bytes(start_buf, RELOC_INPLACE_OFFSET, mem_size(RELOC_ENTRY_SIZE, counts[0])),
+        counts[0], RELOC_ENTRY_SIZE, reloc_entry_compare);
 
     auto finish_block = [](SPAN_S(BaseReloc) rel) -> byte * {
         unsigned sob = rel->size_of_block;
@@ -440,9 +455,12 @@ void PeFile::Reloc::finish(byte *(&result_ptr), unsigned &result_size) {
         const auto entry_ptr = start_buf + mem_size(RELOC_ENTRY_SIZE, ic, RELOC_INPLACE_OFFSET);
         unsigned pos, reloc_type;
         reloc_entry_decode(entry_ptr, &pos, &reloc_type);
-        if (ic > 0 && pos == prev_pos)
-            if (!opt->force)
+        if (ic > 0 && pos == prev_pos) {
+            if (CHECK_STRICT_RELOCS)
+                throwCantPack("duplicate relocs");
+            else if (!opt->force)
                 throwCantPack("duplicate relocs (try --force)");
+        }
         prev_pos = pos;
         if (ic == 0 || pos - current_page >= 0x1000) {
             current_page = pos & ~0xfff; // page start
