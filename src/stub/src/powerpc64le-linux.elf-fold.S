@@ -34,6 +34,7 @@
 #endif
 
 NBPW= 8  //Number of Bytes Per Word
+AL_STK= 0x10  // stack alignment
 #define USE_TOC 1
 #include "arch/powerpc/64le/macros.S"
 #include "arch/powerpc/64le/ppc_regs.h"
@@ -93,6 +94,7 @@ r_auxv=  26
 r_elfa=  25  // original &Elf64_Ehdr of stub
 r_ADRX=  24  // compressed input
 r_LENX=  23  // total size
+r_FLD=   22
 // Local:
 r_unf=   22  // f_unf == &unfilter()
 av_hi=   21
@@ -100,14 +102,34 @@ av_len=  20
 cblk=    19
 r_buf=   18
 
-get_page_mask: .globl get_page_mask
-        li r3,0 -0x1000>>9  // modified by elf-entry.S
-        sldi r3,r3,9
-        blr
+        b fold_begin
         nop
 
+page_mask:
+        .quad -0x10000  // default page mask (64KiB)
+get_page_mask: .globl get_page_mask
+        mflr r0  // retaddr
+        call 0f; 0: mflr a0
+        mtlr r0  // original retaddr
+        ld  a0,page_mask - 0b(a0)
+        blr
+
+Pprotect: .globl Pprotect
+mprotect: .globl mprotect
+        mr a4,a0  // save 1st arg
+        mflr a5; bl get_page_mask; mtlr a5
+
+        andc t1,a4,a0  // frag
+        sub a0,a4,t1
+        add a1,a1,t1
+        li r0,SYS_mprotect
+        b sysgo
+
 fold_begin:
-////    teq r0,r0  // debugging
+        mtctr r0  // # words of stuff
+        lwz r0,0(r_FLD)  // O_BINFO | is_ptinterp | unmap_all_pages
+        slwi r0,r0,3*4
+        mtcrf 0x8,r0  // cr4.eq = unmap_all_pages
         call L90
 L90b:
 #include "arch/powerpc/64le/bxx.S"
@@ -119,22 +141,24 @@ L90:
         mflr r_unf  // L90b = &ppcbxx: f_unfilter
 // slide {<<stuff>>,argc,argv,0,env,0,auxv} down with maximum room before strings
         la a1,-NBPW(sp)  // src ready for ldu
-        la sp,-(-NBPW & (-1+ NBPW + (L_PFX + PATH_MAX)))(sp)  // FR_02
+    beq cr4,0f; la sp,-(-AL_STK & (-1+ AL_STK + (NBPW + L_PFX + PATH_MAX)))(sp); 0:
         la a0,-NBPW(sp)  // dst ready for stdu
         la r_auxv,-NBPW(r_auxv)  // &end ready for ldu
-0: // copy upto auxv
-        ldu  r0,NBPW(a1); cmpld cr7,a1,r_auxv
-        stdu r0,NBPW(a0); blt cr7,0b
-        la  r_auxv,2*NBPW(a0)  // new &auxv
-        stdu r0,NBPW(a0)  // new  env_terminator
+0: // copy stuff (upto auxv)
+        ldu  r0,NBPW(a1); cmpld cr0,a1,r_auxv
+        stdu r0,NBPW(a0); blt cr0,0b
+
+        la  r_auxv,NBPW(a0)  // tmp &auxv
 0: // copy auxv
-        ld   r0,NBPW(a1); cmpldi cr7,r0,AT_NULL
+        ld   r0,NBPW(a1); cmpldi cr0,r0,AT_NULL
         std  r0,NBPW(a0)
         ldu  r0,2*NBPW(a1)
-        stdu r0,2*NBPW(a0); bne cr7,0b
-        la av_hi,NBPW(a0)  // tmp end of auxv
-        subf av_len,r_auxv,av_hi  // length of auxv
+        stdu r0,2*NBPW(a0); bne cr0,0b
 
+        la av_hi,NBPW(a0)  // tmp end of auxv
+
+    beq cr4,no_pse_env
+        subf av_len,r_auxv,av_hi  // length of auxv
         lwz  r0,L90a - L90b(r_unf)  // "    ="
         la cblk,NBPW(a1)  // original &strings
         stwu r0,NBPW(a0)
@@ -175,10 +199,11 @@ L90:
         movr av_hi,a0  // remember location
         sub r_auxv,a0,av_len
 0:
-        ldu  r0,-NBPW(a1); cmpld cr7,a1,sp
-        stdu r0,-NBPW(a0); bgt+ cr7,0b
+        ldu  r0,-NBPW(a1); cmpld cr0,a1,sp
+        stdu r0,-NBPW(a0); bgt+ cr0,0b
         movr sp,a0  // FR_02
 
+no_pse_env:
 r_reloc= 32 - 1  # used slot in register save area
         la a6,SZ_FRAME + r_reloc*NBPW(sp)  // &reloc [adjacent to argc]
         std r_elfa,0(a6)  // elfaddr
@@ -228,6 +253,7 @@ p_memsz= 4+4+ 4*NBPW
 1:
         movr a0,r_elfa; call munmap  # discard C_TEXT compressed data
 
+    beq cr4,no_map_pse
 // first page of /proc/self/exe, to preserve it despite munmap(ADRU, LENU)
         li a5,0  // offset
         movr a4,r_fd
@@ -317,22 +343,14 @@ sysgo:
 no_fail:
         ret
 
-Pprotect: .globl Pprotect
-mprotect: .globl mprotect
-        li r0, 0xfff  // ~PAGE_MASK  (FIXME: probably use 4th arg)
-        and r0,a0,r0
-        sub a0,a0,r0
-        add a1,a1,r0
-        li r0,SYS_mprotect; 5: b 5f
-
 exit: .globl exit
         li r0,SYS_exit;        b 5f
 brk: .globl brk
         li r0,SYS_brk;      5: b 5f
 readlink: .globl readlink
         li r0,SYS_readlink; 5: b 5f
-//write: .globl write
-//        li r0,SYS_write;    5: b 5f
+write: .globl write
+        li r0,SYS_write;    5: b 5f
 read: .globl read
         li r0,SYS_read;     5: b 5f
 open: .globl open

@@ -32,7 +32,6 @@
 #include "arch/i386/macros.S"
 NBPW= 4
 
-
 PAGE_SIZE= ( 1<<12)
 PATH_MAX= 4096
 
@@ -42,15 +41,17 @@ sz_Elf32_Ehdr= 0x34
   e_type=   16
   e_entry=  (16 + 2*2 + 4)
   e_phnum=  44
-sz_Elf32_Phdr= 8*4
-  p_memsz=  5*4
+sz_Elf32_Phdr= 8*NBPW
+  p_memsz=  5*NBPW
 
 #define szb_info 12
 #define szl_info 12
 #define szp_info 12
 #define a_type 0
-#define a_val  4
-#define sz_auxv 8
+#define a_val NBPW
+
+is_ptinterp=     (1<<0)
+unmap_all_pages= (1<<1)
 
 __NR_readlink= 85
 __NR_munmap=   91
@@ -72,8 +73,8 @@ O_RDONLY=       0
 
 // enter:
 // eax:ADRX; ebx:free; ecx:LENX
-// ebp:f_exp; esi:free; edi:elfaddr
-// esp/ ADRU,LENU,fd,%entry,argc,argv,0,envp,0,auxv,0,strings
+// ebp:f_exp; esi:&b_info; edi:elfaddr
+// esp/ ADRU,LENU,%fd,%entry,argc,argv,0,envp,0,auxv,0,strings
 //      (ADRU,LENU) = params for final munmap()
 //      (ADRX,LENX) = extent of compressed program (after moving)
 
@@ -82,39 +83,45 @@ fold_begin:
         push edi  // elfaddr
         push ecx  // LENX
         push eax  // ADRX
+        mov ebx,[-NBPW + esi]  // O_BINFO | is_ptinterp | unmap_all_pages
 
-        mov esi,esp; sub esp,PATH_MAX
-        mov edi,esp; push 8; pop ecx; rep movsd  // copy ADRX,LENX,elfaddr,ADRU,LENU,fd,entry,argc
+        mov esi,esp; testb bl,unmap_all_pages; jnz 0f; sub esp,PATH_MAX; 0:
+        mov edi,esp; push 8; pop ecx; rep movsd  // copy ADRX,LENX,elfaddr,ADRU,LENU,%fd,entry,argc
 
         push ebp  // f_exp
-        mov ebp,esp  // frame: f_exp,ADRX,LENX,elfaddr,ADRU,LENU,fd,entry,argc
-F_fd= 6*4  // frame offset to fd
+        mov ebp,esp  // frame: f_exp,ADRX,LENX,elfaddr,ADRU,LENU,%fd,entry,argc
 0:
         lodsd; test %eax,%eax; stosd; jne 0b  // argv
-        push edi  // &new_env[0]; f_exp,ADRX,LENX,elfaddr,ADRU,LENU,fd,entry,argc
-        stosd  // space for new_env[0]
+        push edi  // P_05           &new_env[0]; f_exp,ADRX,LENX,elfaddr,ADRU,LENU,%fd,entry,argc
+        testb bl,unmap_all_pages; jnz 0f; stosd; 0:  // space for new_env[0]
 0:
         lodsd; test %eax,%eax; stosd; jne 0b  // env
-        push edi  // &old_auxv,&new_env[0]; f_exp,ADRX,LENX,elfaddr,ADRU,LENU,fd,entry,argc
+        push edi  // P_06 &old_auxv,&new_env[0]; f_exp,ADRX,LENX,elfaddr,ADRU,LENU,%fd,entry,argc
 0:
         lodsd; test %eax,%eax; stosd; movsd; jne 0b  // auxv
-
+        testb bl,unmap_all_pages; jz env_pse
+        pop %edi  // P_06 &old_auxv
+        pop ecx  // toss P_05
+        jmp no_env_pse
+env_pse:
         inc eax  // 1, AT_IGNORE
-        sub edi,2*4  // back to {AT_NULL}
-        mov ecx,5*2; rep stosd  // 5 extra slots of AT_IGNORE
+        sub edi,2*NBPW  // back to {AT_NULL}
+        push 5*2; pop ecx; rep stosd  // 5 extra slots of AT_IGNORE
         dec eax; stosd; stosd  // 0, AT_NULL
-        sub [-2*4 + ebp],edi  // -len_aux
-        push edi  // P_07  &new_aux[N],-len_aux,&new_env[0]; f_exp,ADRX,LENX,elfaddr,ADRU,LENU,fd,entry,argc
-        push esi  // &strings,&new_aux[N],-len_aux,&new_env[0]; f_exp,ADRX,LENX,elfaddr,ADRU,LENU,fd,fd,entry,argc
+        sub [-2*NBPW + ebp],edi  // -len_aux
+        push edi  // P_07          &new_aux[N],-len_aux,&new_env[0]; f_exp,ADRX,LENX,elfaddr,ADRU,LENU,%fd,entry,argc
+        push esi  // P_08 &strings,&new_aux[N],-len_aux,&new_env[0]; f_exp,ADRX,LENX,elfaddr,ADRU,LENU,%fd,entry,argc
 
         call 1f
 0:
         .asciz "/proc/self/exe"
 1:
-        pop ebx  // path (because 'readlink' wants the name, not the fd)
-        mov edx,-5*2*4 -1+ PATH_MAX  // buflen
+        pop ebx; push ebx  // path; copy of path
+        mov ecx,O_RDONLY
+        push __NR_open; pop eax; int 0x80; mov [6*NBPW + ebp],eax  // fd
+        pop ebx  // copy of path
+        mov edx,-5*2*NBPW -1+ PATH_MAX  // buflen
         mov ecx,edi  // buffer
-        // mov ebx,ebx  // name
         push __NR_readlink; pop eax; int 0x80; test eax,eax; jns 0f
         mov ecx,ebx  // point at name
         mov eax,-1+ (1b - 0b)  // len
@@ -128,8 +135,8 @@ F_fd= 6*4  // frame offset to fd
         rep movsb  // slide up
         mov eax, 0+ ('='<<24)|(' '<<16)|(' '<<8)|(' '<<0)  # env var name
         sub edi,3; mov [edi],eax
-        mov eax,[-1*4 + ebp]; mov [eax],edi  // new_env[0]
-        and edi,~3  // word align
+        mov eax,[-1*NBPW + ebp]; mov [eax],edi  // new_env[0]
+        and edi,-NBPW  // word align
 
         pop esi  // P_07  &new_aux[N]; -len_aux,&new_env[0]; f_exp,ADRX,LENX,elfaddr,ADRU,LENU,fd,entry,argc
 // Final sp must be 0 mod 8.  There are now 10 words below argc.
@@ -148,7 +155,7 @@ F_fd= 6*4  // frame offset to fd
         shr ecx,2; dec ecx; rep movsd  // dec: compensate for P_07
    cld
 // Clear the vacated stack, for buggy programs that assume it is 0
-        lea ecx,[1*4+ edi]  // correct for 'std'
+        lea ecx,[1*NBPW+ edi]  // correct for 'std'
         xor eax,eax  // 0
         sub ecx,esp
         mov edi,esp
@@ -157,6 +164,7 @@ F_fd= 6*4  // frame offset to fd
           mov edi,edx  // &final_aux[0]
 
         pop eax  // toss &new_env[0]
+no_env_pse:
         pop ebp  // f_exp
 // stack is back to original state: ADRX,LENX,elfaddr,ADRU,LENU,fd,entry,argc
 
@@ -168,8 +176,8 @@ F_fd= 6*4  // frame offset to fd
         sub esp, MAX_ELF_HDR_32 + OVERHEAD  // alloca
         mov edx, esp  // &tmp
         push ecx  // elfaddr (9th arg)
-        mov ebx, [   eax]  // length of uncompressed ELF headers
-        mov ecx, [4+ eax]  // length of   compressed ELF headers
+        mov ebx, [       eax]  // length of uncompressed ELF headers
+        mov ecx, [NBPW + eax]  // length of   compressed ELF headers
         add ecx, szb_info
                //   edi,    esi,      ebp,       esp,     ebx,  edx,      ecx,        eax
         pusha  // (auxv, sz_cpr, f_expand, &tmp_ehdr, {sz_unc, &tmp}, {sz_cpr, &b1st_info} )
@@ -178,7 +186,7 @@ F_fd= 6*4  // frame offset to fd
         call upx_main  // returns entry address
         dec edi
         mov esi,eax  // entry
-        mov ebp,[8*4+ esp]  // elfaddr
+        mov ebp,[8*NBPW+ esp]  // elfaddr
 
 // Discard C_TEXT (includes [ADRC,+LENC) )
         mov ecx,[ebp+ p_memsz+sz_Elf32_Phdr+sz_Elf32_Ehdr]  // Phdr[C_TEXT= 1].p_memsz
@@ -191,7 +199,7 @@ F_fd= 6*4  // frame offset to fd
 // Buggy programs may depend on uninit stack being 0, so clear what we used.
         mov edx,edi  // save auxv
         mov edi,esp
-        mov ecx,((8 +1)*4 + MAX_ELF_HDR_32 + OVERHEAD) >>2  // 8 params, elfaddr, un-alloca
+        mov ecx,((8 +1)*NBPW + MAX_ELF_HDR_32 + OVERHEAD) >>2  // 8 params, elfaddr, un-alloca
         xor eax,eax  // 0
         rep stosd  // clear frame on exit
         mov esp,edi  // end of frame
@@ -207,7 +215,7 @@ F_fd= 6*4  // frame offset to fd
         push edi  // fd, auxv, ADRU, LENU, entry, argc
 
 // Map one page of /proc/self/exe so that symlink does not disappear
-        pop ebx  // fd in case no_pse_map
+        pop ebx  // toss fd in case no_pse_map
         test edi,edi; js no_pse_map
         push ebx  // restore fd
         sub ebp,ebp  // 0 block in file
@@ -263,12 +271,12 @@ mmap: .globl mmap  // what happened to the ebx->args_on_stack method?
         push ebx
         push esi
         push edi
-        mov ebx,[ 5*4 + esp]
-        mov ecx,[ 6*4 + esp]
-        mov edx,[ 7*4 + esp]
-        mov esi,[ 8*4 + esp]
-        mov edi,[ 9*4 + esp]
-        mov ebp,[10*4 + esp]
+        mov ebx,[ 5*NBPW + esp]
+        mov ecx,[ 6*NBPW + esp]
+        mov edx,[ 7*NBPW + esp]
+        mov esi,[ 8*NBPW+ esp]
+        mov edi,[ 9*NBPW + esp]
+        mov ebp,[10*NBPW + esp]
         shr ebp,12
         push __NR_mmap; pop eax; int 0x80
 

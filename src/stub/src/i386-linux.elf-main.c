@@ -594,7 +594,7 @@ ERR_LAB
         ) >> ((pf & (PF_R|PF_W|PF_X))<<2) ))
 
 
-#if defined(__powerpc__)  //{
+#if defined(__powerpc__) || defined(__arm__)   //{
 extern
 size_t get_page_mask(void);  // variable page size AT_PAGESZ; see *-fold.S
 #elif defined(__mips__)  //}{

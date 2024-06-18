@@ -29,6 +29,7 @@
 *  <jreiser@users.sourceforge.net>
 */
 
+NBPW= 4
 #define ARM_OLDABI 1
 #include "arch/arm/v4a/macros.S"
 
@@ -51,6 +52,9 @@ PROT_READ=  1
 PROT_WRITE= 2
 PROT_EXEC=  4
 
+is_ptinterp=     (1<<0)
+unmap_all_pages= (1<<1)
+
 MAP_ANONYMOUS= 0x20
 MAP_FIXED=     0x10
 MAP_PRIVATE=   0x02
@@ -60,6 +64,9 @@ O_RDONLY=       0
 
 PAGE_SHIFT= 12
 PAGE_SIZE = -(~0<<PAGE_SHIFT)
+
+AT_NULL= 0
+AT_PAGESZ= 6
 
 __NR_exit =      1 + __NR_SYSCALL_BASE
 __NR_open =      5 + __NR_SYSCALL_BASE
@@ -92,14 +99,20 @@ mflg:
 _start: .globl _start
 ////  nop; bkpt
         stmdb sp!, {r0,r1}  // ABI crt0 -static may have data here
-        sub sp,sp,#6*4
-F_elfaddr= 0*4
-F_fd=      1*4
-F_ADRU=    2*4
-F_LENU=    3*4
-F_f_exp=   4*4
-F_entry=   5*4
+
+F_elfaddr= 0*NBPW
+F_fd=      1*NBPW
+  F_szpage= F_fd
+F_ADRU=    2*NBPW
+F_LENU=    3*NBPW
+F_f_exp=   4*NBPW
+F_entry=   5*NBPW
   F_mflg=    F_entry
+F_r0=      6*NBPW
+F_r1=      7*NBPW
+F_FRAME=   8*NBPW
+
+        sub sp,sp,#F_FRAME - 2*NBPW
 
         bl main  // lr= &f_exp
 f_exp:
@@ -127,7 +140,6 @@ end_decompress: .globl end_decompress
 
 section ELFMAINZ
 unfold:  // in: r3= mflg; r6= elfaddr; lr= &O_BINFO
-        str r3,[sp,#F_mflg]
         add r6,lr,#4  @ &b_info of folded stub
 
 // Reserve space for unfolded stub
@@ -145,22 +157,25 @@ unfold:  // in: r3= mflg; r6= elfaddr; lr= &O_BINFO
 #endif  /*}*/
 
 // Unfold
-        ldr r3,[r6,#sz_unc]; str r3,[sp,#-4]!  @ P_01
+        ldr r3,[r6,#sz_unc]; str r3,[sp,#-NBPW]!  @ P_01
         mov r3,sp  @ &sz_unc = &dstlen
         mov r2,r0  @ dst
-        ldrb r0,[r6,#b_method]; str r0,[sp,#-4]!  @ P_02  5th param to f_exp
+        ldrb r0,[r6,#b_method]; str r0,[sp,#-NBPW]!  @ P_02  5th param to f_exp
         ldr r1,[r6,#sz_cpr]  @ srclen
         add r0,r6,#sz_b_info  @ src
         mov r10,r2  @ copy of dst
 #if DEBUG  /*{*/
         stmdb sp!,{TRACE_REGS}; mov r0,#2; bl trace
 #endif  /*}*/
-        mov lr,pc; ldr pc,[sp,#2*4+ F_f_exp]  @ call f_exp  [ARMv4 lacks blx]
-        add sp,sp,#4  @ P_02  remove 5th param
+        mov lr,pc; ldr pc,[sp,#2*NBPW+ F_f_exp]  @ call f_exp  [ARMv4 lacks blx]
+        add sp,sp,#NBPW  @ P_02  remove 5th param
         ldr r3,[sp],#4  @ P_01  sz_unc
 
+// pass run-time constants into unfolded code
         ldr r1,[sp,#F_mflg]  @ mflg
-        str r1,[r10],#4  @ pass mflg to folded code
+        str r1,[r10],#NBPW  @ pass mflg to folded code
+        ldr r1,[sp,#F_szpage]
+        str r1,[r10],#NBPW
 
 // PROT_EXEC
         mov r2,#PROT_EXEC|PROT_READ
@@ -170,22 +185,19 @@ unfold:  // in: r3= mflg; r6= elfaddr; lr= &O_BINFO
 
 // jmp unfolded_code
         ldr r0,[sp,#F_elfaddr]
-        ldr r1,[r6,#-4]  @ O_BINFO
-        add r5,r0,r1  @ ADRX= &b_info
-        sub r4,r9,r1  @ LENX= sz_pack2 - O_BINFO
+        ldr r3,[r6,#-4]  @ O_BINFO | is_ptinterp | unmap_all_pages
+        bic r4,r3,#is_ptinterp | unmap_all_pages
+        add r5,r0,r4  @ ADRX= &b_info
+        sub r4,r9,r4  @ LENX= sz_pack2 - O_BINFO
 #if DEBUG  /*{*/
         stmdb sp!,{TRACE_REGS}; mov r0,#3; bl trace
 #endif  /*}*/
-        adr lr,proc_self_exe
-        mov pc,r10  @ goto unfold
-proc_self_exe:
-        .asciz "/proc/self/exe"
-        .balign 4
+        add pc,r10, #2*NBPW  @ goto unfold
 
 #if DEBUG  /*{*/
 TRACE_BUFLEN=512
 trace:
-        str lr,[sp,#(-1+ 15)*4]  @ return pc; [remember: sp is not stored]
+        str lr,[sp,#(-1+ 15)*NBPW]  @ return pc; [remember: sp is not stored]
         mov r4,sp  @ &saved_r0
         sub sp,sp,#TRACE_BUFLEN
         mov r2,sp  @ output string
@@ -201,7 +213,7 @@ L600:  @ each row
 
         mov r6,#8  @ words per row
 L610:  @ each word
-        ldr r0,[r4],#4; mov r1,#' '; bl trace_hex  @ next word
+        ldr r0,[r4],#NBPW; mov r1,#' '; bl trace_hex  @ next word
         subs r6,r6,#1; bgt L610
 
         subs r5,r5,#1; bgt L600
@@ -221,36 +233,48 @@ L610:  @ each word
 
 trace_hex:  // In: r0=val, r1=punctuation before, r2=ptr; Uses: r3, ip
         strb r1,[r2],#1  @ punctuation
-        mov r3,#4*(8 -1)  @ shift count
+        mov r3,#NBPW*(8 -1)  @ shift count
         adr ip,hex
 L620:
         mov r1,r0,lsr r3
         and r1,r1,#0xf
         ldrb r1,[ip, r1]
         strb r1,[r2],#1
-        subs r3,r3,#4; bge L620
+        subs r3,r3,#NBPW; bge L620
         ret
 hex:
         .ascii "0123456789abcdef"
         .balign 4
 #endif  /*}*/
 
+zfind:
+        ldr r1,[r0],#NBPW; cmp r1,#0; bne zfind  // cbnz r1,zfind
+        ret
+
 main:  // IN: lr= &f_exp
+        str lr,[sp,#F_f_exp]
         ldr r0,[lr,#sz_pack2 - f_exp]  @ sz_pack2
         add r6, lr,#sz_pack2 - f_exp  @ &sz_pack2
         str lr,[sp,#F_f_exp]
         sub r6,r6,r0  @ elfaddr= &Elf_Ehdr of this program
         str r6,[sp,#F_elfaddr]
         mov r9,r0  @ save sz_pack2
-
-// Open /proc/self/exe
-        adr r0,proc_self_exe
-        mov r1,#O_RDONLY
-        do_sys7t __NR_open
-        // cmp r0,#0; blt L75  // missing /proc/self/exe is no longer fatal
-        str r0,[sp,#F_fd]
-
         ldr r3,[lr,#mflg - f_exp]
+        str r3,[sp,#F_mflg]
+
+        add r0,sp,#NBPW + F_FRAME  // skip argc
+        call zfind  // in: r0= &argv;  out: r0= &envp
+        call zfind  // in: r0= &envp;  out: r0- &auxv
+
+// find actual page size in Elf32_auxv
+1:
+        ldr r1,[r0],#NBPW; ldr r2,[r0],#NBPW
+        cmp r1,#AT_PAGESZ; beq 2f
+        cmp r1,#AT_NULL; bne 1b  // cbnz r1,1b
+        mov r2,#PAGE_SIZE  // default
+2:
+        mov r1,#0; sub r1,r1,r2; str r1,[sp,#F_szpage]
+
         call unfold
 o_binfo:
         .long O_BINFO  // .int4 offset of b_info for text

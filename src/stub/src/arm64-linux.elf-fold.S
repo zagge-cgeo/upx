@@ -49,6 +49,9 @@ sz_b_info = 12
   b_method= 8
 sz_auxv= 2*NBPW
 
+is_ptinterp=     (1<<0)
+unmap_all_pages= (1<<1)
+
 MAP_PRIVATE=   0x02
 MAP_FIXED=     0x10
 MAP_ANONYMOUS= 0x20
@@ -109,7 +112,8 @@ xauxv  .req x22
 
 wfd    .req w21
   xfd    .req x21
-xPMASK .req x20
+xFOLD .req x20
+  wFOLD  .req w20
 
 mmap_privanon: .globl mmap_privanon
         ldr w6,bits_privanon  // r12 === ip
@@ -136,7 +140,8 @@ mprotect: .globl mprotect
         do_sys __NR_mprotect; ret
 
 L10:
-        POP4(xPMASK,xfd, xADRU,xLENU)
+        add sp,sp,#2*NBPW  // toss xPMASK,xfd
+        POP2(xADRU,xLENU)
 
         mov x7,sp  // old_sp: x0,x1,argc,...
         mov x0,sp  // current stack pointer
@@ -146,6 +151,12 @@ L10:
         ldr x2,[x1],#2*NBPW
         cbnz x2,.L20  // AT_NULL
 
+        ldr wFOLD,[xFOLD]; tst wFOLD,#unmap_all_pages; beq yes_buf_pse
+          add x1,sp,#3*NBPW  // old_argv; avoid 0==argc impostor for terminator of argv
+          add x0,sp,#3*NBPW  // new argv
+        b no_buf_pse
+
+yes_buf_pse:
         sub x0,x1,#PATH_MAX // buffer for readlink
         sub x6,x0,#4  // space for copy of space3eq
         sub x1,x1,x6  // amount needed for x0,x1,argc,argv,env,auxv
@@ -159,6 +170,7 @@ L10:
         ldr x2,[x7,#2*NBPW]  // argc
         str x2,[sp,#2*NBPW]
         add x0,sp,#3*NBPW  // new argv
+no_buf_pse:
 
 .Larg:  // copy argv
         ldr x2,[x1],#NBPW
@@ -170,9 +182,11 @@ L10:
         str x2,[x0],#NBPW
         cbnz x2,.Lenv
 
+        tst wFOLD,#unmap_all_pages; bne 0f
         sub x4,x0,#NBPW  // added env ptr goes here
         str xzr,[x0],#NBPW  // terminator after added ptr
         mov x7,x0  // new &Elf64_auxv_t
+0:
 
         mov xauxv,x0  // new auxv
 .Laux:  // copy auxv
@@ -181,6 +195,7 @@ L10:
         cbnz x2,.Laux  // AT_NULL
         mov xauxe,x0  // last of new auxv
 
+        tst wFOLD,#unmap_all_pages; bne no_env_pse
         mov x1,x0
         str x1,[x4]  // new env ptr
         ldr w2,space3eq
@@ -192,9 +207,13 @@ L10:
         cmn x0,#4096; bcs 0f  // error
         strb wzr,[x2,x0]  // null terminate pathname (x2 is old x1)
 0:
+        adr x0,proc_self_exe
+        mov w1,#O_RDONLY
+        call open; mov wfd,w0
+no_env_pse:
 
 /* Construct arglist for upx_main */
-        mov x7,xPMASK
+        ldr x7,PAGE_MASK
         mov x6,xelfa  // Elf64_Ehdr (reloc if ET_DYN and not pre-link)
           sub sp,sp,#MAX_ELF_HDR_64 + OVERHEAD  // alloca
         adr x5,f_unfilter
@@ -216,6 +235,7 @@ L10:
         mov x0,xelfa  // hi &Elf64_Ehdr
         call munmap  // discard C_TEXT compressed data
 
+        tst wFOLD,#unmap_all_pages; bne no_map_pse
 // Map 1 page of /proc/self/exe so that munmap does not remove all references
         mov x5,#0  // offset
         mov w4,wfd  // fd

@@ -32,7 +32,7 @@
 */
 
 #include "arch/i386/macros.S"
-
+NBPW= 4  // Number of Bytes Per Word
 
 /*************************************************************************
 // program entry point
@@ -154,23 +154,10 @@ p_memsz=  5*4
 sz_unc= 0
 sz_cpr= 4
 
-EINVAL= 22
+is_ptinterp=     (1<<0)
+unmap_all_pages= (1<<1)
 
 #define pushsbli .byte 0x6a,  /* push sign-extended byte to long immediate*/
-
-msg_SELinux:
-        pushsbli L71 - L70
-        pop edx  // length
-        call L71
-L70:
-        .ascii "mmap failed.\n"
-L71:
-        pop ecx  // message text
-        push 2; pop ebx  // fd stderr
-        push __NR_write; pop eax; int 0x80
-die:
-        mov bl, 127  // only low 7 bits matter!
-        push __NR_exit; pop eax; int 0x80
 
 // Decompress the rest of this loader, and jump to it
 unfold:  // IN: ebp= f_exp;  esp/ &O_BINFO
@@ -178,10 +165,7 @@ unfold:  // IN: ebp= f_exp;  esp/ &O_BINFO
         lea edi,[sz_pack2 - f_exp + ebp]
         sub edi,[edi]  // edi= &Elf32_Ehdr of this program
 
-// Open /proc/self/exe
-        call 0f; .asciz "/proc/self/exe"; 0: pop ebx  // path
-        sub ecx,ecx  // O_RDONLY
-        push __NR_open; pop eax; int 0x80; push eax  // P_31  fd
+        push -1  // P_31  %fd
 
 // Reserve space for unfolded stub
         push 0  // offset
@@ -205,7 +189,7 @@ unfold:  // IN: ebp= f_exp;  esp/ &O_BINFO
         push ecx  // sz_cpr
         push esi  // src
         call ebp  // decompress
-        add esp,6*4
+        add esp,6*NBPW
 
 // PROT_EXEC
         pop %ebx  // P_24 ADRU
@@ -216,7 +200,9 @@ unfold:  // IN: ebp= f_exp;  esp/ &O_BINFO
         push __NR_mprotect; pop eax; int 0x80
 
 // Jump to unfolded code
-        mov eax,[-4*4 + esi]  // O_BINFO
+        lea esi,[-4*NBPW + esi]
+        lodsd  // eax= O_BINFO; esi= &b_info
+        and eax,~(is_ptinterp | unmap_all_pages)
         add eax,edi  // ADRX
         mov ecx,[sz_pack2 - f_exp + ebp]  // LENX(==sz_pack2)
 // eax:ADRX; ebx:free; ecx:LENX
@@ -225,7 +211,7 @@ unfold:  // IN: ebp= f_exp;  esp/ &O_BINFO
         jmp edx  // esp/ ADRU,LENU,fd,%entry,argc,argv,0,...
 
 mmap:  // oldmmap: ebx -> 6 arguments; remove arguments on return
-        lea ebx,[4+esp]
+        lea ebx,[NBPW+esp]
         push __NR_mmap; pop eax; int 0x80
         cmp eax,PAGE_MASK; jb 0f; hlt; 0:
         ret 6*4

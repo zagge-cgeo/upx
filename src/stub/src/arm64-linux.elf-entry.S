@@ -49,6 +49,9 @@ sz_b_info= 12
   sz_cpr= 4
   b_method= 8
 
+is_ptinterp=     (1<<0)
+unmap_all_pages= (1<<1)
+
 AT_NULL= 0  // <elf.h>
 AT_PAGESZ= 6
 a_type= 0
@@ -224,6 +227,7 @@ unfold:
 
 // Use the unfolded code
         ldr w0,[xFOLD, #LOBINFO - LxFOLD]  // O_BINFO
+        bic w0,w0,#is_ptinterp | unmap_all_pages
         ldr wLENC,[xfexp,#sz_pack2 - f_exp]
         add xADRC,xelfa,x0  // &b_info of compressed input data
         add x0,xADRM,#NBPW + 3*4  // jmp over get_page_mask() and bits_privanon
@@ -330,9 +334,6 @@ hex:
         .ascii "0123456789abcdef"
 #endif  //}
 
-proc_self_exe:
-        .asciz "/proc/self/exe"; .balign 4
-
 zfind:
         ldr x1,[x0],#NBPW; cbnz x1,zfind
         ret
@@ -351,17 +352,12 @@ main:
 2:
         neg xPMASK,x2  // save for folded code
 
-// Open /proc/self/exe
-        mov w0,#AT_FDCWD
-        adr x1,proc_self_exe
-        mov w2,O_RDONLY
-        do_sys __NR_openat; mov wfd,w0
-        // cmp w0,#0; blt L75  // no longer fatal
+        mov wfd,#-1
 
         call unfold
 LxFOLD:
 LOBINFO:
-        .int O_BINFO
+        .int O_BINFO  // o_binfo | is_ptinterp | unmap_all_pages
 LBINFO:
         // { b_info={sz_unc, sz_cpr, {4 char}}, folded_loader...}
 /*

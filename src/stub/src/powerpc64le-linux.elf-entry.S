@@ -72,6 +72,7 @@ __NR_write = 4
   section ELFMAINX
 sz_pack2= .-4
 _start: .globl _start
+////    teq 0,0  // DEBUG
         call main  // link_register= &f_exp  (&decompress)
 
 /* Returns 0 on success; non-zero on failure. */
@@ -192,12 +193,12 @@ unfold:  // IN: r_exp, r_auxv, r_PMASK
         mflr r_FLD  // LrFLD
 
 //Reserve enough space to decompress the folded code onto r_FLD.
-        lwz r0,   sz_pack2 - f_exp(r_exp)
-        la r_elfa,sz_pack2 - f_exp(r_exp)
+        lwz r0,    sz_pack2 - f_exp(r_exp)
+        la  r_elfa,sz_pack2 - f_exp(r_exp)
+        sub r_elfa,r_elfa,r0  // r_elfa= &Elf64_Ehdr of stub
           li a4,-1
         lwz r_szuf, sz_unc + LBINFO - LrFLD(r_FLD)  // sz_unc of fold
           li a3,MAP_PRIVATE|MAP_ANONYMOUS
-        sub r_elfa,r_elfa,r0  // r_elfa= &Elf64_Ehdr of stub
           li a0,0  // kernel chooses addr
         mr a1,r_szuf  // length needed
         mr r_LENU,a1
@@ -205,6 +206,7 @@ unfold:  // IN: r_exp, r_auxv, r_PMASK
         mr r_ADRU,a0
 
         lwz r_obinf,      LOBINFO - LrFLD(r_FLD)  // O_BINFO
+        clrrwi r_obinf,r_obinf,2  // clear is_ptinterp | unmap_all_pages
 // Decompress folded code
         mtctr r_exp
         lbz meth,b_method + LBINFO - LrFLD(r_FLD)
@@ -216,10 +218,7 @@ unfold:  // IN: r_exp, r_auxv, r_PMASK
         bctrl  // decompress it
 
 // Generate code to compute PAGE_MASK.
-        lwz r0,0(r_ADRU)  // "li r3,PAGE_MASK>>9"
-        srdi a0,r_PMASK,9
-        insrdi r0,a0,16,48  // replace the immediate constant
-        stw r0,0(r_ADRU)  // get_page_mask: li r3,PAGE_MASK>>9
+        std r_PMASK,2*4(r_ADRU)  // page_mask in powerpc64le-linux.elf-fold.S
 
 // PROT_EXEC
         li a2,PROT_EXEC|PROT_READ
@@ -228,10 +227,10 @@ unfold:  // IN: r_exp, r_auxv, r_PMASK
         li r0,__NR_mprotect; sc
 
 // Use the unfolded code
-          addi r0,r_ADRU,4*4  // skip get_page_mask()
         lwz r_LENX, sz_pack2 - f_exp(r_exp)
-          mtctr r0
+          mtctr r_ADRU
         add r_ADRX,r_elfa,r_obinf  // compressed data
+        li r0,(SZ_FRAME+32*NBPW)/NBPW  // words before &argc
         bctr
 
 mmapRW0:
@@ -244,7 +243,7 @@ mmap:
 
 zfind:
         ld r0,0(a0); addi a0,a0,NBPW
-        cmpdi cr7,r0,0; bne+ cr7,zfind
+        cmpdi cr0,r0,0; bne+ cr0,zfind
         ret
 
 main:
@@ -283,7 +282,7 @@ main:
         std  31,SZ_FRAME+(-1+ 31)*NBPW(sp)
         mflr r_exp  // &f_exp (decompress)
 
-        la a0,SZ_FRAME+32*NBPW(sp)  // &argc
+        la a0,NBPW+SZ_FRAME+32*NBPW(sp)  // NBPW: argc can be 0
         call zfind  // a0= envp
         call zfind  // a0= &Elf64_auxv
         mr r_auxv,a0  // save for folded code
@@ -291,7 +290,7 @@ main:
 // set r_PMASK by finding actual page size in Elf64_auxv_t
 1:
         ld r0,a_type(a0); ld a1,a_val(a0); addi a0,a0,sz_auxv
-        cmpdi cr7,r0,AT_PAGESZ; beq- cr7,2f
+        cmpdi cr0,r0,AT_PAGESZ; beq- cr0,2f
         cmpdi cr0,r0,AT_NULL;   bne+ cr0,1b
         lis a1,PAGE_SIZE>>16  // not found; use default
 2:

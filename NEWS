@@ -6,6 +6,7 @@ Changes in 4.3.0 (XX XXX XXXX):
   * bug fixes - see https://github.com/upx/upx/milestone/18
   * PT_MIPS_ABIFLAGS is now fowarded into the compressed output;
     qemu-mips can choose the right floating-point emulation
+  * --unmap-all-pages completely avoids /proc/self/exe
 
 Changes in 4.2.4 (09 May 2024):
   * bug fixes - see https://github.com/upx/upx/milestone/17

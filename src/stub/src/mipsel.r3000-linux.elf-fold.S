@@ -92,6 +92,8 @@ F_LENU=  7*NBPW
 a4_sys=  4*NBPW
 a5_sys=  5*NBPW
 
+unmap_all_pages=  (1<<1)
+
 // C-language offers 8 register args; syscall offers only 4
 #define a4  t0
 #define a5  t1
@@ -108,25 +110,30 @@ a5_sys=  5*NBPW
 #define r_auxv   22  /* s6 */
 #define r_elfa   21  /* s5 */
 #define r_auxe   20  /* s4 */
-//s3 AVAIL       19  /* s3 */  # previously r_LENU
+#define r_FOLD   20  /* s4 */
+#define r_obinfo 19  /* s3 */
 //s2 AVAIL       18  /* s2 */  # previously r_ADRU
 #define r_LENX   17  /* s1 */
 #define r_ADRX   16  /* s0 */
 
 /* In:
-    r_ADRX,r_LENX,r_elfa,r_auxv,r_PMASK,r_fexp
+    r_ADRX,r_LENX,r_FOLD,r_elfa,r_auxv,r_PMASK,r_fexp
     sp= -sp_frame{%,%,%,%,PMASK,%fd,ADRU,LENU}, {argc,argv...,0,env...,0,auxv...,0,0,strings}
 */
 fold_begin:
-////    break
-        move v0,sp
+        lw $r_obinfo,-4($r_FOLD)  // O_BINFO | is_ptinerp | unmap_all_pages
+        andi at,$r_obinfo,unmap_all_pages
+        bnez at,0f
+          move v0,sp
         addiu sp,(~0<<4)&-(NBPW+ 4+ PATHSIZE - sp_frame)  # alloca: new envp[0], "   =", buffer
-
+0:
         move v1,sp
 L10:  # copy until auxv
         lw tmp,0(v0); addiu v0,NBPW
         sw tmp,0(v1); addiu v1,NBPW
         bne v0,$r_auxv,L10
+          andi at,$r_obinfo,unmap_all_pages
+        bnez at,L30
           addiu t1,v1,-NBPW  // new envp goes here
         sw zero,(v1); addiu v1,NBPW  // new terminator for envp
         move $r_auxv,v1  // new auxv
@@ -136,8 +143,10 @@ L30:  // copy auxv
         bnez tmp,L30  # AT_NULL: stop when v0= &auxv[N]
           move $r_auxe,v1  // end of new auxv
 
+        andi at,$r_obinfo,unmap_all_pages
+        bnez at,no_pse_env
+          li tmp,' '
         sw v1,0(t1)  # new env var
-        li tmp,' '
         sb tmp,0(v1)  # endian neutral!
         sb tmp,1(v1)
         sb tmp,2(v1)
@@ -163,6 +172,7 @@ L30:  // copy auxv
           addu tmp,a1,v0
         sb $0,(tmp)  # null terminate the path
 0:
+no_pse_env:
         addiu sp,-MAX_ELF_HDR_32  # alloca
         move t3,$r_PMASK  # page_mask
         move t2,$r_elfa  # &Elf32_Ehdr of stub
@@ -206,8 +216,10 @@ p_memsz= 5*NBPW
         li v0,__NR_munmap; syscall
 
 // Map 1 page of /proc/self/exe so that munmap does not remove all references
-        lw   a4,F_fd(sp)
-          move a5,$0  // offset
+        andi at,$r_obinfo,unmap_all_pages
+        bnez at,no_map_pse
+          lw   a4,F_fd(sp)
+            move a5,$0  // offset
         bltz a4,no_map_pse
           sw a4,a4_sys(sp)
           sw a5,a5_sys(sp)

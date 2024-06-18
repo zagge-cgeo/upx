@@ -130,7 +130,6 @@ DCACHE= 1<<1
 sz_pack2 = . - 4
 
 _start: .globl _start
-////    break  # debug only
         bal main
           addiu $r_fexp,ra, f_exp - 0f
 0:
@@ -325,6 +324,8 @@ unfold:  // IN: $r_fexp,$r_auxv,$r_PMASK,$r_FOLD
         sw v0,  F_ADRU(sp)
 
         lw $r_ADRX,-4($r_FOLD)  // O_BINFO
+        li at,~3
+        and $r_ADRX,$r_ADRX,at  // clear is_ptinterp | (unmap_all_pages<<1)
 // Decompress folded code
         lb meth,b_method($r_FOLD)  // a4
         sw $r_szuf,0(sp)  // lzma uses for EOF

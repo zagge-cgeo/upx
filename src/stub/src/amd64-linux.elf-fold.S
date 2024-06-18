@@ -68,37 +68,52 @@ __NR_readlink= 89
 
 // IN: [ADRX,+LENX): compressed data; [ADRU,+LENU): expanded fold (w/ upx_main)
 // %rbx= 4+ &O_BINFO; %rbp= f_exp; %r14= ADRX; %r15= LENX;
-// rsp/ elfaddr,fd,ADRU,LENU,rdx,%entry,  argc,argv,0,envp,0,auxv,0,strings
+// rsp/ elfaddr,%fd,ADRU,LENU,rdx,%entry,  argc,argv,0,envp,0,auxv,0,strings
 
 fold_begin:
 ////    int3  // DEBUG only
         call L90
+        .asciz "/proc/self/exe"; .byte 0  // 16 bytes in all
 #include "arch/amd64/bxx.S"
 L90:
-        pop %rax  # &f_unf
+        pop %rdx  // "/proc/self/eax"
         push %r14  // ADRX
         push %r15  // LENX
-        push %rax  # &amdbxx: f_unf
-        mov %rsp,%rsi
-        sub $PATH_MAX,%rsp
+        lea 16(%rdx),%rax; push %rax  # &amdbxx: f_unf
+
+unmap_all_pages= (1<<1)
+is_ptinterp=     (1<<0)
+        push %rsp; pop %rsi
+        testb $unmap_all_pages,-4(%rbx); jnz 0f; sub $PATH_MAX,%rsp; 0:
         push %rsp; pop %rdi
-        push $10; pop %rcx; rep movsq  # f_unf,LENX,ADRX,elfaddr,fd,ADRU,LENU,rdx,%entry,argc
+        push $10; pop %rcx; rep movsq  # f_unf,LENX,ADRX,elfaddr,%fd,ADRU,LENU,rdx,%entry,argc
+        xor %eax,%eax
+
 0:
-        cmpq $0,(%rsi); movsq; jne 0b  # move past argv
+        cmpq %rax,(%rsi); movsq; jne 0b  # move past argv
         movq %rdi,%r14  # remember &new_env[0]
-        stosq  # space for new_env[0]
+        testb $unmap_all_pages,-4(%rbx); jnz 0f; stosq; 0:  # space for new_env[0]
+
 0:
-        cmpq $0,(%rsi); movsq; jne 0b  # move past env
-        mov %rdi,%r12  # &old Elf64_auxv
+        cmpq %rax,(%rsi); movsq; jne 0b  # move past env
+        mov %rdi,%r12  # &new Elf64_auxv
+
+        push %rsi; pop %arg4  # &old_auxv in case no_env_pse
 0:
-        cmpq $0,(%rsi); movsq; movsq; jne 0b  # move past auxv
+        cmpq %rax,(%rsi); movsq; movsq; jne 0b  # move past auxv
         mov %rdi,%r15  # beyond auxv
         mov %rsi,%r13  # beginning of strings
         sub %r15,%r12  # -length of auxv
 
+        testb $unmap_all_pages,-4(%rbx); jz env_pse
+        mov %rdi,%r14;               jmp no_env_pse  # beyond auxv
+env_pse:
+        push %rdx; pop %arg1  # "/proc/self/exe"
+        push $O_RDONLY; pop %arg2
+        call open; mov %rax,4*NBPW(%rsp)  # fd
         movl $-1+ PATH_MAX,%arg3l # buflen
-        push %rdi; pop %arg2  #buffer
-        lea -4-15(%rbx),%arg1 # "/proc/self/exe"
+        mov %r15,%arg2  # buffer (beyond auxv)
+        // %arg1 persists from open()
         push $ __NR_readlink; pop %rax; syscall; testl %eax,%eax; jns 0f
 // readlink() failed. Set the result equal to the argument.
         push %arg1; pop %arg2  # result= "/proc/self/exe"
@@ -130,7 +145,8 @@ L90:
      cld
 
         lea (%r14,%r12),%arg4  # &new Elf64_auxv
-        movl -4(%rbx),%eax; and $1,%eax; add %rax,%arg4  # is_ptinterp
+no_env_pse:
+        movl -4(%rbx),%eax; and $is_ptinterp,%eax; add %rax,%arg4
         pop %arg6  # f_unf
         pop %arg2  # LENX
         pop %arg1  # ADRX

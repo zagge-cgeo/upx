@@ -66,6 +66,9 @@ M_NRV2B_LE32=2  // ../conf.h
 M_NRV2D_LE32=5
 M_NRV2E_LE32=8
 
+# low bits in O_BINFO
+is_ptinterp=     (1<<0)
+unmap_all_pages= (1<<1)
 
 // https://www.uclibc.org/docs/psABI-x86_64.pdf
   section ELFMAINX
@@ -226,15 +229,9 @@ die:
 
   section ELFMAINZ
 // Decompress the rest of this loader, and jump to it.
-unfold:  // IN: rbp= &f_exp; rsp/ &proc_self_exe,%entry
-        pop %arg1  // &proc_self_exe
-        sub %arg2l,%arg2l  // O_RDONLY
-        push $__NR_open; pop %rax; syscall
-        // test %eax,%eax; js msg_proc_self_exe  // no longer fatal
-        push %rax  // save fd
-
-        lea -4+ FOLD - proc_self_exe(%arg1),%rsi  // &O_BINFO | is_ptinterp
-        lodsl; and $~1,%eax; movl %eax,%r14d  // O_BINFO
+unfold:  // IN: rbp= &f_exp; rsp/ &O_BINFO,%entry
+        pop %rsi  // &(O_BINFO | is_ptinterp | unmap_all_pages)
+        lodsl; and $~(is_ptinterp|unmap_all_pages),%eax; movl %eax,%r14d  // O_BINFO
         push %rsi; pop %rbx  // &b_info of folded decompressor
         movl (%rsi),%edx  // .sz_unc
 
@@ -243,10 +240,9 @@ unfold:  // IN: rbp= &f_exp; rsp/ &proc_self_exe,%entry
         subq %r15,%rcx  // elfaddr= &Elf64_Ehdr of this stub
         subl %r14d,%r15d  // LENX= sz_pack2 - O_BINFO
         addq %rcx,%r14  // ADRX= elfaddr + O_BINFO
-          pop %rdi  // fd
         push %rdx  // LENU
         push %rax  // %ADRU
-          push %rdi  // fd
+        push $-1  // space for %fd
         push %rcx  // elfaddr
 
 // Reserve space for unfolded stub.
@@ -285,10 +281,7 @@ unfold:  // IN: rbp= &f_exp; rsp/ &proc_self_exe,%entry
 main:
         pop %rbp  // &f_exp
         call unfold
-proc_self_exe:
-        .asciz "/proc/self/exe"
-        .long O_BINFO  // offset of b_info for .text
-FOLD:
+        .long O_BINFO  // offset of b_info for .text | is_ptinerp | unmap_all_pages
         // { b_info={sz_unc, sz_cpr, {4 char}}, folded_loader...}
 
 /*__XTHEENDX__*/

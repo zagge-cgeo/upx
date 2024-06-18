@@ -938,7 +938,9 @@ PackLinuxElf::addStubEntrySections(Filter const *, unsigned m_decompr)
 
 void PackLinuxElf::defineSymbols(Filter const *)
 {
-    linker->defineSymbol("O_BINFO", (!!opt->o_unix.is_ptinterp) | o_binfo);
+    linker->defineSymbol("O_BINFO", o_binfo
+       | ((!!opt->o_unix.is_ptinterp)     << 0)
+       | ((!!opt->o_unix.unmap_all_pages) << 1) );
 }
 
 void PackLinuxElf32::defineSymbols(Filter const *ft)

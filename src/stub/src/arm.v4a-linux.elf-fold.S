@@ -69,18 +69,38 @@ PATH_MAX= 4096
 #define call bl
 #include "MAX_ELF_HDR.S"
 
+F_elfaddr= 0*NBPW
+F_fd=      1*NBPW
+  F_szpage= F_fd
+F_ADRU=    2*NBPW
+F_LENU=    3*NBPW
+F_f_exp=   4*NBPW
+F_entry=   5*NBPW
+  F_mflg=    F_entry
+F_r0=      6*NBPW
+F_r1=      7*NBPW
+F_FRAME=   8*NBPW
+
+is_ptinterp=     (1<<0)
+unmap_all_pages= (1<<1)
+
 mflg_data: .int MAP_PRIVATE|MAP_ANONYMOUS  @ overwritten for QNX vs Linux
+PAGE_MASK: .int ~0<<12  // default
+get_page_mask: .globl get_page_mask
+        ldr r0,PAGE_MASK
+        ret
 
 SP_fd= 3*4
 /* In:
+   r3= O_BINFO | is_ptinerp | unmap_all_pages
    r4= LENX
    r5= ADRX
-   lr= "/proc/self/exe"
-new sp/            elfaddr,fd, ADRU,LENU, f_exp,%entry, r0,r1, argc,argv,0,envp,0,auxv
+new sp/            elfaddr,%fd, ADRU,LENU, f_exp,%entry, r0,r1, argc,argv,0,envp,0,auxv
         (ADRX,LENX) = extent of compressed program
         (ADRU,LENU) = params to munmap unfolded stub
 */
 fold_begin:  // enter here
+        str r3,[sp,#F_fd]
 #if DEBUG  //{
 #define TRACE_REGS r0-r12,r14,r15
         mov r0,sp  @ current stack pointer (extra clue)
@@ -90,13 +110,16 @@ fold_begin:  // enter here
         mov r3,r5  @ ADRX
         ldmia sp!,{      r4,r5,r6,r7,r8,r9,r10,r11,r12}  @ r12= argc
         mov r1,sp  @ src (argv)
-        sub sp,sp,#PATH_MAX
+        tst r5,#unmap_all_pages; bne 0f
+          sub sp,sp,#PATH_MAX
+        0:
         mov r0,sp  @ dst
         stmdb sp!,{r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12}  @ r12= argc
 F_LENX=    0*NBPW
 F_ADRX=    1*NBPW
 F_elfaddr= 2*NBPW
 F_fd=      3*NBPW
+  F_obinfo= F_fd
 F_ADRU=    4*NBPW
 F_LENU=    5*NBPW
 F_f_exp=   6*NBPW
@@ -109,7 +132,9 @@ F_r1=      9*NBPW
         ldr r3,[r1],#4; cmp r3,#0
         str r3,[r0],#4; bne 0b
      mov r4,r0  @ &new_env[0]
+     ldr r2,[sp,#F_obinfo]; tst r2,#unmap_all_pages; bne 0f
         str r3,[r0],#4  @ space for new_env[0]
+     0:
 
 0: // copy env down
         ldr r3,[r1],#4; cmp r3,#0
@@ -122,13 +147,29 @@ F_r1=      9*NBPW
      mov r6,r1  @ &orig_auxv[end]; also &old_strings
      mov r9,r0  @ &down_auxv[end]
 
+     mov r3,r5  @ auxv
+     ldr r5,[sp,#F_f_exp]  @ for calling upx_main if no_pse_env
+     ldr r2,[sp,#F_obinfo]; tst r2,#unmap_all_pages; beq pse_env
+     mov r1,#-1; str r1,[sp,#F_fd]  @ assume no_map_pse
+     str r6,[sp,#F_e_auxv]  @ &hatch
+        b no_pse_env
+pse_env:
+        mov r5,r3  @ auxv
+     call 0f; .asciz "/proc/self/exe"; .balign 4; 0: mov r10,lr
+
+        mov r8,r0  @ save buf
+        mov r0,r10
+        mov r1,#O_RDONLY
+        call open; str r0,[sp,#F_fd]
+        mov r0,r8  @ buf
+
         mov r2,#PATH_MAX
         mov r1,r0  @ buffer
-        mov r0,lr  @ arg1= "/proc/self/exe"
+        mov r0,r10  @ arg1= "/proc/self/exe"
         sub r2,r2,#1  @ room for null terminator
         call readlink
         cmn r0,#4096
-        movcs r1,lr  @ "/proc/self/exe"
+        movcs r1,r10  @ "/proc/self/exe"
         movcs r0,#14  @ strlen("/proc/self/exe")
 link_ok:
         add r2,r1,r0  @ end
@@ -144,8 +185,7 @@ link_ok:
         str r0,[r4]  @ new_env[0]
 
 // preserve 8-byte alignment of stack pointer
-        mov r0,r0,lsr #2
-        mov r0,r0,lsl #2  @ &new_strings
+        bic r0,r0,#3  @ &new_strings
         eor r3,r6,r0  @ word parity with &old_strings
         and r3,r3,#4  @ 0 or 4
         eor r3,r3,#4  @ we add 1 new_env[0]
@@ -161,6 +201,7 @@ link_ok:
         ldr r2,[r1,#-4]!; cmp r1,sp
         str r2,[r0,#-4]!; bne 0b
         mov sp,r0
+no_pse_env:
 
 #if DEBUG  //{
         stmdb sp!,{TRACE_REGS}; mov r0,#0x12; bl trace
@@ -216,8 +257,7 @@ no_map_pse:
 #if DEBUG  //{
         stmdb sp!,{TRACE_REGS}; mov r0,#0x15; bl trace
 #endif  //}
-        ldmia sp!,{r0,r1,r2, lr}  @ ADRU,LENU,1+ &Elf32_auxv_t[AT_NULL@.a_type], entry
-        // crumb is unused: replaced by mapping /proc/self/exe into a free page
+        ldmia sp!,{r0,r1,r2, lr}  @ F_ADRU, F_LENU, F_e_auxv, F_entry
 
 #if DEBUG  /*{*/
         ldr r3,[r2,#NBPW -2*NBPW]  @ Elf32_auxv_t[AT_NULL@.a_type].a_val

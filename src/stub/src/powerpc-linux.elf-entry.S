@@ -186,12 +186,12 @@ unfold:  // IN: r_exp, r_auxv, r_PMASK
         mflr r_FLD  // LrFLD
 
 //Reserve enough space to decompress the folded code of the stub
-        lwz r0,  sz_pack2 - f_exp(r_exp)
-        la r_elf,sz_pack2 - f_exp(r_exp)
+        lwz r0,   sz_pack2 - f_exp(r_exp)
+        la  r_elf,sz_pack2 - f_exp(r_exp)
+        sub r_elf,r_elf,r0  // r_elf=&Elf32_Ehdr of stub
           li a4,-1
         lwz r_szuf, sz_unc + LBINFO - LrFLD(r_FLD)  // sz_unc of fold
           li a3,MAP_PRIVATE|MAP_ANONYMOUS
-        sub r_elf,r_elf,r0  // r_elf=&Elf32_Ehdr of stub
           li a0,0  // kernel chooses addr
         mr a1,r_szuf  // length needed
         mr r_LENU,a1
@@ -199,6 +199,7 @@ unfold:  // IN: r_exp, r_auxv, r_PMASK
         mr r_ADRU,a0
 
         lwz r_obinf,      LOBINFO - LrFLD(r_FLD)  // O_BINFO
+        clrrwi r_obinf,r_obinf,2  // clear is_ptinterp | unmap_all_pages
 // Decompress folded code
         mtctr r_exp
         lbz meth,b_method + LBINFO - LrFLD(r_FLD)
@@ -210,7 +211,7 @@ unfold:  // IN: r_exp, r_auxv, r_PMASK
         bctrl  // decompress it
 
 // Generate code to compute PAGE_MASK.
-        stw r_PMASK,0(r_ADRU)  // page_mask in powerpc-linux.elf-fold.S
+        stw r_PMASK,2*4(r_ADRU)  // page_mask in powerpc-linux.elf-fold.S
 
 // PROT_EXEC
         li a2,PROT_EXEC|PROT_READ
@@ -219,10 +220,10 @@ unfold:  // IN: r_exp, r_auxv, r_PMASK
         li r0,__NR_mprotect; sc
 
 // Use the unfolded code
-          addi r0,r_ADRU,8*4  // skip get_page_mask()
         lwz r_LENX, sz_pack2 - f_exp(r_exp)
-          mtctr r0
+          mtctr r_ADRU
         add r_ADRX,r_elf,r_obinf  // compressed data
+        li r0,(SZ_FRAME+32*NBPW)/NBPW  // words before &argc
         bctr
 
 // Example code at entrypoint of C-language subroutine:
@@ -247,7 +248,7 @@ mmap:
 
 zfind:
         lwz r0,0(a0); addi a0,a0,NBPW
-        cmpi cr7,r0,0; bne+ cr7,zfind
+        cmpi cr0,r0,0; bne+ cr0,zfind
         ret
 
 main:
@@ -255,7 +256,7 @@ main:
         stmw r2,  SZ_FRAME+ 2*NBPW - NBPW(sp) // save registers r2 thru r31
         mflr r_exp  // &f_exp (decompress)
 
-        la a0,SZ_FRAME+32*NBPW(sp)  // &argc
+        la a0,SZ_FRAME+32*NBPW+NBPW(sp)  // argv; argc could be zero
         call zfind  // a0= envp
         call zfind  // a0= &Elf32_auxv
         mr r_auxv,a0  // save for folded code
@@ -263,7 +264,7 @@ main:
 // set r_PMASK by finding actual page size in Elf32_auxv_t
 1:
         lwz r0,a_type(a0); lwz a1,a_val(a0); addi a0,a0,sz_auxv
-        cmpi cr7,r0,AT_PAGESZ; beq- cr7,2f
+        cmpi cr0,r0,AT_PAGESZ; beq- cr0,2f
         cmpi cr0,r0,AT_NULL;   bne+ cr0,1b
         li a1,PAGE_SIZE  // not found; use default
 2:
