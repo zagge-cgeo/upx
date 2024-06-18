@@ -196,7 +196,7 @@ jobs:
         include:
           # NOTE: macos does not have "env -C"; only with brew coreutils
           # NOTE: macos-11 does not have "readlink -f"; only on macos >= 12 or with brew coreutils
-          # { os: macos-11, gcc: gcc-10, gxx: g++-10, testsuite: true } # scheduled for removal from GitHub actions
+          # { os: macos-11, gcc: gcc-10, gxx: g++-10, testsuite: true } # macos-11 is EOL; scheduled for removal from GitHub actions
           - { os: macos-12, gcc: gcc-11, gxx: g++-11, testsuite: true }
           - { os: macos-13, testsuite: true } # use default Xcode-15; NOTE: gcc-12 on macos-13 does not work with Xcode-15
           - { os: macos-13, gcc: gcc-12, gxx: g++-12, testsuite: true, xcode_version: 14.3.1 }
@@ -467,8 +467,7 @@ jobs:
           - { zig_target: mipsel-linux-musl, qemu: qemu-mipsel }
           - { zig_target: mipsel-linux-muslsf, zig_flags: -msoft-float, qemu: qemu-mipsel }
           - { zig_target: powerpc-linux-musl, qemu: qemu-ppc }
-          # powerpc64: obscure problem with C++ exceptions in UPX doctest checks; use -fPIC to work-around
-          - { zig_target: powerpc64-linux-musl, zig_flags: -fPIC, qemu: qemu-ppc64 }
+          - { zig_target: powerpc64-linux-musl, qemu: qemu-ppc64 }
           - { zig_target: powerpc64le-linux-musl, qemu: qemu-ppc64le }
           - { zig_target: x86_64-linux-gnu.2.3.4, qemu: qemu-x86_64 } # can use QEMU because of gcompat
           - { zig_target: x86_64-linux-musl, qemu: qemu-x86_64 }
@@ -492,10 +491,10 @@ jobs:
         shell: sh
         run: |
           apk update && apk upgrade && apk add bash cmake curl file git make parallel tar xz
-          mkdir -p ~/.parallel && : > ~/.parallel/$(echo 6305-4721 | tr 0-7 leticlwi)
           # set PATH like in Ubuntu
           echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
           git config --global --add safe.directory '*' # needed when running in a container
+          mkdir -p ~/.parallel && : > ~/.parallel/$(echo 6305-4721 | tr 0-7 leticlwi)
       - uses: actions/checkout@v4
         with: { submodules: true }
       - name: ${{ format('Install Zig {0}', env.ZIG_DIST_VERSION) }}
@@ -508,10 +507,6 @@ jobs:
             # TODO FIXME: problem with self-packed upx and musl+gcompat: "Not a valid dynamic program"
             echo "UPX_CONFIG_DISABLE_RUN_PACKED_TEST=ON" >> $GITHUB_ENV
           fi
-          # update ZIG_TARGET
-          ZIG_TARGET=${ZIG_TARGET/i386-/x86-}  # i386 => x86
-          ZIG_TARGET=${ZIG_TARGET/muslsf/musl} # muslsf => musl
-          echo "ZIG_TARGET=$ZIG_TARGET" >> $GITHUB_ENV
           # install zig; note that ~/.local/bin is included in the default $PATH on Ubuntu
           mkdir -p -v ~/.local/bin
           cd ~/.local/bin
@@ -524,12 +519,23 @@ jobs:
           #echo "PATH=$PATH" && which zig
           echo -n 'zig version: '; zig version
           # create wrapper scripts (needed for CMake)
-          echo -e '#!/bin/sh\nexec zig ar "$@"' > zig-ar
-          echo -e '#!/bin/sh\nexec zig cc  -target $ZIG_TARGET $ZIG_PIC $ZIG_FLAGS $ZIG_CPPFLAGS $ZIG_CFLAGS   "$@"' > zig-cc
-          echo -e '#!/bin/sh\nexec zig c++ -target $ZIG_TARGET $ZIG_PIC $ZIG_FLAGS $ZIG_CPPFLAGS $ZIG_CXXFLAGS "$@"' > zig-cxx
-          echo -e '#!/bin/sh\nexec zig ranlib "$@"' > zig-ranlib
+          log=
+          log='set -x\n'
+          echo -e '#!/bin/sh\n'$log'exec zig ar "$@"' > zig-ar
+          echo -e '#!/bin/sh\n'$log'exec zig cc  -target $ZIG_TARGET $ZIG_PIC $ZIG_FLAGS $ZIG_CPPFLAGS $ZIG_CFLAGS   "$@"' > zig-cc
+          echo -e '#!/bin/sh\n'$log'exec zig c++ -target $ZIG_TARGET $ZIG_PIC $ZIG_FLAGS $ZIG_CPPFLAGS $ZIG_CXXFLAGS "$@"' > zig-cxx
+          echo -e '#!/bin/sh\n'$log'exec zig ranlib "$@"' > zig-ranlib
           chmod +x zig-ar zig-cc zig-cxx zig-ranlib
           ls -la; head zig-ar zig-cc zig-cxx zig-ranlib
+          # update ZIG_TARGET
+          ZIG_TARGET=${ZIG_TARGET/i386-/x86-}  # i386 => x86
+          ZIG_TARGET=${ZIG_TARGET/muslsf/musl} # muslsf => musl
+          echo "ZIG_TARGET=$ZIG_TARGET" >> $GITHUB_ENV
+          # -fPIE is for compilation only => also use the correct linker flag "-pie"
+          # INFO: it seems the zig driver does handle this automatically(??), so not really needed
+          if test "X$ZIG_PIC" = "X-fPIE"; then true;
+            echo "ZIG_FLAGS=$ZIG_FLAGS --start-no-unused-arguments -pie --end-no-unused-arguments" >> $GITHUB_ENV
+          fi
       - name: ${{ format('Build Release with zig-cc -target {0} {1}', env.ZIG_TARGET, env.ZIG_PIC) }}
         run: |
           make UPX_XTARGET=zig/${ZIG_TARGET}${ZIG_PIC} xtarget/release \

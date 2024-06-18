@@ -972,7 +972,7 @@ TEST_CASE("get_ratio") {
 
 #if defined(__wasi__) // TODO later - wait for wasm/wasi exception handling proposal
 extern "C" {
-void __cxa_allocate_exception() { std::terminate(); }
+void __cxa_allocate_exception() throw() { std::terminate(); }
 void __cxa_throw() { std::terminate(); }
 } // extern "C"
 #endif
