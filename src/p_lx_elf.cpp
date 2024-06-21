@@ -1581,7 +1581,7 @@ PackLinuxElf32::buildLinuxLoader(
 //ELF2 NYI          || this->e_machine==Elf32_Ehdr::EM_386
       ) { // main program with ELF2 de-compressor
         addLoader("ELFMAINX,ELFMAINZ,FOLDEXEC,IDENTSTR");
-            defineSymbols(ft); 
+            defineSymbols(ft);
     }
     else { // ELF1 de-compressor
         addStubEntrySections(ft, (methods_used ? methods_used
