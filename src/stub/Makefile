@@ -313,6 +313,37 @@ define tc.default.f-embed_objinfo_without_xstrip
 	cat $1.dump >> $1
 endef
 
+define tc.default.f-embed_objinfo_without_xstrip_keep_dot_text
+	chmod a-x $1
+	$(call tc,objcopy)          -R .data -R .bss $1
+	$(call tc,objcopy) -R .comment -R .note -R .note.GNU-stack -R .reginfo $1
+	$(call tc,objcopy) --strip-unneeded --keep-symbol=_start --keep-symbol=upx_so_main $1
+#
+# Disassemble for human readability
+# objdump
+#   -Dr disassemble-all, with interspersed relocations
+	$(call tc,objdump) -Dr $(tc_objdump_disasm_options) $1 | $(RTRIM) > $1.disasm
+#
+# Disassemble for post-processing by buildLinuxLoader()
+# objdump
+#   -r  reloc
+#   -h  section-headers
+#   -t  syms
+#   -w  (wide) do not truncate symbol names
+# sed
+#   remove filename from first line
+#   change tab to space
+#   collapse multiple leading zeroes
+#   remove everything after "CONTENTS"
+	$(call tc,objdump) -htr -w $1 | $(BLSQUEEZE) | sed \
+	  -e '1s/^.*: *file format/file format/' \
+	  -e 's/$(tab)/ /g' \
+	  -e 's/ 00*/ 0/g' \
+	  -e 's/CONTENTS.*/CONTENTS/' \
+	  > $1.dump
+	cat $1.dump >> $1
+endef
+
 tc.default.f-objstrip-disasm.bin = @true
 tc.default.f-objstrip-disasm.o   = $(call tc,objdump) -dr $(tc_objdump_disasm_options) $1 | $(RTRIM) > $1.disasm
 tc.default.f-objstrip-disasm.obj = $(call tc,objdump) -dr $(tc_objdump_disasm_options) $1 | $(RTRIM) > $1.disasm
@@ -395,12 +426,13 @@ amd64-linux.elf-so_entry.h: $(srcdir)/src/$$T.S
 	$(call tc,f-embed_objinfo,tmp/$T.bin)
 	$(call tc,bin2h) tmp/$T.bin $@
 
-amd64-linux.elf-fold.h : tmp/$$T.o tmp/amd64-linux.elf-main.o $(srcdir)/src/$$T.lds tmp/amd64-expand.o
-#	# FIXME: multiarch-ld-2.18 creates a huge file here, so use 2.17
-#	####$(call tc,ld) --strip-all -T $(srcdir)/src/$T.lds -Map tmp/$T.map $(filter %.o,$^) -o tmp/$T.bin
-	multiarch-ld-2.17 --strip-all -T $(srcdir)/src/$T.lds -Map tmp/$T.map $(filter %.o,$^) -o tmp/$T.bin
-	$(call tc,f-objstrip,tmp/$T.bin)
-	$(call tc,sstrip) tmp/$T.bin
+amd64-linux.elf-fold.h : $(srcdir)/src/$$T.lds \
+	    tmp/$$T.o \
+	    tmp/amd64-expand.o \
+	    tmp/amd64-linux.elf-main2.o
+# FIXME: multiarch-ld-2.18 creates a huge file here, so use 2.17
+	multiarch-ld-2.17 -r -T $(srcdir)/src/$T.lds -Map tmp/$T.map $(filter %.o,$^) -o tmp/$T.bin
+	$(call tc,f-embed_objinfo_without_xstrip_keep_dot_text,tmp/$T.bin)
 	$(call tc,bin2h) tmp/$T.bin $@
 
 amd64-linux.elf-so_fold.h : tmp/$$T.o tmp/amd64-linux.elf-so_main.o $(srcdir)/src/$$T.lds tmp/amd64-expand.o
@@ -421,6 +453,10 @@ tmp/amd64-linux.elf-so_fold.o : $(srcdir)/src/$$T.S
 	$(call tc,f-objstrip,$@)
 
 tmp/amd64-linux.elf-main.o : $(srcdir)/src/$$T.c
+	$(call tc,gcc) -c -Os $< -o $@
+	$(call tc,f-objstrip,$@)
+
+tmp/amd64-linux.elf-main2.o : $(srcdir)/src/$$T.c
 	$(call tc,gcc) -c -Os $< -o $@
 	$(call tc,f-objstrip,$@)
 
