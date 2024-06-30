@@ -1652,7 +1652,7 @@ PackLinuxElf64::buildLinuxLoader(
     else if (0
          ||  this->e_machine==Elf64_Ehdr::EM_X86_64
          ||  this->e_machine==Elf64_Ehdr::EM_AARCH64
-//ELF2 NYI    ||  this->e_machine==Elf64_Ehdr::EM_PPC64
+         ||  this->e_machine==Elf64_Ehdr::EM_PPC64
          ) { // main program with ELF2 de-compressor
         initLoader(fold, szfold);
         char sec[120]; memset(sec, 0, sizeof(sec));  // debug convenience
@@ -1720,7 +1720,7 @@ PackLinuxElf64::buildLinuxLoader(
        && (0
           || this->e_machine==Elf64_Ehdr::EM_X86_64
           || this->e_machine==Elf64_Ehdr::EM_AARCH64
-//ELF2 NYI          || this->e_machine==Elf64_Ehdr::EM_PPC64
+          || this->e_machine==Elf64_Ehdr::EM_PPC64
           )
     ) {
         addLoader("ELFMAINX,ELFMAINZ,FOLDEXEC,IDENTSTR");
@@ -1728,7 +1728,7 @@ PackLinuxElf64::buildLinuxLoader(
     else if (0
          ||  this->e_machine==Elf64_Ehdr::EM_X86_64
          ||  this->e_machine==Elf64_Ehdr::EM_AARCH64
-//ELF2 NYI         ||  this->e_machine==Elf64_Ehdr::EM_PPC64
+         ||  this->e_machine==Elf64_Ehdr::EM_PPC64
         ) { // main program with ELF2 de-compressor
         addLoader("ELFMAINX,ELFMAINZ,FOLDEXEC,IDENTSTR");
         if (this->e_machine==Elf64_Ehdr::EM_PPC64
