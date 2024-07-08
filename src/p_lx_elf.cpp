@@ -1496,7 +1496,7 @@ PackLinuxElf32::buildLinuxLoader(
             method = M_NRV2B_8;  //only ARM v6 and above has unaligned fetch
     } // end shlib
     else if (0
-//ELF2 NYI         ||  this->e_machine==Elf32_Ehdr::EM_386
+         ||  this->e_machine==Elf32_Ehdr::EM_386
 //ELF2 NYI         ||  this->e_machine==Elf32_Ehdr::EM_MIPS
 //ELF2 NYI         ||  this->e_machine==Elf32_Ehdr::EM_PPC
 //ELF2 NYI         ||  this->e_machine==Elf32_Ehdr::EM_ARM
@@ -1567,10 +1567,11 @@ PackLinuxElf32::buildLinuxLoader(
     linker->addSection("FOLDEXEC", mb_cprLoader, sizeof(b_info) + sz_cpr, 0);
     if (xct_off  // shlib
        && (0
-          || this->e_machine==Elf32_Ehdr::EM_ARM
+//ELF2 NYI          || this->e_machine==Elf32_Ehdr::EM_ARM
 //ELF2 NYI          || this->e_machine==Elf32_Ehdr::EM_MIPS
 //ELF2 NYI          || this->e_machine==Elf32_Ehdr::EM_PPC
-          || this->e_machine==Elf32_Ehdr::EM_386)
+          || this->e_machine==Elf32_Ehdr::EM_386
+          )
     ) { // shlib with ELF2 de-compressor
         addLoader("ELFMAINX,ELFMAINZ,FOLDEXEC,IDENTSTR");
     }
@@ -1578,7 +1579,7 @@ PackLinuxElf32::buildLinuxLoader(
 //ELF2 NYI          || this->e_machine==Elf32_Ehdr::EM_ARM
 //ELF2 NYI          || this->e_machine==Elf32_Ehdr::EM_MIPS
 //ELF2 NYI          || this->e_machine==Elf32_Ehdr::EM_PPC
-//ELF2 NYI          || this->e_machine==Elf32_Ehdr::EM_386
+          || this->e_machine==Elf32_Ehdr::EM_386
       ) { // main program with ELF2 de-compressor
         addLoader("ELFMAINX,ELFMAINZ,FOLDEXEC,IDENTSTR");
             defineSymbols(ft);
@@ -3628,6 +3629,7 @@ PackLinuxElf32::generateElfHdr(
         h2->phdr[C_TEXT].p_vaddr = h2->phdr[C_BASE].p_vaddr;
         h2->phdr[C_TEXT].p_paddr = h2->phdr[C_BASE].p_vaddr;
         set_te32(&h2->phdr[C_BASE].p_type, PT_LOAD32);  // be sure
+        set_te32(&h2->phdr[C_TEXT].p_type, PT_LOAD32);  // be sure
         h2->phdr[C_BASE].p_offset = 0;
         h2->phdr[C_BASE].p_filesz = 0;
         // .p_memsz = brka;  temporary until sz_pack2

@@ -1179,7 +1179,6 @@ i386-dos32.watcom.le.h : $(srcdir)/src/$$T.S
 # /***********************************************************************
 # // i386-linux.elf
 # ************************************************************************/
-
 i386-linux.elf%.h : tc_list = i386-linux.elf arch-i386 default
 i386-linux.elf%.h : tc_bfdname = elf32-i386
 
@@ -1187,32 +1186,57 @@ tc.i386-linux.elf.gcc      = i386-linux-gcc-3.4.6 -m32 -march=i386 -nostdinc -MM
 tc.i386-linux.elf.gcc     += -fno-exceptions -fno-asynchronous-unwind-tables
 tc.i386-linux.elf.gcc     += -Wall -W -Wcast-align -Wcast-qual -Wstrict-prototypes -Wwrite-strings -Werror
 tc.i386-linux.elf.gcc     += -mtune=k6
-tc.i386-linux.elf.gcc     += -Os -fno-omit-frame-pointer
+tc.i386-linux.elf.gcc     += -O2 -fno-omit-frame-pointer
 tc.i386-linux.elf.gcc     += -momit-leaf-frame-pointer
 tc.i386-linux.elf.gcc     += -fno-align-functions -fno-align-jumps -fno-align-labels -fno-align-loops
 tc.i386-linux.elf.gcc     += -mpreferred-stack-boundary=2
 tc.i386-linux.elf.gcc     += -fweb
 
-i386-linux.elf-entry.h : $(srcdir)/src/$$T.S
-	$(call tc,gcc) -c -x assembler-with-cpp $< -o tmp/$T.bin
-	$(call tc,f-embed_objinfo,tmp/$T.bin)
-	$(call tc,bin2h) tmp/$T.bin $@
-
-i386-linux.elf-so_entry.h: $(srcdir)/src/$$T.S
-	$(call tc,gcc) -c $< -o tmp/$T.bin
+i386-linux.elf-entry.h : $(srcdir)/src/i386-linux.elf-entry.lds \
+	    $(srcdir)/src/$$T.S \
+	    tmp/i386-linux.elf-upxfd_android.o
+	$(call tc,gcc) -c  $(srcdir)/src/$T.S -o tmp/$T.o
+	multiarch-ld-2.17 -r -Map tmp/$T.map -o tmp/$T.bin \
+	    -T src/i386-linux.elf-entry.lds \
+	    tmp/$T.o \
+	    tmp/i386-linux.elf-upxfd_android.o
 	$(call tc,f-embed_objinfo_without_xstrip,tmp/$T.bin)
 	$(call tc,bin2h) tmp/$T.bin $@
 
-i386-linux.elf-fold.h : tmp/$$T.o tmp/i386-linux.elf-main.o $(srcdir)/src/$$T.lds
-	$(call tc,ld) --strip-all -T $(srcdir)/src/$T.lds -Map tmp/$T.map $(filter %.o,$^) -o tmp/$T.bin
-	$(call tc,f-objstrip,tmp/$T.bin)
-	$(call tc,sstrip) tmp/$T.bin
+i386-linux.elf-so_entry.h : $(srcdir)/src/i386-linux.elf-so_entry.lds \
+	    $(srcdir)/src/$$T.S \
+	    tmp/i386-linux.elf-upxfd_android.o
+	$(call tc,gcc) -c  $(srcdir)/src/$T.S -o tmp/$T.o
+	multiarch-ld-2.17 -r -Map tmp/$T.map -o tmp/$T.bin \
+	    -T src/i386-linux.elf-so_entry.lds \
+	    tmp/$T.o \
+	    tmp/i386-linux.elf-upxfd_android.o
+	$(call tc,f-embed_objinfo_without_xstrip,tmp/$T.bin)
+	$(call tc,bin2h) tmp/$T.bin $@
+
+tmp/i386-linux.elf-upxfd_android.o : $(srcdir)/src/upxfd_android.c
+	$(call tc,gcc) -c -O $< -o $@
+	$(call tc,objcopy) -R .comment $@
+	$(call tc,objdump) -Dr $(tc_objdump_disasm_options) $@ | $(RTRIM) > $@.disasm
+
+i386-linux.elf-fold.h : $(srcdir)/src/$$T.lds \
+	    tmp/$$T.o \
+	    tmp/i386-linux.elf-upxfd_android.o \
+	    tmp/i386-expand.o \
+	    tmp/i386-linux.elf-main2.o
+	$(call tc,ld) -r -T $(srcdir)/src/$T.lds -Map tmp/$T.map $(filter %.o,$^) -o tmp/$T.bin
+	$(call tc,f-embed_objinfo_without_xstrip_keep_dot_text,tmp/$T.bin)
 	$(call tc,brandelf) --elfosabi=linux tmp/$T.bin
 	$(call tc,bin2h) tmp/$T.bin $@
 
-i386-linux.elf-so_fold.h : tmp/$$T.o tmp/i386-linux.elf-so_main.o $(srcdir)/src/$$T.lds tmp/i386-expand.o
-	multiarch-ld-2.17 -r          -T $(srcdir)/src/$T.lds -Map tmp/$T.map $(filter %.o,$^) -o tmp/$T.bin
+i386-linux.elf-so_fold.h : $(srcdir)/src/$$T.lds \
+	    tmp/$$T.o \
+	    tmp/i386-linux.elf-upxfd_android.o \
+	    tmp/i386-expand.o \
+	    tmp/i386-linux.elf-so_main.o
+	$(call tc,ld) -r -T $(srcdir)/src/$T.lds -Map tmp/$T.map $(filter %.o,$^) -o tmp/$T.bin
 	$(call tc,f-embed_objinfo_without_xstrip,tmp/$T.bin)
+	$(call tc,brandelf) --elfosabi=linux tmp/$T.bin
 	$(call tc,bin2h) tmp/$T.bin $@
 
 tmp/i386-linux.elf-fold.o : $(srcdir)/src/$$T.S
@@ -1227,7 +1251,7 @@ tmp/i386-linux.elf-so_fold.o : $(srcdir)/src/$$T.S
 tmp/i386-expand.o: $(srcdir)/src/$$T.S
 	$(call tc,gcc) -c $< -o $@
 
-tmp/i386-linux.elf-main.o : $(srcdir)/src/$$T.c
+tmp/i386-linux.elf-main2.o : $(srcdir)/src/$$T.c
 	$(call tc,gcc) -c $< -o $@
 	$(call tc,f-objstrip,$@)
 

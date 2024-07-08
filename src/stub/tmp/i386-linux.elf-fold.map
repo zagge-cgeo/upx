@@ -6,30 +6,83 @@ Name             Origin             Length             Attributes
 
 Linker script and memory map
 
+
+.text           0x0000000000000000      0xca0
+ .text          0x0000000000000000      0x183 tmp/i386-linux.elf-fold.o
+                0x0000000000000004                get_page_mask
+                0x0000000000000011                get_upxfn_path
+ *fill*         0x0000000000000183        0x1 00
+ .text          0x0000000000000184      0x37f tmp/i386-linux.elf-upxfd_android.o
+                0x000000000000038b                upx_mmap_and_fd
+ *fill*         0x0000000000000503        0x1 00
+ .text          0x0000000000000504        0x0 tmp/i386-expand.o
+ .text          0x0000000000000504      0x79c tmp/i386-linux.elf-main2.o
+                0x0000000000000659                underlay
+                0x0000000000000b4c                upx_main
+
+.data           0x0000000000000000        0x0
+ .data          0x0000000000000000        0x0 tmp/i386-linux.elf-fold.o
+ .data          0x0000000000000000        0x0 tmp/i386-linux.elf-upxfd_android.o
+ .data          0x0000000000000000        0x0 tmp/i386-expand.o
+ .data          0x0000000000000000        0x0 tmp/i386-linux.elf-main2.o
+
+.bss            0x0000000000000000        0x0
+ .bss           0x0000000000000000        0x0 tmp/i386-linux.elf-fold.o
+ .bss           0x0000000000000000        0x0 tmp/i386-linux.elf-upxfd_android.o
+ .bss           0x0000000000000000        0x0 tmp/i386-expand.o
+ .bss           0x0000000000000000        0x0 tmp/i386-linux.elf-main2.o
 TARGET(elf32-i386)
-                0x0000000000c01080                . = ((0xc01000 + SIZEOF_HEADERS) + 0xc)
-
-.text           0x0000000000c01080      0x7b8
- *(.text)
- .text          0x0000000000c01080      0x1bc tmp/i386-linux.elf-fold.o
-                0x0000000000c0120e                mmap
-                0x0000000000c011e6                Pprotect
- .text          0x0000000000c0123c      0x5fa tmp/i386-linux.elf-main.o
-                0x0000000000c01397                get_page_mask
-                0x0000000000c0172c                upx_main
- *(.data)
- *fill*         0x0000000000c01836        0x2 00
- .data          0x0000000000c01838        0x0 tmp/i386-linux.elf-fold.o
- .data          0x0000000000c01838        0x0 tmp/i386-linux.elf-main.o
-
-.data
-
-.bss            0x0000000000c01838        0x0
- .bss           0x0000000000c01838        0x0 tmp/i386-linux.elf-fold.o
- .bss           0x0000000000c01838        0x0 tmp/i386-linux.elf-main.o
-
-.rel.dyn        0x0000000000c01838        0x0
- .rel.text      0x0000000000000000        0x0 tmp/i386-linux.elf-fold.o
+                0x0000000000100040                . = ((0x100000 + SIZEOF_HEADERS) + 0xc)
 LOAD tmp/i386-linux.elf-fold.o
-LOAD tmp/i386-linux.elf-main.o
+LOAD tmp/i386-linux.elf-upxfd_android.o
+LOAD tmp/i386-expand.o
+LOAD tmp/i386-linux.elf-main2.o
 OUTPUT(tmp/i386-linux.elf-fold.bin elf32-i386)
+
+SYSCALLS        0x0000000000000000       0xc0
+ SYSCALLS       0x0000000000000000       0xc0 tmp/i386-linux.elf-fold.o
+                0x000000000000008f                memcpy
+                0x00000000000000a5                mempcpy
+                0x000000000000002a                mmap
+                0x000000000000005a                uname
+                0x000000000000007b                memset
+                0x00000000000000bb                my_bkpt
+                0x0000000000000000                Pprotect
+                0x0000000000000048                stat
+                0x0000000000000069                mkdir
+
+.note.GNU-stack
+                0x0000000000000000        0x0
+ .note.GNU-stack
+                0x0000000000000000        0x0 tmp/i386-linux.elf-upxfd_android.o
+
+EXP_HEAD        0x0000000000000000       0xf1
+ EXP_HEAD       0x0000000000000000       0xf1 tmp/i386-expand.o
+                0x0000000000000057                f_expand
+
+EXP_TAIL        0x0000000000000000        0xb
+ EXP_TAIL       0x0000000000000000        0xb tmp/i386-expand.o
+
+NRV2E           0x0000000000000000       0xd2
+ NRV2E          0x0000000000000000       0xd2 tmp/i386-expand.o
+
+NRV2D           0x0000000000000000       0xc5
+ NRV2D          0x0000000000000000       0xc5 tmp/i386-expand.o
+
+NRV2B           0x0000000000000000       0xb0
+ NRV2B          0x0000000000000000       0xb0 tmp/i386-expand.o
+
+LZMA_DEC00      0x0000000000000000       0x2e
+ LZMA_DEC00     0x0000000000000000       0x2e tmp/i386-expand.o
+
+LZMA_ELF00      0x0000000000000000       0x48
+ LZMA_ELF00     0x0000000000000000       0x48 tmp/i386-expand.o
+
+LZMA_DEC10      0x0000000000000000      0xa86
+ LZMA_DEC10     0x0000000000000000      0xa86 tmp/i386-expand.o
+
+LZMA_DEC20      0x0000000000000000      0xa86
+ LZMA_DEC20     0x0000000000000000      0xa86 tmp/i386-expand.o
+
+LZMA_DEC30      0x0000000000000000       0x1a
+ LZMA_DEC30     0x0000000000000000       0x1a tmp/i386-expand.o
