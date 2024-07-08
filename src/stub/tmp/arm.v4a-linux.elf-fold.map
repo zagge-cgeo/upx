@@ -6,42 +6,101 @@ Name             Origin             Length             Attributes
 
 Linker script and memory map
 
-                0x0000000000008040                . = ((0x8000 + SIZEOF_HEADERS) + 0xc)
 
-.text           0x0000000000008040      0xb60
- *(.text)
- .text          0x0000000000008040      0x3c0 tmp/arm.v4a-linux.elf-fold.o
-                0x0000000000008048                get_page_mask
-                0x00000000000082d8                my_bkpt
-                0x00000000000082e0                exit
-                0x00000000000082e4                read
-                0x00000000000082ec                write
-                0x00000000000082f4                open
-                0x00000000000082fc                close
-                0x0000000000008304                unlink
-                0x000000000000830c                getpid
-                0x0000000000008314                brk
-                0x000000000000831c                readlink
-                0x0000000000008324                munmap
-                0x000000000000832c                Pprotect
-                0x000000000000832c                mprotect
-                0x0000000000008344                mmap
-                0x0000000000008378                __clear_cache
-                0x0000000000008384                get_sys_munmap
-                0x000000000000838c                mmap_privanon
-                0x00000000000083a4                __udivsi3
-                0x00000000000083a4                div10
- .text          0x0000000000008400      0x7a0 tmp/arm.v4a-linux.elf-main.o
-                0x0000000000008a6c                upx_main
- *(.data)
- .data          0x0000000000008ba0        0x0 tmp/arm.v4a-linux.elf-fold.o
- .data          0x0000000000008ba0        0x0 tmp/arm.v4a-linux.elf-main.o
+.text           0x0000000000000000      0xf88
+ .text          0x0000000000000000      0x2f8 tmp/arm.v4a-linux.elf-fold.o
+                0x0000000000000004                get_page_mask
+                0x0000000000000298                memcpy
+                0x00000000000002dc                mempcpy
+                0x0000000000000054                mmap
+                0x000000000000003c                mmap_privanon
+                0x000000000000000c                get_upxfn_path
+                0x00000000000002bc                memset
+                0x0000000000000024                Pprotect
+                0x00000000fffffff4                PAGE_MASK
+                0x0000000000000024                mprotect
+ .text          0x00000000000002f8      0x3ec tmp/arm.v4a-linux.elf-upxfd_android.o
+                0x0000000000000530                upx_mmap_and_fd
+ .text          0x00000000000006e4        0x0 tmp/arm.v4a-expand.o
+ .text          0x00000000000006e4      0x8a4 tmp/arm.v4a-linux.elf-main2.o
+                0x0000000000000f24                underlay
+                0x0000000000000df4                upx_main
 
-.data
-LOAD tmp/arm.v4a-linux.elf-fold.o
-LOAD tmp/arm.v4a-linux.elf-main.o
-OUTPUT(tmp/arm.v4a-linux.elf-fold.bin elf32-littlearm)
+SYSCALLS        0x0000000000000000      0x10c
+ SYSCALLS       0x0000000000000000      0x10c tmp/arm.v4a-linux.elf-fold.o
+                0x000000000000005c                munmap
+                0x0000000000000000                get_sys_munmap
+                0x000000000000003c                getpid
+                0x0000000000000074                readlink
+                0x00000000000000b0                __udivsi3
+                0x0000000000000034                ftruncate
+                0x0000000000000044                lseek
+                0x000000000000009c                __clear_cache
+                0x0000000000000084                uname
+                0x0000000000000094                write
+                0x000000000000002c                fstat
+                0x000000000000001c                fdatasync
+                0x000000000000004c                memfd_create
+                0x000000000000006c                read
+                0x000000000000008c                unlink
+                0x00000000000000a8                my_bkpt
+                0x0000000000000024                fsync
+                0x000000000000007c                stat
+                0x0000000000000018                exit
+                0x0000000000000008                brk
+                0x0000000000000064                open
+                0x00000000000000b0                div10
+                0x0000000000000054                mkdir
+                0x0000000000000010                close
+
+EXP_HEAD        0x0000000000000000       0xdc
+ EXP_HEAD       0x0000000000000000       0xdc tmp/arm.v4a-expand.o
+                0x0000000000000070                f_expand
+
+EXP_TAIL        0x0000000000000000       0x24
+ EXP_TAIL       0x0000000000000000       0x24 tmp/arm.v4a-expand.o
+                0x0000000000000000                eof
+
+NRV2E           0x0000000000000000      0x114
+ NRV2E          0x0000000000000000      0x114 tmp/arm.v4a-expand.o
+                0x0000000000000000                ucl_nrv2e_decompress_8
+
+NRV2D           0x0000000000000000      0x100
+ NRV2D          0x0000000000000000      0x100 tmp/arm.v4a-expand.o
+                0x0000000000000000                ucl_nrv2d_decompress_8
+
+NRV2B           0x0000000000000000       0xc4
+ NRV2B          0x0000000000000000       0xc4 tmp/arm.v4a-expand.o
+                0x0000000000000000                ucl_nrv2b_decompress_8
+
+.data           0x0000000000000000        0x0
+ .data          0x0000000000000000        0x0 tmp/arm.v4a-linux.elf-fold.o
+ .data          0x0000000000000000        0x0 tmp/arm.v4a-linux.elf-upxfd_android.o
+ .data          0x0000000000000000        0x0 tmp/arm.v4a-expand.o
+ .data          0x0000000000000000        0x0 tmp/arm.v4a-linux.elf-main2.o
 
 .bss            0x0000000000000000        0x0
  .bss           0x0000000000000000        0x0 tmp/arm.v4a-linux.elf-fold.o
- .bss           0x0000000000000000        0x0 tmp/arm.v4a-linux.elf-main.o
+ .bss           0x0000000000000000        0x0 tmp/arm.v4a-linux.elf-upxfd_android.o
+ .bss           0x0000000000000000        0x0 tmp/arm.v4a-expand.o
+ .bss           0x0000000000000000        0x0 tmp/arm.v4a-linux.elf-main2.o
+TARGET(elf32-littlearm)
+                0x0000000000100040                . = ((0x100000 + SIZEOF_HEADERS) + 0xc)
+LOAD tmp/arm.v4a-linux.elf-fold.o
+LOAD tmp/arm.v4a-linux.elf-upxfd_android.o
+LOAD tmp/arm.v4a-expand.o
+LOAD tmp/arm.v4a-linux.elf-main2.o
+OUTPUT(tmp/arm.v4a-linux.elf-fold.bin elf32-littlearm)
+
+LZMA_ELF00      0x0000000000000000       0x90
+ LZMA_ELF00     0x0000000000000000       0x90 tmp/arm.v4a-expand.o
+
+LZMA_DEC20      0x0000000000000000      0x938
+ LZMA_DEC20     0x0000000000000000      0x938 tmp/arm.v4a-expand.o
+
+LZMA_DEC10      0x0000000000000000      0x478
+ LZMA_DEC10     0x0000000000000000      0x478 tmp/arm.v4a-expand.o
+                0x0000000000000000                LzmaDecode
+
+LZMA_DEC30      0x0000000000000000        0x0
+ LZMA_DEC30     0x0000000000000000        0x0 tmp/arm.v4a-expand.o

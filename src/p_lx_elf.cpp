@@ -1497,9 +1497,9 @@ PackLinuxElf32::buildLinuxLoader(
     } // end shlib
     else if (0
          ||  this->e_machine==Elf32_Ehdr::EM_386
+         ||  this->e_machine==Elf32_Ehdr::EM_ARM
 //ELF2 NYI         ||  this->e_machine==Elf32_Ehdr::EM_MIPS
 //ELF2 NYI         ||  this->e_machine==Elf32_Ehdr::EM_PPC
-//ELF2 NYI         ||  this->e_machine==Elf32_Ehdr::EM_ARM
          ) { // main program with ELF2 de-compressor
         initLoader(fold, szfold);
         char sec[120];
@@ -1567,19 +1567,19 @@ PackLinuxElf32::buildLinuxLoader(
     linker->addSection("FOLDEXEC", mb_cprLoader, sizeof(b_info) + sz_cpr, 0);
     if (xct_off  // shlib
        && (0
-//ELF2 NYI          || this->e_machine==Elf32_Ehdr::EM_ARM
+          || this->e_machine==Elf32_Ehdr::EM_386
+          || this->e_machine==Elf32_Ehdr::EM_ARM
 //ELF2 NYI          || this->e_machine==Elf32_Ehdr::EM_MIPS
 //ELF2 NYI          || this->e_machine==Elf32_Ehdr::EM_PPC
-          || this->e_machine==Elf32_Ehdr::EM_386
           )
     ) { // shlib with ELF2 de-compressor
         addLoader("ELFMAINX,ELFMAINZ,FOLDEXEC,IDENTSTR");
     }
     else if (0
-//ELF2 NYI          || this->e_machine==Elf32_Ehdr::EM_ARM
+          || this->e_machine==Elf32_Ehdr::EM_386
+          || this->e_machine==Elf32_Ehdr::EM_ARM
 //ELF2 NYI          || this->e_machine==Elf32_Ehdr::EM_MIPS
 //ELF2 NYI          || this->e_machine==Elf32_Ehdr::EM_PPC
-          || this->e_machine==Elf32_Ehdr::EM_386
       ) { // main program with ELF2 de-compressor
         addLoader("ELFMAINX,ELFMAINZ,FOLDEXEC,IDENTSTR");
             defineSymbols(ft);

@@ -660,7 +660,7 @@ do_xmap(
 #elif defined(__powerpc__)  //}{
             void *const hatch = make_hatch_ppc(phdr, xo.buf, ~page_mask);
 #elif defined(__arm__)  //}{
-            void *const hatch = make_hatch_arm(phdr, xo.buf, ~page_mask);
+            void *const hatch = make_hatch_arm32(phdr, xo.buf, ~page_mask);
 #endif  //}
             if (0!=hatch) {
                 // Always update AT_NULL, especially for compressed PT_INTERP.
