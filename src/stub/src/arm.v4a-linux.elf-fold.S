@@ -80,19 +80,6 @@ arg4  .req r3
 arg5  .req r4
 arg6  .req r5
 
-// In:  sp/ F_ADRX,F_LENX,F_ELFA,F_ADRU,F_LENU,F_R0,F_R1,%F_ENTR,F_argc
-//   [ADRX, +LENX) = extent of compressed program
-//   [ADRU, +LENU) = params to munmap unfolded stub
-F_ADRX=  0*NBPW
-F_LENX=  1*NBPW
-F_ELFA=  2*NBPW
-F_ADRU=  3*NBPW
-F_LENU=  4*NBPW
-F_R0=    5*NBPW
-F_R1=    6*NBPW
-F_ENTR=  7*NBPW
-F_ARGC=  8*NBPW
-
 fold_begin:  // enter here
         b L05  // put PAGE_MASK and qflg_data within short-displacement of uses
 
@@ -142,10 +129,36 @@ mmap_do: // sp: saved r4,r5,lr
 
 proc_self_exe: .asciz "/proc/self/exe"; .balign 4
 
+// In:  sp/ F_ADRX,F_LENX,F_ELFA,F_ADRU,F_LENU,F_R0,F_R1,%F_ENTR,F_argc
+//   [ADRX, +LENX) = extent of compressed program
+//   [ADRU, +LENU) = params to munmap unfolded stub
+F_ADRX=  0*NBPW
+  F_obinfo= F_ADRX  // unmap_all_pages in lo bits
+F_LENX=  1*NBPW
+F_ELFA=  2*NBPW
+F_ADRU=  3*NBPW
+F_LENU=  4*NBPW
+F_R0=    5*NBPW
+F_R1=    6*NBPW
+F_ENTR=  7*NBPW
+  F_qflg = F_ENTR  // QNX mmap flags
+F_ARGC=  8*NBPW
+
+is_ptinterp=     (1<<0)
+unmap_all_pages= (1<<1)
+
+/* In:
+   r4= ADRX | unmap_all_pages
+   r5= LENX
+sp/ ADRX|uap,LENX,ELFA,ADRU,LENU,r0,r1,%entry, r0,r1, argc,argv,0,envp,0,auxv
+        (ADRX,LENX) = extent of compressed program
+        (ADRU,LENU) = params to munmap unfolded stub
+*/
+
 L05:
-        ldmia sp!,{r4,r5,r6,r7,r8,r9,r10,r11,r12}  // includes argc
+        ldmia sp!,{r4,r5,r6,r7,r8,r9,r10,r11,r12}  // F_ADRX .. F_ARGC
         mov r1,sp  @ src
-        sub sp,sp,#PATH_MAX
+        tst r4,#unmap_all_pages; bne 0f; sub sp,sp,#PATH_MAX; 0:
         mov r0,sp  @ dst
         stmdb sp!,{r4,r5,r6,r7,r8,r9,r10,r11,r12}
 
@@ -153,7 +166,9 @@ L05:
         ldr r3,[r1],#NBPW; cmp r3,#0
         str r3,[r0],#NBPW; bne 0b
      mov r4,r0  @ &new_env[0]
+     ldr r2,[sp,#F_obinfo]; tst r2,#unmap_all_pages; bne 0f  @ no new_env
         str r3,[r0],#NBPW  @ space for new_env[0]
+0:
 
 0: // copy env down
         ldr r3,[r1],#NBPW; cmp r3,#0
@@ -165,12 +180,13 @@ L05:
         stmia r0!,{r2,r3}; bne 0b
      mov r6,r1  @ &orig_auxv[end]; also &old_strings
      mov r9,r0  @ &down_auxv[end]
-
+     ldr r2,[sp,#F_obinfo]; tst r2,#unmap_all_pages; bne no_pse_env
+pse_env:
         adr arg1,proc_self_exe
         mov arg2,#O_RDONLY
         do_sys7t __NR_open  // ENOENT is OK
-r_pse .req r8
-        mov r_pse,r0
+//r_pse .req r8
+//        mov r_pse,r0
 
         mov arg3,#PATH_MAX
         mov arg2,r9  @ buffer
@@ -211,10 +227,12 @@ r_auxe .req r10
         ldr r2,[r1,#-4]!; cmp r1,sp
         str r2,[r0,#-4]!; bne 0b
         mov sp,r0
+no_pse_env:
 
 /* Construct arglist for upx_main */
         ldmia sp!,{arg1,arg2,arg3}  @ pop: ADRX, LENX, elfaddr
         stmdb sp!,{arg1,arg2,arg3}  @ put back
+        bic arg1,arg1,#unmap_all_pages  // ADRX
 r_elfa .req r9
         mov r_elfa,arg3  // save elfaddr
         //mov arg4,r3  @ auxv
@@ -226,10 +244,9 @@ r_elfa .req r9
         str r0,[sp,#F_ENTR]  @ entry address
 
 // Map 1 page of /proc/self/exe so that it does not disappear
-        mov arg5,r_pse
-        cmp arg5,#0; blt no_map_pse
+        ldr r0,[sp,#F_obinfo]; tst r0,#unmap_all_pages; bne no_map_pse
         mov arg6,#0  @ SEEK_SET offset
-        stmdb sp!,{arg5,arg6}  @ arg5,arg6 calling convention
+        stmdb sp!,{arg5,arg6}  @ arg5,arg6 C-lang calling convention
         mov arg4,#MAP_PRIVATE
         mov arg3,#PROT_READ
         mov arg2,#PAGE_SIZE

@@ -60,6 +60,9 @@ PROT_READ=  1
 PROT_WRITE= 2
 PROT_EXEC=  4
 
+is_ptinterp=     (1<<0)
+unmap_all_pages= (1<<1)
+
 MAP_ANONYMOUS= 0x20
 MAP_FIXED=     0x10
 MAP_PRIVATE=   0x02
@@ -246,8 +249,9 @@ mfd  .req old_sp
 
 // jmp unfolded_code
         ldr r0,[sp,#F_ELFA]
-        ldr r1,[binfo,#-NBPW]  @ O_BINFO
-        add r4,r0,r1  @ ADRX= &b_info
+        ldr r1,[binfo,#-NBPW]  @ O_BINFO | unmap_all_pages
+        add r4,r0,r1  @ ADRX= &b_info | unmap_all_pages
+        bic r1,r1,#unmap_all_pages
         sub r5,r_pack2,r1  @ LENX= sz_pack2 - O_BINFO
         stmia sp,{r4,r5}  // F_ADRX, F_LENX
 #if DEBUG  /*{*/

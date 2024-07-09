@@ -273,7 +273,7 @@ main:
         call unfold
 LrFLD:
 LOBINFO:
-        .long O_BINFO
+        .long O_BINFO  // | unmap_all_pages
 LBINFO:
         /* { b_info={sz_unc, sz_cpr, {4 char}}, folded_loader...} */
 
