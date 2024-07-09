@@ -27,8 +27,8 @@ OUTPUT(tmp/powerpc64le-linux.elf-fold.bin elf64-powerpcle)
 .bss            0x0000000000000000        0x0
  .bss           0x0000000000000000        0x0 tmp/powerpc64le-linux.elf-fold.o
 
-SYSCALLS        0x0000000000000000       0xf4
- SYSCALLS       0x0000000000000000       0xf4 tmp/powerpc64le-linux.elf-fold.o
+SYSCALLS        0x0000000000000000       0xfc
+ SYSCALLS       0x0000000000000000       0xfc tmp/powerpc64le-linux.elf-fold.o
                 0x0000000000000008                mmap
                 0x0000000000000020                munmap
                 0x0000000000000028                mprotect
@@ -43,7 +43,7 @@ SYSCALLS        0x0000000000000000       0xf4
                 0x0000000000000070                close
                 0x0000000000000078                upxfd_create
                 0x00000000000000d0                memcpy
-                0x00000000000000ec                my_bkpt
+                0x00000000000000f4                my_bkpt
 
 .comment        0x0000000000000000       0x33
  .comment       0x0000000000000000       0x33 tmp/powerpc64le-linux.elf-fold.o

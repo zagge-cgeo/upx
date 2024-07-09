@@ -658,7 +658,7 @@ do_xmap(
 #if defined(__i386__)  //{
             void *const hatch = make_hatch_i386(phdr, xo.buf, ~page_mask);
 #elif defined(__powerpc__)  //}{
-            void *const hatch = make_hatch_ppc(phdr, xo.buf, ~page_mask);
+            void *const hatch = make_hatch_ppc32(phdr, xo.buf, ~page_mask);
 #elif defined(__arm__)  //}{
             void *const hatch = make_hatch_arm32(phdr, xo.buf, ~page_mask);
 #endif  //}
@@ -726,7 +726,7 @@ upx_main(  // returns entry address
     // ehdr = Uncompress Ehdr and Phdrs
     unpackExtent(&xi2, &xo);  // never filtered?
 
-#if defined(__i386__) || defined(__arm__)  //{
+#if defined(__i386__) || defined(__arm__) || defined(__powerpc__)  //{
     ElfW(Addr) *const p_reloc = &elfaddr;
 #endif  //}
     ElfW(Addr) page_mask = get_page_mask(); (void)page_mask;

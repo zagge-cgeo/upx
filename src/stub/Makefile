@@ -1682,7 +1682,7 @@ powerpc-darwin.dylib-entry.h : $(srcdir)/src/$$T.S
 powerpc-linux.elf%.h : tc_list = powerpc-linux.elf default
 powerpc-linux.elf%.h : tc_bfdname = elf32-powerpc
 
-tc.powerpc-linux.elf.gcc  = powerpc.405-linux-gcc-3.4.5 -m32 -mbig-endian -mtune=powerpc -nostdinc -MMD -MT $@
+tc.powerpc-linux.elf.gcc  = powerpc.405-linux-gcc-3.4.5 -m32 -mbig-endian -DBIG_ENDIAN=1 -mtune=powerpc -nostdinc -MMD -MT $@
 tc.powerpc-linux.elf.gcc += -fno-exceptions -fno-asynchronous-unwind-tables   # -fno-stack-protector
 tc.powerpc-linux.elf.gcc += -Wall -W -Wcast-align -Wcast-qual -Wstrict-prototypes -Wwrite-strings -Werror
 
@@ -1691,20 +1691,30 @@ powerpc-linux.elf-entry.h : $(srcdir)/src/$$T.S
 	$(call tc,f-embed_objinfo,tmp/$T.bin)
 	$(call tc,bin2h) tmp/$T.bin $@
 
-powerpc-linux.elf-fold.h : tmp/$$T.o tmp/powerpc-linux.elf-main.o $(srcdir)/src/$$T.lds
-	$(call tc,ld) --strip-all -T $(srcdir)/src/$T.lds -Map tmp/$T.map $(filter %.o,$^) -o tmp/$T.bin
-	$(call tc,f-objstrip,tmp/$T.bin)
-	$(call tc,sstrip) tmp/$T.bin
+powerpc-linux.elf-fold.h : $(srcdir)/src/$$T.lds \
+	    tmp/$$T.o \
+	    tmp/powerpc-linux.elf-upxfd_android.o \
+	    tmp/powerpc-expand.o \
+	    tmp/powerpc-linux.elf-main2.o
+	$(call tc,ld) -r -T $(srcdir)/src/$T.lds -Map tmp/$T.map $(filter %.o,$^) -o tmp/$T.bin
+	$(call tc,f-embed_objinfo_without_xstrip_keep_dot_text,tmp/$T.bin)
 	$(call tc,bin2h) tmp/$T.bin $@
 
 tmp/powerpc-linux.elf-fold.o : $(srcdir)/src/$$T.S
 	$(call tc,gcc) -c $< -o $@
 	$(call tc,f-objstrip,$@)
 
-tmp/powerpc-linux.elf-main.o : $(srcdir)/src/$$T.c
+tmp/powerpc-linux.elf-main2.o : $(srcdir)/src/$$T.c
 	$(call tc,gcc) -c $< -o $@
 	$(call tc,f-objstrip,$@)
 
+tmp/powerpc-linux.elf-upxfd_android.o : $(srcdir)/src/upxfd_android.c
+	$(call tc,gcc) -c -O $< -o $@
+	$(call tc,objcopy) -R .comment $@
+	$(call tc,objdump) -Dr $(tc_objdump_disasm_options) $@ | $(RTRIM) > $@.disasm
+
+tmp/powerpc-expand.o: $(srcdir)/src/$$T.S
+	$(call tc,gcc) -c $< -o $@
 
 # /***********************************************************************
 # // powerpc-linux.kernel.vmlinux

@@ -398,15 +398,17 @@ O_TMPFILE= 020000000  // 0x400000
 ok_memfd:
         ret
 
-memcpy: .globl memcpy  // FIXME: opcodes!
+memcpy: .globl memcpy  // (dst, src, n)
+        cmpwi a2,0; beq- 9f
         mtctr a2
-        subi a0,a0,1
+        subi a3,a0,1
         subi a1,a1,1
-L999:
+0:
         lbzu r0,1(a1)
-        stbu r0,1(a0)
-        bdnz L999
-        blr
+        stbu r0,1(a3)
+        bdnz 0b
+9:
+        blr  // return original dst
 
 my_bkpt: .globl my_bkpt
         teq r0,r0  // my_bkpt
