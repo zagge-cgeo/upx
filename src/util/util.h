@@ -110,6 +110,10 @@ forceinline bool ptr_is_aligned(const void *p) noexcept {
     static_assert(upx::has_single_bit(Alignment));
     return (ptr_get_address(p) & (Alignment - 1)) == 0;
 }
+forceinline bool ptr_is_aligned(const void *p, size_t alignment) noexcept {
+    assert_noexcept(upx::has_single_bit(alignment));
+    return (ptr_get_address(p) & (alignment - 1)) == 0;
+}
 
 // ptrdiff_t with nullptr checks and asserted size; will throw on failure
 // NOTE: returns size_in_bytes, not number of elements!

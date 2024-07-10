@@ -263,6 +263,8 @@ ASSERT_SAME_TYPE(uintptr_t, expected_uintptr_t);
 #endif
 
 // UPX types
+ASSERT_SAME_TYPE(signed char, upx_int8_t);
+ASSERT_SAME_TYPE(unsigned char, upx_uint8_t);
 ASSERT_SAME_TYPE(short, upx_int16_t);
 ASSERT_SAME_TYPE(unsigned short, upx_uint16_t);
 ASSERT_SAME_TYPE(int, upx_int32_t);
@@ -450,14 +452,14 @@ struct CheckIntegral {
             assert_noexcept(upx::align_up(three, four) == four);
             assert_noexcept(upx::align_up(four, four) == 4);
             assert_noexcept(upx::align_up(four, four) == four);
-            assert_noexcept(upx::align_gap(zero, four) == 0);
-            assert_noexcept(upx::align_gap(zero, four) == zero);
-            assert_noexcept(upx::align_gap(one, four) == 3);
-            assert_noexcept(upx::align_gap(one, four) == three);
-            assert_noexcept(upx::align_gap(three, four) == 1);
-            assert_noexcept(upx::align_gap(three, four) == one);
-            assert_noexcept(upx::align_gap(four, four) == 0);
-            assert_noexcept(upx::align_gap(four, four) == zero);
+            assert_noexcept(upx::align_up_gap(zero, four) == 0);
+            assert_noexcept(upx::align_up_gap(zero, four) == zero);
+            assert_noexcept(upx::align_up_gap(one, four) == 3);
+            assert_noexcept(upx::align_up_gap(one, four) == three);
+            assert_noexcept(upx::align_up_gap(three, four) == 1);
+            assert_noexcept(upx::align_up_gap(three, four) == one);
+            assert_noexcept(upx::align_up_gap(four, four) == 0);
+            assert_noexcept(upx::align_up_gap(four, four) == zero);
         }
     }
 };
@@ -646,11 +648,16 @@ struct TestBELE {
             static_assert(upx::align_down(one, four) == 0);
             static_assert(upx::align_up(one, four) == 4);
             static_assert(upx::align_up(one, four) == four);
-            static_assert(upx::align_gap(one, four) == 3);
-            static_assert(upx::align_gap(one, four) == T::make(four - 1));
-            static_assert(upx::align_gap(one, four) == T::make(four - one));
-            static_assert(upx::align_gap(one, four) == T::make(four + one - one - one));
-            static_assert(upx::align_gap(one, four) == T::make(four + one - 2 * one));
+            static_assert(upx::align_up_gap(one, four) == 3);
+            static_assert(upx::align_up_gap(one, four) == T::make(four - 1));
+            static_assert(upx::align_up_gap(one, four) == T::make(four - one));
+            static_assert(upx::align_up_gap(one, four) == T::make(four + one - one - one));
+            static_assert(upx::align_up_gap(one, four) == T::make(four + one - 2 * one));
+            static_assert(upx::align_down_gap(T::make(4), four) == 0);
+            static_assert(upx::align_down_gap(T::make(5), four) == 1);
+            static_assert(upx::align_down_gap(T::make(6), four) == 2);
+            static_assert(upx::align_down_gap(T::make(7), four) == 3);
+            static_assert(upx::align_down_gap(T::make(8), four) == 0);
             constexpr T one_copy = T::make(one);
             static_assert(one_copy == one);
             static_assert(one_copy == 1);
@@ -976,8 +983,11 @@ void upx_compiler_sanity_check(void) noexcept {
     CheckIntegral<upx_uintptr_t>::check();
 #endif
 #if (__SIZEOF_INT128__ == 16)
+#if defined(_CPP_VER) // int128 is not supported by MSVC libstdc++ yet
+#else
     CheckIntegral<upx_int128_t>::check();
     CheckIntegral<upx_uint128_t>::check();
+#endif
 #endif
 
     CheckSignedness<char, false>::check(); // -funsigned-char
@@ -1002,8 +1012,11 @@ void upx_compiler_sanity_check(void) noexcept {
     CheckSignedness<upx_int64_t, true>::check();
     CheckSignedness<upx_uint64_t, false>::check();
 #if (__SIZEOF_INT128__ == 16)
+#if defined(_CPP_VER) // int128 is not supported by MSVC libstdc++ yet
+#else
     CheckSignedness<upx_int128_t, true>::check();
     CheckSignedness<upx_uint128_t, false>::check();
+#endif
 #endif
     CheckSignedness<upx_off_t, true>::check();
     CheckSignedness<ptrdiff_t, true>::check();
@@ -1022,11 +1035,15 @@ void upx_compiler_sanity_check(void) noexcept {
     CHECK_TYPE_PAIR(long, unsigned long);
     CHECK_TYPE_PAIR(long long, unsigned long long);
     CHECK_TYPE_PAIR(intmax_t, uintmax_t);
+    CHECK_TYPE_PAIR(upx_int8_t, upx_uint8_t);
     CHECK_TYPE_PAIR(upx_int16_t, upx_uint16_t);
     CHECK_TYPE_PAIR(upx_int32_t, upx_uint32_t);
     CHECK_TYPE_PAIR(upx_int64_t, upx_uint64_t);
 #if (__SIZEOF_INT128__ == 16)
+#if defined(_CPP_VER) // int128 is not supported by MSVC libstdc++ yet
+#else
     CHECK_TYPE_PAIR(upx_int128_t, upx_uint128_t);
+#endif
 #endif
     CHECK_TYPE_PAIR(ptrdiff_t, upx_uptrdiff_t);
     CHECK_TYPE_PAIR(upx_ssize_t, size_t);
@@ -1084,6 +1101,7 @@ void upx_compiler_sanity_check(void) noexcept {
             0, 0, 0, 0x7f, 0x7e, 0x7d, 0x7c, 0x7b, 0x7a, 0x79, 0x78, 0,    0,    0,    0,    0};
         constexpr const byte *d = dd + 7;
         assert_noexcept(ptr_is_aligned<16>(dd));
+        assert_noexcept(ptr_is_aligned(dd, 16));
         static_assert(upx::compile_time::get_be16(d) == 0xfffe);
         static_assert(upx::compile_time::get_be24(d) == 0xfffefd);
         static_assert(upx::compile_time::get_be32(d) == 0xfffefdfc);

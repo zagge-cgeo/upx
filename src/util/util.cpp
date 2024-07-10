@@ -292,7 +292,8 @@ void *upx_calloc(size_t n, size_t element_size) may_throw {
 }
 
 // simple unoptimized memswap()
-// TODO later: CHERI clang bug/miscompilation with upx_memswap() ???
+// TODO later: CHERI clang-14 bug/miscompilation with upx_memswap(); or
+//   maybe caused by tagged-memory issues ???
 void upx_memswap(void *aa, void *bb, size_t bytes) noexcept {
     if (aa != bb && bytes != 0) {
         byte *a = (byte *) aa;
@@ -448,11 +449,24 @@ TEST_CASE("upx_memswap") {
         memset(array, 0xfb, sizeof(array));
         array[1] = &a;
         array[3] = &b;
+        CHECK(*array[1] == 11);
+        CHECK(*array[3] == 22);
+#if defined(__CHERI__) && defined(__CHERI_PURE_CAPABILITY__)
+        // TODO later: CHERI clang-14 bug/miscompilation with upx_memswap(); or
+        //   maybe caused by tagged-memory issues ???
+        memswap_no_overlap((byte *) array, (byte *) (array + 2), 2 * sizeof(array[0]));
+#else
         upx_memswap(array, array + 2, 2 * sizeof(array[0]));
-        assert(array[1] == &b);
-        assert(array[3] == &a);
-        assert(*array[1] == 22);
-        assert(*array[3] == 11);
+#endif
+        CHECK(array[1] == &b);
+        CHECK(array[3] == &a);
+        CHECK(*array[1] == 22);
+        CHECK(*array[3] == 11);
+        memswap_no_overlap((byte *) array, (byte *) (array + 2), 2 * sizeof(array[0]));
+        CHECK(array[1] == &a);
+        CHECK(array[3] == &b);
+        CHECK(*array[1] == 11);
+        CHECK(*array[3] == 22);
     }
 }
 

@@ -180,7 +180,7 @@ inline constexpr bool is_same_any_v = is_same_any<T, Ts...>::value;
 
 template <class T>
 forceinline constexpr bool has_single_bit(T x) noexcept {
-    return x != 0 && (x & (x - 1)) == 0;
+    return !(x == 0) && (x & (x - 1)) == 0;
 }
 
 /*************************************************************************
@@ -191,21 +191,30 @@ template <class T>
 inline constexpr T align_down(const T &x, const T &alignment) noexcept {
     // assert_noexcept(has_single_bit(alignment)); // (not constexpr)
     T r = {};
-    r = (x / alignment) * alignment;
+    r = x - (x & (alignment - 1));
+    return r;
+}
+template <class T>
+inline constexpr T align_down_gap(const T &x, const T &alignment) noexcept {
+    // assert_noexcept(has_single_bit(alignment)); // (not constexpr)
+    T r = {};
+    r = x & (alignment - 1);
     return r;
 }
 template <class T>
 inline constexpr T align_up(const T &x, const T &alignment) noexcept {
     // assert_noexcept(has_single_bit(alignment)); // (not constexpr)
     T r = {};
-    r = ((x + (alignment - 1)) / alignment) * alignment;
+    constexpr T zero = {};
+    r = x + ((zero - x) & (alignment - 1));
     return r;
 }
 template <class T>
-inline constexpr T align_gap(const T &x, const T &alignment) noexcept {
+inline constexpr T align_up_gap(const T &x, const T &alignment) noexcept {
     // assert_noexcept(has_single_bit(alignment)); // (not constexpr)
     T r = {};
-    r = align_up(x, alignment) - x;
+    constexpr T zero = {};
+    r = (zero - x) & (alignment - 1);
     return r;
 }
 

@@ -204,6 +204,7 @@ static_assert(!upx::is_same_any_v<int, char, long>);
 
 static_assert(upx::is_same_any_v<ptrdiff_t, int, long, long long>);
 static_assert(upx::is_same_any_v<size_t, unsigned, unsigned long, unsigned long long>);
+static_assert(upx::is_same_any_v<upx_ptraddr_t, unsigned, unsigned long, unsigned long long>);
 #if defined(__CHERI__) && defined(__CHERI_PURE_CAPABILITY__)
 static_assert(!upx::is_same_any_v<upx_uintptr_t, unsigned, unsigned long, unsigned long long>);
 #else
@@ -234,11 +235,11 @@ static_assert(upx::align_up(1, 4) == 4);
 static_assert(upx::align_up(2, 4) == 4);
 static_assert(upx::align_up(3, 4) == 4);
 static_assert(upx::align_up(4, 4) == 4);
-static_assert(upx::align_gap(0, 4) == 0);
-static_assert(upx::align_gap(1, 4) == 3);
-static_assert(upx::align_gap(2, 4) == 2);
-static_assert(upx::align_gap(3, 4) == 1);
-static_assert(upx::align_gap(4, 4) == 0);
+static_assert(upx::align_up_gap(0, 4) == 0);
+static_assert(upx::align_up_gap(1, 4) == 3);
+static_assert(upx::align_up_gap(2, 4) == 2);
+static_assert(upx::align_up_gap(3, 4) == 1);
+static_assert(upx::align_up_gap(4, 4) == 0);
 
 static_assert(upx::min<upx_int8_t>(1, 2) == 1);
 static_assert(upx::min<upx_int16_t>(1, 2) == 1);

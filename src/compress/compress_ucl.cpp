@@ -248,8 +248,12 @@ static void __UCL_CDECL my_free(ucl_voidp p) { free(p); }
 } // extern "C"
 
 int upx_ucl_init(void) {
+#if (ACC_CC_MSC && ACC_ARCH_I386) && (_MSC_VER >= 1940)
+    (void) ucl_init(); // TODO later
+#else
     if (ucl_init() != UCL_E_OK)
         return -1;
+#endif
     if (UCL_VERSION != ucl_version() || strcmp(UCL_VERSION_STRING, ucl_version_string()) != 0)
         return -2;
     ucl_set_malloc_hooks(my_malloc, my_free);

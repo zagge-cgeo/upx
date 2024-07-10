@@ -65,6 +65,9 @@ static_assert((char) (-1) == 255);             // -funsigned-char
 // enable some more strict warnings for Git developer builds
 #if defined(UPX_CONFIG_DISABLE_WSTRICT) && (UPX_CONFIG_DISABLE_WSTRICT + 0 == 0)
 #if defined(UPX_CONFIG_DISABLE_WERROR) && (UPX_CONFIG_DISABLE_WERROR + 0 == 0)
+#if (ACC_CC_MSC)
+#pragma warning(error : 4714) // W4: function marked as __forceinline not inlined
+#endif
 #if (ACC_CC_CLANG >= 0x0b0000)
 #pragma clang diagnostic error "-Wsuggest-override"
 #elif (ACC_CC_GNUC >= 0x0a0000)
@@ -469,12 +472,12 @@ noreturn void throwAssertFailed(const char *expr, const char *file, int line, co
 // C++ support library
 #include "util/cxxlib.h"
 using upx::tribool;
-#define usizeof(expr)    (upx::UnsignedSizeOf<sizeof(expr)>::value)
-#define ALIGN_DOWN(a, b) (upx::align_down((a), (b)))
-#define ALIGN_UP(a, b)   (upx::align_up((a), (b)))
-#define ALIGN_GAP(a, b)  (upx::align_gap((a), (b)))
-#define UPX_MAX(a, b)    (upx::max((a), (b)))
-#define UPX_MIN(a, b)    (upx::min((a), (b)))
+#define usizeof(expr)      (upx::UnsignedSizeOf<sizeof(expr)>::value)
+#define ALIGN_DOWN(a, b)   (upx::align_down((a), (b)))
+#define ALIGN_UP(a, b)     (upx::align_up((a), (b)))
+#define ALIGN_UP_GAP(a, b) (upx::align_up_gap((a), (b)))
+#define UPX_MAX(a, b)      (upx::max((a), (b)))
+#define UPX_MIN(a, b)      (upx::min((a), (b)))
 
 /*************************************************************************
 // constants

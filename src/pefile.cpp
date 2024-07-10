@@ -2466,7 +2466,7 @@ void PeFile::pack0(OutputFile *fo, ht &ih, ht &oh, unsigned subsystem_mask,
     else if (((identsplit + identsize) ^ identsplit) < oh_filealign)
         identsplit = identsize;
     else
-        identsplit = ALIGN_GAP(identsplit, oh_filealign);
+        identsplit = ALIGN_UP_GAP(identsplit, oh_filealign);
     ic = identsize - identsplit;
 
     const unsigned c_len =

@@ -82,6 +82,9 @@ static_assert(sizeof(void *) == sizeof(long));
 #pragma warning(disable : 4244) // W3: conversion from 'type1' to 'type2', possible loss of data
 #pragma warning(disable : 4267) // W3: conversion from 'size_t' to 'type', possible loss of data
 #pragma warning(disable : 4820) // W4: padding added after data member
+#if _MSC_VER >= 1800
+#pragma warning(disable : 4464) // W4: relative include path contains '..'
+#endif
 #endif
 
 #undef snprintf
