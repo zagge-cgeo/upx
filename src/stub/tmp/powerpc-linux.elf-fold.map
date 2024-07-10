@@ -8,7 +8,7 @@ Linker script and memory map
 
 TARGET(elf32-powerpc)
 
-.text           0x0000000000000000     0x2248
+.text           0x0000000000000000     0x129c
  *(.text)
  .text          0x0000000000000000      0x258 tmp/powerpc-linux.elf-fold.o
                 0x000000000000000c                get_page_mask
@@ -17,14 +17,14 @@ TARGET(elf32-powerpc)
  .text          0x0000000000000258       0xb8 tmp/powerpc-linux.elf-upxfd_android.o
                 0x0000000000000258                upx_mmap_and_fd
  .text          0x0000000000000310        0x0 tmp/powerpc-expand.o
- .text          0x0000000000000310     0x1f38 tmp/powerpc-linux.elf-main2.o
-                0x0000000000000af0                underlay
-                0x0000000000001804                upx_main
+ .text          0x0000000000000310      0xf8c tmp/powerpc-linux.elf-main2.o
+                0x0000000000000808                underlay
+                0x0000000000001088                upx_main
  *(.data)
- .data          0x0000000000002248        0x0 tmp/powerpc-linux.elf-fold.o
- .data          0x0000000000002248        0x0 tmp/powerpc-linux.elf-upxfd_android.o
- .data          0x0000000000002248        0x0 tmp/powerpc-expand.o
- .data          0x0000000000002248        0x0 tmp/powerpc-linux.elf-main2.o
+ .data          0x000000000000129c        0x0 tmp/powerpc-linux.elf-fold.o
+ .data          0x000000000000129c        0x0 tmp/powerpc-linux.elf-upxfd_android.o
+ .data          0x000000000000129c        0x0 tmp/powerpc-expand.o
+ .data          0x000000000000129c        0x0 tmp/powerpc-linux.elf-main2.o
 
 .data
 
