@@ -446,6 +446,7 @@ TEST_CASE("upx_memswap") {
         typedef byte element_type;
         element_type a = 11, b = 22;
         element_type *array[4];
+        // NOLINTNEXTLINE(bugprone-multi-level-implicit-pointer-conversion)
         memset(array, 0xfb, sizeof(array));
         array[1] = &a;
         array[3] = &b;
@@ -454,14 +455,17 @@ TEST_CASE("upx_memswap") {
 #if defined(__CHERI__) && defined(__CHERI_PURE_CAPABILITY__)
         // TODO later: CHERI clang-14 bug/miscompilation with upx_memswap(); or
         //   maybe caused by tagged-memory issues ???
+        // NOLINTNEXTLINE(bugprone-multi-level-implicit-pointer-conversion)
         memswap_no_overlap((byte *) array, (byte *) (array + 2), 2 * sizeof(array[0]));
 #else
+        // NOLINTNEXTLINE(bugprone-multi-level-implicit-pointer-conversion)
         upx_memswap(array, array + 2, 2 * sizeof(array[0]));
 #endif
         CHECK(array[1] == &b);
         CHECK(array[3] == &a);
         CHECK(*array[1] == 22);
         CHECK(*array[3] == 11);
+        // NOLINTNEXTLINE(bugprone-multi-level-implicit-pointer-conversion)
         memswap_no_overlap((byte *) array, (byte *) (array + 2), 2 * sizeof(array[0]));
         CHECK(array[1] == &a);
         CHECK(array[3] == &b);

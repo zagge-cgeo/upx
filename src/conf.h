@@ -41,8 +41,17 @@
 #if !defined(__has_builtin)
 #define __has_builtin(x) 0
 #endif
+#if !defined(__has_declspec_attribute)
+#define __has_declspec_attribute(x) 0
+#endif
 #if !defined(__has_feature)
 #define __has_feature(x) 0
+#endif
+#if !defined(__has_include)
+#define __has_include(x) 0
+#endif
+#if !defined(__has_warning)
+#define __has_warning(x) 0
 #endif
 
 // reserve name "upx" for namespace
