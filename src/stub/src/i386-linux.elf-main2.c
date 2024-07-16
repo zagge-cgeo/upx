@@ -33,7 +33,13 @@
 #define DEBUG 0
 #endif  //}
 
+#define NO_WANT_MMAP 1
+#define NO_WANT_CLOSE 1
+#define NO_WANT_EXIT 1
+#define NO_WANT_MPROTECT 1
+#define NO_WANT_WRITE 1
 #include "include/linux.h"
+
 #define MFD_EXEC 0x0010
 #define nullptr 0
 
@@ -43,10 +49,14 @@ extern unsigned Pprotect(void *, size_t, unsigned);
 //extern void *Pmap(void *, size_t, unsigned, unsigned, int, size_t);
 //extern int Punmap(void *, size_t);
 extern size_t Pwrite(unsigned, void const *, size_t);
+extern ssize_t write(int, void const *, size_t);
+extern int munmap(void *, size_t);
+extern int close(int);
+extern void exit(int code) __attribute__ ((__noreturn__));
 #  define mmap_privanon(addr,len,prot,flgs) mmap((addr),(len),(prot), \
         MAP_PRIVATE|MAP_ANONYMOUS|(flgs),-1,0)
 
-extern void my_bkpt(void *, ...);
+extern void my_bkpt(void const *, ...);
 
 #if defined(__powerpc__) //}{
 #define addr_string(string) ({ \
@@ -71,6 +81,15 @@ extern void my_bkpt(void *, ...);
 /*out*/ : "=r"(str) \
 /* in*/ : \
 /*und*/ : "x30"); \
+    str; \
+})
+#elif defined(__mips__) //}{
+#define addr_string(string) ({ \
+    char const *str; \
+    asm("bal 0f; .string \"" string "\"; .balign 4; 0: move %0,ra" \
+/*out*/ : "=r"(str) \
+/* in*/ : \
+/*und*/ : "ra"); \
     str; \
 })
 #else  //}{
@@ -319,7 +338,7 @@ make_hatch_arm32(
             hatch = (unsigned *)(void *)(~3ul & (long)(3+ next_unc));
             hatch[0]= code[0];
             hatch[1]= code[1];
-            __clear_cache(&hatch[0], &hatch[2]);
+            //__clear_cache(&hatch[0], &hatch[2]);  subsumed by write()+mmap()
         }
         else { // Does not fit at hi end of .text, so must use a new page "permanently"
             unsigned long fdmap = upx_mmap_and_fd((void *)0, sizeof(code), nullptr);
@@ -359,7 +378,7 @@ make_hatch_mips(
             hatch[0]= code[0];
             hatch[1]= code[1];
             hatch[2]= code[2];
-            __clear_cache(&hatch[0], &hatch[3]);
+            //__clear_cache(&hatch[0], &hatch[3]);  subsumed by write()+mmap()
         }
         else { // Does not fit at hi end of .text, so must use a new page "permanently"
             unsigned long fdmap = upx_mmap_and_fd((void *)0, sizeof(code), nullptr);
@@ -395,7 +414,7 @@ make_hatch_ppc32(
             hatch = (unsigned *)(void *)(~3ul & (long)(3+ next_unc));
             hatch[0]= code[0];
             hatch[1]= code[1];
-            // __clear_cache(&hatch[0], &hatch[2]);  // FIXME
+            //__clear_cache(&hatch[0], &hatch[2]);  subsumed by write()+mmap()
         }
         else { // Does not fit at hi end of .text, so must use a new page "permanently"
             unsigned long fdmap = upx_mmap_and_fd((void *)0, sizeof(code), nullptr);
@@ -428,10 +447,10 @@ upx_bzero(char *p, size_t len)
 static void
 auxv_up(ElfW(auxv_t) *av, unsigned const type, uint64_t const value)
 {
+    DPRINTF("\\nauxv_up av=%%p  %%d  %%p\\n", av, type, value);
     if (!av || (1& (size_t)av)) { // none, or inhibited for PT_INTERP
         return;
     }
-    DPRINTF("\\nauxv_up %%d  %%p\\n", type, value);
     // Multiple slots can have 'type' which wastes space but is legal.
     // rtld (ld-linux) uses the last one, so we must scan the whole table.
     ElfW(auxv_t) *ignore_slot = 0;
@@ -507,7 +526,9 @@ xfind_pages(unsigned mflags, ElfW(Phdr) const *phdr, int phnum,
 {
     ElfW(Addr) lo= ~0, hi= 0, addr= 0;
     mflags += MAP_PRIVATE | MAP_ANONYMOUS;  // '+' can optimize better than '|'
-    DPRINTF("xfind_pages  %%x  %%p  %%d  %%p  %%p\\n", mflags, phdr, phnum, elfaddr, p_brk);
+    size_t PMASK = get_page_mask();
+    DPRINTF("xfind_pages  %%x  phdr=%%p  %%d  elfaddr=%%p  %%p  PMASK=%%p\\n",
+        mflags, phdr, phnum, elfaddr, p_brk, PMASK);
     for (; --phnum>=0; ++phdr) if (PT_LOAD==phdr->p_type) {
         DPRINTF(" p_vaddr=%%p  p_memsz=%%p\\n", phdr->p_vaddr, phdr->p_memsz);
         if (phdr->p_vaddr < lo) {
@@ -517,7 +538,6 @@ xfind_pages(unsigned mflags, ElfW(Phdr) const *phdr, int phnum,
             hi =  phdr->p_memsz + phdr->p_vaddr;
         }
     }
-    size_t PMASK = get_page_mask();
     lo -= ~PMASK & lo;  // round down to page boundary
     hi  =  PMASK & (hi - lo - PMASK -1);  // page length
     if (MAP_FIXED & mflags) {
@@ -567,7 +587,7 @@ do_xmap(
         munmap((void *)ehdr0, phdr0->p_memsz);
     }
     else { // PT_INTERP
-        DPRINTF("INTERP\\n", 0);
+        DPRINTF("INTERP ehdr=%%p  av=%%p\\n", ehdr, av);
         reloc = xfind_pages(
             ((ET_DYN!=ehdr->e_type) ? MAP_FIXED : 0), phdr, ehdr->e_phnum, &v_brk, *p_reloc
         );
@@ -661,6 +681,8 @@ do_xmap(
             void *const hatch = make_hatch_ppc32(phdr, xo.buf, ~page_mask);
 #elif defined(__arm__)  //}{
             void *const hatch = make_hatch_arm32(phdr, xo.buf, ~page_mask);
+#elif defined(__mips__)  //}{
+            void *const hatch = make_hatch_mips(phdr, xo.buf, ~page_mask);
 #endif  //}
             if (0!=hatch) {
                 // Always update AT_NULL, especially for compressed PT_INTERP.
@@ -726,7 +748,7 @@ upx_main(  // returns entry address
     // ehdr = Uncompress Ehdr and Phdrs
     unpackExtent(&xi2, &xo);  // never filtered?
 
-#if defined(__i386__) || defined(__arm__) || defined(__powerpc__)  //{
+#if defined(__i386__) || defined(__arm__) || defined(__powerpc__) || defined(__mips__)  //{
     ElfW(Addr) *const p_reloc = &elfaddr;
 #endif  //}
     ElfW(Addr) page_mask = get_page_mask(); (void)page_mask;
@@ -748,7 +770,7 @@ upx_main(  // returns entry address
         if (0 > fdi) {
             err_exit(18);
         }
-        if (MAX_ELF_HDR_64!=read(fdi, (void *)ehdr, MAX_ELF_HDR_64)) {
+        if (MAX_ELF_HDR_32!=read(fdi, (void *)ehdr, MAX_ELF_HDR_32)) {
 ERR_LAB
             err_exit(19);
         }

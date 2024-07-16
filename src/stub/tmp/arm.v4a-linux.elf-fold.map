@@ -7,24 +7,24 @@ Name             Origin             Length             Attributes
 Linker script and memory map
 
 
-.text           0x0000000000000000      0xfa8
- .text          0x0000000000000000      0x318 tmp/arm.v4a-linux.elf-fold.o
+.text           0x0000000000000000     0x1aa4
+ .text          0x0000000000000000      0x320 tmp/arm.v4a-linux.elf-fold.o
                 0x0000000000000004                get_page_mask
-                0x00000000000002b8                memcpy
-                0x00000000000002fc                mempcpy
+                0x00000000000002c0                memcpy
+                0x0000000000000304                mempcpy
                 0x0000000000000054                mmap
                 0x000000000000003c                mmap_privanon
                 0x000000000000000c                get_upxfn_path
-                0x00000000000002dc                memset
+                0x00000000000002e4                memset
                 0x0000000000000024                Pprotect
                 0x00000000fffffff4                PAGE_MASK
                 0x0000000000000024                mprotect
- .text          0x0000000000000318      0x3ec tmp/arm.v4a-linux.elf-upxfd_android.o
-                0x0000000000000550                upx_mmap_and_fd
- .text          0x0000000000000704        0x0 tmp/arm.v4a-expand.o
- .text          0x0000000000000704      0x8a4 tmp/arm.v4a-linux.elf-main2.o
-                0x0000000000000f44                underlay
-                0x0000000000000e14                upx_main
+ .text          0x0000000000000320      0x3ec tmp/arm.v4a-linux.elf-upxfd_android.o
+                0x0000000000000558                upx_mmap_and_fd
+ .text          0x000000000000070c        0x0 tmp/arm.v4a-expand.o
+ .text          0x000000000000070c     0x1398 tmp/arm.v4a-linux.elf-main2.o
+                0x00000000000019fc                underlay
+                0x00000000000017a0                upx_main
 
 SYSCALLS        0x0000000000000000      0x10c
  SYSCALLS       0x0000000000000000      0x10c tmp/arm.v4a-linux.elf-fold.o

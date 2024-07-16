@@ -112,10 +112,13 @@ f_expand: .globl f_expand   // start of code for actual de-compressor
     push /*sz_unc*/(src)
     push fx_dst
     call f_unfilter; add $4*NBPW,%esp
-
-no_unf:  // i386 cache is coherent I+D, so no __clear_cache
+no_unf:
     pop %eax  // MATCH_30
     pop %ebx; pop %esi; pop %edi; pop %ebp  // MATCH_29
+    ret
+
+__clear_cache: .globl __clear_cache
+    int3  // __clear_cache
     ret
 
 // common subroutines for NRV2B,NRV2D,NRV2E

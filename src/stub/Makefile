@@ -1489,34 +1489,80 @@ mips.r3000-linux.elf%.h : tc_list = mips.r3000-linux.elf default
 mips.r3000-linux.elf%.h : tc_bfdname = elf32-bigmips
 
 tc.mips.r3000-linux.elf.as   = mipsel-elf-as-20060406 -EB -O -mno-pdr
+tc.mips.r3000-linux.elf.pp-as= mipsel-elf-as-20060406 -EB -mabi=eabi -Wall
 tc.mips.r3000-linux.elf.gcc  = mipsel-linux-gcc-4.1.1 -meb -march=r3000 -mno-abicalls -mabi=eabi -G0 -nostdinc -MMD -MT $@
 tc.mips.r3000-linux.elf.gcc += -fno-exceptions -fno-asynchronous-unwind-tables
 tc.mips.r3000-linux.elf.gcc += -Wall -W -Wcast-align -Wcast-qual -Wstrict-prototypes -Wwrite-strings -Werror
 
-mips.r3000-linux.elf-entry.h : $(srcdir)/src/$$T.S
-ifeq (1,1)
-	# info: we really need as-2.17 here
-	$(call tc,pp-as) -D_TARGET_LINUX_ -D__MIPSEB__ $< -o - | $(RTRIM) > tmp/$T.i
-	$(call tc,as) tmp/$T.i -o tmp/$T.bin
-	$(call tc,gpp_mkdep) --mode=c --MMD=$@ --MF=tmp/$T.d $<
-else
-	# info: as-2.16.1 as used by gcc-4.1.1 does _not_ work
-	$(call tc,gcc) -c -D_TARGET_LINUX_ -Wa,-O,-mno-pdr $< -o tmp/$T.bin
-endif
-	$(call tc,f-embed_objinfo,tmp/$T.bin)
-	$(call tc,bin2h-c) tmp/$T.bin $@
-
-mips.r3000-linux.elf-fold.h : tmp/$$T.o tmp/mips.r3000-linux.elf-main.o $(srcdir)/src/$$T.lds
-	$(call tc,ld) --strip-all -T $(srcdir)/src/$T.lds -Map tmp/$T.map $(filter %.o,$^) -o tmp/$T.bin
-	$(call tc,f-objstrip,tmp/$T.bin)
-	$(call tc,sstrip) tmp/$T.bin
+mips.r3000-linux.elf-entry.h : $(srcdir)/src/mips.r3000-linux.elf-entry.lds \
+	    $(srcdir)/src/$$T.S
+	@echo; echo TARGET: $@; echo
+	# info: we really need as-2.17 here; as-2.16.1 as used by gcc-4.1.1 does _not_ work
+	$(call tc,gcc) -E -x assembler-with-cpp \
+		-D__mips__  -D__MIPSEB__ -D_TARGET_LINUX_ $(srcdir)/src/$T.S \
+	    | $(call tc,pp-as) -achlmms=tmp/$T.list -o tmp/$T.o
+	$(call tc,gpp_mkdep) --mode=c --MMD=$@ --MF=tmp/$T.d $(srcdir)/src/$T.S
+	multiarch-ld-2.17 -r --format=elf32-bigmips -Map tmp/$T.map -o tmp/$T.bin \
+	    -T src/mips.r3000-linux.elf-entry.lds \
+	    tmp/$T.o
+	$(call tc,f-embed_objinfo_without_xstrip,tmp/$T.bin)
 	$(call tc,bin2h) tmp/$T.bin $@
 
-tmp/mips.r3000-linux.elf-fold.o : $(srcdir)/src/$$T.S
-	$(call tc,gcc) -c -D_TARGET_LINUX_ $< -o $@
-	$(call tc,f-objstrip,$@)
+tmp/mips.r3000-linux.elf-upxfd_android.o : $(srcdir)/src/upxfd_android.c
+	@echo; echo TARGET: $@; echo
+	$(call tc,gcc) -c -O $< -o $@
+	$(call tc,objcopy) -R .comment $@
+	$(call tc,objdump) -Dr $(tc_objdump_disasm_options) $@ | $(RTRIM) > $@.disasm
 
-tmp/mips.r3000-linux.elf-main.o : $(srcdir)/src/$$T.c $(srcdir)/src/i386-linux.elf-main.c
+mips.r3000-linux.elf-fold.h : $(srcdir)/src/$$T.lds \
+	    $(srcdir)/src/$$T.S \
+	    tmp/mips.r3000-linux.elf-main2.s \
+	    tmp/mips.r3000-linux.upxfd_android.s \
+	    src/mips.r3000-expand.S
+	@echo; echo TARGET: $@; echo
+	cat > tmp/mips.r3000-linux.elf-fold-2.S \
+	    src/mips.r3000-linux.elf-fold.S \
+	    tmp/mips.r3000-linux.elf-main2.s \
+	    tmp/mips.r3000-linux.upxfd_android.s \
+	    src/mips.r3000-expand.S
+	(cd tmp; ln -sf ../src/arch arch)
+	$(call tc,gcc) -E \
+	        -D__mips__ -D__MIPSEB__ -D_TARGET_LINUX_ \
+		tmp/mips.r3000-linux.elf-fold-2.S \
+	    | sed -e $$(cat src/dollar-dollar.sed) > tmp/mips.r3000-linux.elf-fold-3.S
+	# info: as-2.16.1 as used by gcc-4.1.1 does _not_ work`
+	$(call tc,as) -EB tmp/mips.r3000-linux.elf-fold-3.S -march=r3000 -o tmp/$T.o
+	$(call tc,objdump) -Dr $(tc_objdump_disasm_options) tmp/$T.o > tmp/$@.disasm
+	$(call tc,gpp_mkdep) --mode=c --MMD=$@ --MF=tmp/$T.d $(srcdir)/src/$T.S
+	$(call tc,ld) -r -T $(srcdir)/src/$T.lds -Map tmp/$T.map  -o tmp/$T.bin \
+	     tmp/$T.o
+	$(call tc,f-embed_objinfo_without_xstrip_keep_dot_text,tmp/$T.bin)
+# "unrecognized program segment header size"	$(call tc,sstrip) tmp/$T.bin
+	$(call tc,bin2h) tmp/$T.bin $@
+
+tmp/mips.r3000-linux.upxfd_android.s: $(srcdir)/src/upxfd_android.c
+	@echo; echo TARGET: $@; echo
+	$(call tc,gcc) -S -D__mips__ \
+	    -D_TARGET_LINUX_ -DNO_WANT_MMAP -O $< -o - \
+	    | sed -e '/^\t\.file\t/d' \
+	          -e 's/L[0-9]*/L8&/g' \
+	          -e $$(cat src/dollar-dollar.sed) \
+	          -e 's/	j[ 	][ 	]*$$L/	b $$L/' \
+	          -e 's/	jal[ 	][ 	]*\([^\$$]\)/	bal \1/' \
+		  >$@
+
+tmp/mips.r3000-linux.elf-main2.s: $(srcdir)/src/$$T.c $(srcdir)/src/i386-linux.elf-main2.c
+	@echo; echo TARGET: $@; echo
+	$(call tc,gcc) -S -D__mips__ -D_TARGET_LINUX_ -O $< -o - \
+	    | sed -e '/^\t\.file\t/d' \
+	          -e 's/L[0-9]*/L7&/g' \
+	          -e $$(cat src/dollar-dollar.sed) \
+	          -e 's/	j[ 	][ 	]*$$L/	b $$L/' \
+	          -e 's/	jal[ 	][ 	]*\([^\$$]\)/	bal \1/' \
+		  >$@
+
+tmp/mips.r3000-linux.elf-main2.o : $(srcdir)/src/$$T.c $(srcdir)/src/i386-linux.elf-main2.c
+	@echo; echo TARGET: $@; echo
 	$(call tc,gcc) -S -Os -MF tmp/$T.d $< -o - | $(RTRIM) > tmp/$T.i
 	sed -e 's/	j[ 	][ 	]*$$L/	b $$L/' \
 	    -e 's/	jal[ 	][ 	]*\([^\$$]\)/	bal \1/' < tmp/$T.i > tmp/$T.s
@@ -1541,7 +1587,8 @@ else
 	# info: as-2.16.1 as used by gcc-4.1.1 does _not_ work
 	$(call tc,gcc) -c -D_TARGET_LINUX_ -Wa,-O,-mno-pdr $< -o tmp/$T.bin
 endif
-	$(call tc,f-embed_objinfo,tmp/$T.bin)
+	$(call tc,f-embed_objinfo_without_xstrip_keep_dot_text,tmp/$T.bin)
+
 	$(call tc,bin2h-c) tmp/$T.bin $@
 
 
@@ -1549,33 +1596,78 @@ endif
 # // mipsel.r3000-linux.elf
 # ************************************************************************/
 
+tc.mipsel.r3000-linux.elf.as   = mipsel-elf-as-20060406 -EL -O -mno-pdr
+tc.mipsel.r3000-linux.elf.pp-as= mipsel-elf-as-20060406 -EL -mabi=eabi -Wall
+tc.mipsel.r3000-linux.elf.gcc  = mipsel-linux-gcc-4.1.1 -mel -march=r3000 -mno-abicalls -mabi=eabi -G0 -nostdinc -MMD -MT $@
+tc.mipsel.r3000-linux.elf.gcc += -fno-exceptions -fno-asynchronous-unwind-tables
+tc.mipsel.r3000-linux.elf.gcc += -Wall -W -Wcast-align -Wcast-qual -Wstrict-prototypes -Wwrite-strings -Werror
+
 mipsel.r3000-linux.elf%.h : tc_list = mipsel.r3000-ps1 default
 mipsel.r3000-linux.elf%.h : tc_bfdname = elf32-littlemips
 
-mipsel.r3000-linux.elf-entry.h : $(srcdir)/src/$$T.S
-ifeq (1,1)
-	# info: we really need as-2.17 here
-	$(call tc,pp-as) -D_TARGET_LINUX_ -D__MIPSEL__ $< -o - | $(RTRIM) > tmp/$T.i
-	$(call tc,as) tmp/$T.i -o tmp/$T.bin
-	$(call tc,gpp_mkdep) --mode=c --MMD=$@ --MF=tmp/$T.d $<
-else
-	# info: as-2.16.1 as used by gcc-4.1.1 does _not_ work
-	$(call tc,gcc) -c -D_TARGET_LINUX_ -Wa,-O,-mno-pdr $< -o tmp/$T.bin
-endif
-	$(call tc,f-embed_objinfo,tmp/$T.bin)
-	$(call tc,bin2h-c) tmp/$T.bin $@
-
-mipsel.r3000-linux.elf-fold.h : tmp/$$T.o tmp/mipsel.r3000-linux.elf-main.o $(srcdir)/src/$$T.lds
-	$(call tc,ld) --strip-all -T $(srcdir)/src/$T.lds -Map tmp/$T.map $(filter %.o,$^) -o tmp/$T.bin
-	$(call tc,f-objstrip,tmp/$T.bin)
-	$(call tc,sstrip) tmp/$T.bin
+mipsel.r3000-linux.elf-entry.h : $(srcdir)/src/mipsel.r3000-linux.elf-entry.lds \
+	    $(srcdir)/src/$$T.S
+	@echo; echo TARGET: $@; echo
+	# info: we really need as-2.17 here; as-2.16.1 as used by gcc-4.1.1 does _not_ work
+	$(call tc,pp-as) -E -x assembler-with-cpp \
+		-D__mips__  -D__MIPSEL__ -D_TARGET_LINUX_ $(srcdir)/src/$T.S \
+	    | mipsel-elf-as-20060406 -EL -mabi=eabi -Wall -a=/dev/null -o tmp/$T.o
+	$(call tc,gpp_mkdep) --mode=c --MMD=$@ --MF=tmp/$T.d $(srcdir)/src/$T.S
+	multiarch-ld-2.17 -r --format=elf32-littlemips -Map tmp/$T.map -o tmp/$T.bin \
+	    -T src/mipsel.r3000-linux.elf-entry.lds \
+	    tmp/$T.o
+	$(call tc,f-embed_objinfo_without_xstrip,tmp/$T.bin)
 	$(call tc,bin2h) tmp/$T.bin $@
 
-tmp/mipsel.r3000-linux.elf-fold.o : $(srcdir)/src/$$T.S
-	$(call tc,gcc) -c -D_TARGET_LINUX_ $< -o $@
-	$(call tc,f-objstrip,$@)
+mipsel.r3000-linux.elf-fold.h : $(srcdir)/src/$$T.lds \
+	    $(srcdir)/src/$$T.S \
+	    tmp/mipsel.r3000-linux.elf-main2.s \
+	    tmp/mipsel.r3000-linux.upxfd_android.s \
+	    src/mipsel.r3000-expand.S
+	@echo; echo TARGET: $@; echo
+	cat > tmp/mipsel.r3000-linux.elf-fold-2.S \
+	    src/mipsel.r3000-linux.elf-fold.S \
+	    tmp/mipsel.r3000-linux.elf-main2.s \
+	    tmp/mipsel.r3000-linux.upxfd_android.s \
+	    src/mipsel.r3000-expand.S
+	(cd tmp; ln -sf ../src/arch arch)
+	$(call tc,gcc) -E \
+	        -D__mips__  -D__MIPSEL__ -D_TARGET_LINUX_ \
+	        tmp/mipsel.r3000-linux.elf-fold-2.S \
+	    | sed -e $$(cat src/dollar-dollar.sed) > tmp/mipsel.r3000-linux.elf-fold-3.S
+	# info: as-2.16.1 as used by gcc-4.1.1 does _not_ work`
+	$(call tc,as) -EL tmp/mipsel.r3000-linux.elf-fold-3.S -march=r3000 -o tmp/$T.o
+	$(call tc,objdump) -Dr $(tc_objdump_disasm_options) tmp/$T.o > tmp/$@.disasm
+	$(call tc,gpp_mkdep) --mode=c --MMD=$@ --MF=tmp/$T.d $<
+	$(call tc,ld) -r -T $(srcdir)/src/$T.lds -Map tmp/$T.map  -o tmp/$T.bin \
+	     tmp/$T.o
+	$(call tc,f-embed_objinfo_without_xstrip_keep_dot_text,tmp/$T.bin)
+# "unrecognized program segment header size"	$(call tc,sstrip) tmp/$T.bin
+	$(call tc,bin2h) tmp/$T.bin $@
 
-tmp/mipsel.r3000-linux.elf-main.o : $(srcdir)/src/$$T.c $(srcdir)/src/i386-linux.elf-main.c
+tmp/mipsel.r3000-linux.upxfd_android.s: $(srcdir)/src/upxfd_android.c
+	@echo; echo TARGET: $@; echo
+	$(call tc,gcc) -S -D__mipsel__ \
+	    -D_TARGET_LINUX_ -DNO_WANT_MMAP -O $< -o - \
+	    | sed -e '/^\t\.file\t/d' \
+	          -e 's/L[0-9]*/L8&/g' \
+	          -e $$(cat src/dollar-dollar.sed) \
+	          -e 's/	j[ 	][ 	]*$$L/	b $$L/' \
+	          -e 's/	jal[ 	][ 	]*\([^\$$]\)/	bal \1/' \
+		  >$@
+
+tmp/mipsel.r3000-linux.elf-main2.s: $(srcdir)/src/$$T.c $(srcdir)/src/i386-linux.elf-main2.c
+	@echo; echo TARGET: $@; echo
+	$(call tc,gcc) -S -D__mipsel__ -D_TARGET_LINUX_ -O $< -o - \
+	    | sed -e '/^\t\.file\t/d' \
+	          -e 's/L[0-9]*/L7&/g' \
+	          -e $$(cat src/dollar-dollar.sed) \
+	          -e 's/	j[ 	][ 	]*$$L/	b $$L/' \
+	          -e 's/	jal[ 	][ 	]*\([^\$$]\)/	bal \1/' \
+		  >$@
+
+tmp/mipsel.r3000-linux.elf-main2.o : $(srcdir)/src/$$T.c $(srcdir)/src/i386-linux.elf-main2.c
+	@echo; echo TARGET: $@; echo
 	$(call tc,gcc) -S -Os -MF tmp/$T.d $< -o - | $(RTRIM) > tmp/$T.i
 	sed -e 's/	j[ 	][ 	]*$$L/	b $$L/' \
 	    -e 's/	jal[ 	][ 	]*\([^\$$]\)/	bal \1/' < tmp/$T.i > tmp/$T.s

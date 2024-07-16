@@ -150,7 +150,7 @@ unmap_all_pages= (1<<1)
 /* In:
    r4= ADRX | unmap_all_pages
    r5= LENX
-sp/ ADRX|uap,LENX,ELFA,ADRU,LENU,r0,r1,%entry, r0,r1, argc,argv,0,envp,0,auxv
+sp/ ADRX|uap,LENX,ELFA,ADRU,LENU,r0,r1,%entry, argc,argv,0,envp,0,auxv
         (ADRX,LENX) = extent of compressed program
         (ADRU,LENU) = params to munmap unfolded stub
 */
@@ -185,8 +185,8 @@ pse_env:
         adr arg1,proc_self_exe
         mov arg2,#O_RDONLY
         do_sys7t __NR_open  // ENOENT is OK
-//r_pse .req r8
-//        mov r_pse,r0
+r_pse .req r8
+        mov r_pse,r0
 
         mov arg3,#PATH_MAX
         mov arg2,r9  @ buffer
@@ -246,6 +246,7 @@ r_elfa .req r9
 // Map 1 page of /proc/self/exe so that it does not disappear
         ldr r0,[sp,#F_obinfo]; tst r0,#unmap_all_pages; bne no_map_pse
         mov arg6,#0  @ SEEK_SET offset
+        mov arg5,r_pse
         stmdb sp!,{arg5,arg6}  @ arg5,arg6 C-lang calling convention
         mov arg4,#MAP_PRIVATE
         mov arg3,#PROT_READ

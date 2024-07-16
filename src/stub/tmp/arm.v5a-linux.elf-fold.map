@@ -10,21 +10,21 @@ TARGET(elf32-littlearm)
 
 .text           0x0000000000000000      0xfc8
  *(.text)
- .text          0x0000000000000000      0x338 tmp/arm.v5a-linux.elf-fold.o
+ .text          0x0000000000000000      0x340 tmp/arm.v5a-linux.elf-fold.o
                 0x0000000000000004                get_page_mask
-                0x00000000000002d8                memcpy
-                0x000000000000031c                mempcpy
+                0x00000000000002e0                memcpy
+                0x0000000000000324                mempcpy
                 0x0000000000000060                mmap
                 0x0000000000000048                mmap_privanon
                 0x000000000000000c                get_upxfn_path
-                0x00000000000002fc                memset
+                0x0000000000000304                memset
                 0x0000000000000024                Pprotect
                 0x00000000fffffff4                PAGE_MASK
                 0x0000000000000024                mprotect
- .text          0x0000000000000338      0x3f0 tmp/arm.v5a-linux.elf-upxfd_android.o
-                0x0000000000000574                upx_mmap_and_fd
- .text          0x0000000000000728        0x0 tmp/arm.v5a-expand.o
- .text          0x0000000000000728      0x8a0 tmp/arm.v5a-linux.elf-main2.o
+ .text          0x0000000000000340      0x3f0 tmp/arm.v5a-linux.elf-upxfd_android.o
+                0x000000000000057c                upx_mmap_and_fd
+ .text          0x0000000000000730        0x0 tmp/arm.v5a-expand.o
+ .text          0x0000000000000730      0x898 tmp/arm.v5a-linux.elf-main2.o
                 0x0000000000000f64                underlay
                 0x0000000000000e34                upx_main
  *(.data)

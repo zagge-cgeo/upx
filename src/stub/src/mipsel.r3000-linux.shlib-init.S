@@ -310,8 +310,6 @@ lxlzma_retval   = lxlzma_srcdone
         jr ra
           nop
 
-
-lzma_decode:
   section LZMA_DEC20
 #if 1  /*{*/
 #include "arch/mips/r3000/lzma_d.S"

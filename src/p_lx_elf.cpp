@@ -1499,7 +1499,7 @@ PackLinuxElf32::buildLinuxLoader(
          ||  this->e_machine==Elf32_Ehdr::EM_386
          ||  this->e_machine==Elf32_Ehdr::EM_ARM
          ||  this->e_machine==Elf32_Ehdr::EM_PPC
-//ELF2 NYI         ||  this->e_machine==Elf32_Ehdr::EM_MIPS
+         ||  this->e_machine==Elf32_Ehdr::EM_MIPS
          ) { // main program with ELF2 de-compressor
         initLoader(fold, szfold);
         char sec[120];
@@ -1570,7 +1570,7 @@ PackLinuxElf32::buildLinuxLoader(
           || this->e_machine==Elf32_Ehdr::EM_386
           || this->e_machine==Elf32_Ehdr::EM_ARM
           || this->e_machine==Elf32_Ehdr::EM_PPC
-//ELF2 NYI          || this->e_machine==Elf32_Ehdr::EM_MIPS
+          || this->e_machine==Elf32_Ehdr::EM_MIPS
           )
     ) { // shlib with ELF2 de-compressor
         addLoader("ELFMAINX,ELFMAINZ,FOLDEXEC,IDENTSTR");
@@ -1579,7 +1579,7 @@ PackLinuxElf32::buildLinuxLoader(
           || this->e_machine==Elf32_Ehdr::EM_386
           || this->e_machine==Elf32_Ehdr::EM_ARM
           || this->e_machine==Elf32_Ehdr::EM_PPC
-//ELF2 NYI          || this->e_machine==Elf32_Ehdr::EM_MIPS
+          || this->e_machine==Elf32_Ehdr::EM_MIPS
       ) { // main program with ELF2 de-compressor
         addLoader("ELFMAINX,ELFMAINZ,FOLDEXEC,IDENTSTR");
             defineSymbols(ft);

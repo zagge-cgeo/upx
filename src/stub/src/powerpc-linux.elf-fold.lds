@@ -34,7 +34,7 @@ OUTPUT_ARCH(powerpc:common)
 PHDRS
 {
     text PT_LOAD FILEHDR PHDRS ;
-    data PT_LOAD ;  /* for setting brk(0) */
+    data PT_LOAD ;
 }
 SECTIONS
 {

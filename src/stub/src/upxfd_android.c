@@ -127,7 +127,14 @@ struct stat { // __NR_stat = 106 + NR_SYSCALL_BASE
 #define S_IRWXU 00700
 #define AT_FDCWD -100
 #define restrict /**/
+//
+// We want to supersede in *.elf-fold.S, not use include/linux.h
+#define NO_WANT_CLOSE 1
+#define NO_WANT_MPROTECT 1
+#define NO_WANT_OPEN 1
+#define NO_WANT_READ 1
 #include "include/linux.h"  // syscalls; i386 inlines via "int 0x80"
+
 extern int fstatat(int dirfd, const char *restrict pathname,
     struct stat *restrict statbuf, int flags);
 
@@ -265,6 +272,9 @@ static int strncmplc(char const *s1, char const *s2, unsigned n)
 #define ANDROID_TEST 0
 
 #define MFD_EXEC 0x10
+extern int memfd_create(char const *name, unsigned flags);
+extern int ftruncate(int fd, size_t length);
+extern ssize_t write(int fd, void const *buf, size_t length);
 
 unsigned long upx_mmap_and_fd( // returns (mapped_addr | (1+ fd))
     void *ptr  // desired address

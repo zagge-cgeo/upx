@@ -380,6 +380,7 @@ static inline _syscall2(int,link,const char *,src, const char *,dst)
         const register char *const str asm("a0") = string;
         asm volatile("syscall" : : "r"(num), "r"(str));
 */
+#ifndef NO_WANT_MMAP  /*{*/
 static void *mmap(
     void *addr, size_t len,
     int prot, int flags,
@@ -409,12 +410,15 @@ static void *mmap(
         "\tsltiu $1,$7,1\n"   /* 1: no error;  0: error; $7 == a3 */
         "\taddiu $1,$1,-1\n"  /* 0: no error; -1: error */
         "\tor $2,$2,$1\n"     /* $2 == v0; good result, else -1 for error */
-        ".set at\n"
+        /*".set at\n"*/
     : "+r"(v0), "+r"(a3)  /* "+r" ==> both read and write */
     :  "r"(a0), "r"(a1), "r"(a2),      "r"(t0), "r"(t1)
     );
     return (void *)v0;
 }
+#endif  /* NO_WANT_MMAP }*/
+
+#ifndef NO_WANT_READ  /*{*/
 static ssize_t read(int fd, void *buf, size_t len)
 {
 #define __NR_read (3+ 4000)
@@ -430,6 +434,7 @@ static ssize_t read(int fd, void *buf, size_t len)
     );
     return v0;
 }
+#endif  /* NO_WANT_READ }*/
 
 #if 0  //{ UNUSED
 static void *brk(void *addr)
@@ -447,6 +452,7 @@ static void *brk(void *addr)
 }
 #endif  //}
 
+#ifndef NO_WANT_CLOSE  /*{*/
 static int close(int fd)
 {
 #define __NR_close (6+ 4000)
@@ -460,7 +466,9 @@ static int close(int fd)
     );
     return v0;
 }
+#endif  /* NO_WANT_CLOSE }*/
 
+#ifndef NO_WANT_EXIT  /*{*/
 static void exit(int code) __attribute__ ((__noreturn__));
 static void exit(int code)
 {
@@ -475,6 +483,7 @@ static void exit(int code)
     );
     for (;;) {}
 }
+#endif  /* NO_WANT_EXIT }*/
 
 #if 0  //{ unused?
 static int munmap(void *addr, size_t len)
@@ -493,6 +502,7 @@ static int munmap(void *addr, size_t len)
 }
 #endif  //}
 
+#ifndef NO_WANT_MPROTECT  /*{*/
 static int mprotect(void const *addr, size_t len, int prot)
 {
 #define __NR_mprotect (125+ 4000)
@@ -508,7 +518,9 @@ static int mprotect(void const *addr, size_t len, int prot)
     );
     return v0;
 }
+#endif  /* NO_WANT_MPROTECT */
 
+#ifndef NO_WANT_OPEN  /*{*/
 static ssize_t open(char const *path, int kind, int mode)
 {
 #define __NR_open (5+ 4000)
@@ -524,8 +536,10 @@ static ssize_t open(char const *path, int kind, int mode)
     );
     return v0;
 }
+#endif  /* NO_WANT_OPEN }*/
 
 #if DEBUG  /*{*/
+#ifndef NO_WANT_WRITE  /*{*/
 static ssize_t write(int fd, void const *buf, size_t len)
 {
 #define __NR_write (4+ 4000)
@@ -541,6 +555,7 @@ static ssize_t write(int fd, void const *buf, size_t len)
     );
     return v0;
 }
+#endif  /*}*/
 #endif  /*}*/
 
 #else  /*}{ generic */
