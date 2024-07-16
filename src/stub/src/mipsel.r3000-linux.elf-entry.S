@@ -228,11 +228,11 @@ unfold:  # IN: $r_fexp,$r_auxv,$r_PMASK,$r_FOLD
         sw $r_PMASK,0*NBPW(sp)  # forward the PAGE_MASK
 // detect big-endian; re-write get4unal if so
         lbu at,0(sp)  # first byte of PAGE_MASK
+          lw v1,9*NBPW(sp)
         beqz at,0f  # 0 ==> little endian
           lw at,7*NBPW(sp)
-          sw at,4*NBPW(sp)
-          lw at,9*NBPW(sp)
-          sw at,6*NBPW(sp)
+        sw v1,6*NBPW(sp)
+        sw at,4*NBPW(sp)
 0:
 
 # Write de-compressed stub
@@ -281,6 +281,7 @@ main:
         bnez v1,1b  # AT_NULL
           li v0,PAGE_SIZE
 2:
+          nop  # delay slot if AT_PAGESZ found
         neg $r_PMASK,v0
         bal unfold
           addiu $r_FOLD,ra,LrFLD - 0f  # &b_info for folded loader

@@ -89,6 +89,7 @@ f_expand: .globl f_expand // f_expand(b_info *, dst, &dstlen)
     lw a1,0(a1)  // actual length used by decompressor
     PUSH3 a0,a1,v0  // P_41  fx_dst,fx_dstlen,retval.f_exp
     lbu a3,b_ftid(a2)
+      nop
     beqz a3,no_unf
       lbu a2,b_cto8(a2)
     call unfilter
@@ -148,6 +149,7 @@ eof_n2b: .globl eof_n2b
         sw tmp,0(ldst)  # actual len genereated
 
         lw tmp,0*NBPW(sp)  # &b_info
+          nop
         subu v0,a5,tmp
         subiu v0,sz_binfo  # actual len consumed
         subu v0,v0,lsrc  # deviation at EOF

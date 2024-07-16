@@ -144,6 +144,7 @@ get4unal: .globl get4unal
 */
 L05:
        lw $r_obinfo,-4($r_FOLD)  // O_BINFO | is_ptinerp | unmap_all_pages
+         nop
        andi at,$r_obinfo,unmap_all_pages
        bnez at,0f
          move v0,sp
@@ -192,6 +193,7 @@ Lget_page_mask:
 0:
         .word PAGE_MASK - 0b
 5:
+          nop
         addu v0,ra
         jr v1
           lw v0,(v0)
@@ -203,8 +205,10 @@ get_upxfn_path: .globl get_upxfn_path  // char * (*)(void)
 0:
         .word upxfn_path - 0b
 5:
+          nop
         addu at,ra  // &upxfn_path
         lw v0,(at)  // offset
+          nop
         beqz v0,9f  // null string
           addu v0,at
         jr v1
