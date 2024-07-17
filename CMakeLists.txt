@@ -27,6 +27,7 @@ endif()
 
 # support functions and some utility
 include("${CMAKE_CURRENT_SOURCE_DIR}/misc/cmake/functions.cmake")
+upx_print_var(CMAKE_VERSION UPX_CONFIG_CMAKE_MINIMUM_REQUIRED_VERSION CMAKE_GENERATOR)
 
 #***********************************************************************
 # options
@@ -154,8 +155,19 @@ include(CheckFunctionExists)
 include(CheckIncludeFile)
 include(CheckStructHasMember)
 include(CheckSymbolExists)
+include(CheckTypeSize)
 
 upx_cmake_include_hook(3_common_compilation_flags)
+
+# assert sane type sizes
+check_type_size("size_t" C_SIZEOF_SIZE_T LANGUAGE C)
+check_type_size("size_t" CXX_SIZEOF_SIZE_T LANGUAGE CXX)
+if(NOT "${C_SIZEOF_SIZE_T}" MATCHES "^(4|8|16)$")
+    message(FATAL_ERROR "ERROR: unexpected C_SIZEOF_SIZE_T '${C_SIZEOF_SIZE_T}'")
+endif()
+if(NOT ",${C_SIZEOF_SIZE_T}," STREQUAL ",${CXX_SIZEOF_SIZE_T},")
+    message(FATAL_ERROR "FATAL ERROR: '${C_SIZEOF_SIZE_T}' '${CXX_SIZEOF_SIZE_T}' mismatch")
+endif()
 
 if(NOT DEFINED HAVE_UNISTD_H)
     check_include_file("unistd.h" HAVE_UNISTD_H)

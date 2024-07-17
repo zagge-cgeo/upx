@@ -94,7 +94,7 @@ build/extra/clang-std-cxx20/%: export UPX_CONFIG_DISABLE_CXX_STANDARD=ON
 # force building with clang/clang++ C++23 (and C23)
 build/extra/clang-std-cxx23/debug:   PHONY; $(call run_config_and_build,$@,Debug)
 build/extra/clang-std-cxx23/release: PHONY; $(call run_config_and_build,$@,Release)
-build/extra/clang-std-cxx23/%: export CC  = clang   -std=gnu2x
+build/extra/clang-std-cxx23/%: export CC  = clang   -std=gnu2x -Wno-constant-logical-operand
 build/extra/clang-std-cxx23/%: export CXX = clang++ -std=gnu++2b
 build/extra/clang-std-cxx23/%: export UPX_CONFIG_DISABLE_C_STANDARD=ON
 build/extra/clang-std-cxx23/%: export UPX_CONFIG_DISABLE_CXX_STANDARD=ON

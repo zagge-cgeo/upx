@@ -25,7 +25,7 @@
  */
 
 // doctest checks, and various tests to catch toolchain/qemu/sanitizer/valgrind/wine/etc
-// problems; grown historically
+// problems; grown historically; modern compilers will optimize away much of this code
 
 #include "../util/system_headers.h"
 #include <cmath> // std::isinf std::isnan
@@ -320,7 +320,6 @@ static_assert((wchar_t) -1 > 0);
 /*************************************************************************
 // upx_compiler_sanity_check()
 // assert a sane architecture and compiler
-// (modern compilers will optimize away most of this code)
 **************************************************************************/
 
 namespace {
@@ -983,7 +982,7 @@ void upx_compiler_sanity_check(void) noexcept {
     CheckIntegral<upx_uintptr_t>::check();
 #endif
 #if (__SIZEOF_INT128__ == 16)
-#if defined(_CPP_VER) // int128 is not supported by MSVC libstdc++ yet
+#if defined(_CPP_VER) || defined(_WIN32) // int128 is not fully supported by MSVC libstdc++ yet
 #else
     CheckIntegral<upx_int128_t>::check();
     CheckIntegral<upx_uint128_t>::check();
@@ -1012,7 +1011,7 @@ void upx_compiler_sanity_check(void) noexcept {
     CheckSignedness<upx_int64_t, true>::check();
     CheckSignedness<upx_uint64_t, false>::check();
 #if (__SIZEOF_INT128__ == 16)
-#if defined(_CPP_VER) // int128 is not supported by MSVC libstdc++ yet
+#if defined(_CPP_VER) || defined(_WIN32) // int128 is not fully supported by MSVC libstdc++ yet
 #else
     CheckSignedness<upx_int128_t, true>::check();
     CheckSignedness<upx_uint128_t, false>::check();
@@ -1040,7 +1039,7 @@ void upx_compiler_sanity_check(void) noexcept {
     CHECK_TYPE_PAIR(upx_int32_t, upx_uint32_t);
     CHECK_TYPE_PAIR(upx_int64_t, upx_uint64_t);
 #if (__SIZEOF_INT128__ == 16)
-#if defined(_CPP_VER) // int128 is not supported by MSVC libstdc++ yet
+#if defined(_CPP_VER) || defined(_WIN32) // int128 is not fully supported by MSVC libstdc++ yet
 #else
     CHECK_TYPE_PAIR(upx_int128_t, upx_uint128_t);
 #endif
