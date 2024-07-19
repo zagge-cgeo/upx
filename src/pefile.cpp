@@ -287,7 +287,7 @@ void PeFile::Interval::dump() const {
 **************************************************************************/
 
 // do NOT allow --force to override reloc checks
-static constexpr bool CHECK_STRICT_RELOCS = true;
+static constexpr bool ALWAYS_CHECK_STRICT_RELOCS = true;
 
 void PeFile::Reloc::RelocationBlock::reset() noexcept {
     rel = nullptr;  // SPAN_0
@@ -375,7 +375,7 @@ bool PeFile::Reloc::readFromRelocationBlock(byte *next_rb) { // set rb
     if (sob == 0 && (off == 0 && start_size_in_bytes == 8))
         return false; // EOF
 #endif
-    if (CHECK_STRICT_RELOCS) {
+    if (ALWAYS_CHECK_STRICT_RELOCS) {
         if (sob < 8)
             throwCantPack("bad reloc size_of_block %u", sob);
         if (start_size_in_bytes - off < sob)
@@ -456,7 +456,7 @@ void PeFile::Reloc::finish(byte *(&result_ptr), unsigned &result_size) {
         unsigned pos, reloc_type;
         reloc_entry_decode(entry_ptr, &pos, &reloc_type);
         if (ic > 0 && pos == prev_pos) {
-            if (CHECK_STRICT_RELOCS)
+            if (ALWAYS_CHECK_STRICT_RELOCS)
                 throwCantPack("duplicate relocs");
             else if (!opt->force)
                 throwCantPack("duplicate relocs (try --force)");

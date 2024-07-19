@@ -68,7 +68,7 @@ upx_cmake_include_hook(2_init)
 # clean up a few files if you accidentally try an in-source build.
 upx_disallow_in_source_build()
 
-# global settings
+# global settings part 1
 if(${CMAKE_VERSION} VERSION_GREATER "3.14.99" AND NOT DEFINED CMAKE_MSVC_RUNTIME_LIBRARY)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
     cmake_policy(SET CMP0091 NEW)
@@ -84,7 +84,7 @@ upx_cache_bool_vars(OFF
     UPX_CONFIG_CMAKE_DISABLE_PRINT_INFO UPX_CONFIG_CMAKE_DISABLE_PLATFORM_CHECK
     UPX_CONFIG_DISABLE_C_STANDARD UPX_CONFIG_DISABLE_CXX_STANDARD
     UPX_CONFIG_DISABLE_RUN_UNPACKED_TEST UPX_CONFIG_DISABLE_RUN_PACKED_TEST
-    UPX_CONFIG_REQUIRE_THREADS
+    UPX_CONFIG_DISABLE_SHARED_LIBS UPX_CONFIG_REQUIRE_THREADS
 )
 upx_cache_bool_vars(ON UPX_CONFIG_EXPECT_THREADS)
 upx_print_env_var(CC CXX)
@@ -135,6 +135,11 @@ endif()
 upx_set_default_build_type(Release) # default is CMAKE_BUILD_TYPE=Release
 project(upx VERSION "${UPX_VERSION_STRING}" LANGUAGES C CXX)
 upx_apply_build_type()
+
+# global settings part 2
+if(CMAKE_GENERATOR MATCHES "Ninja" AND NOT CMAKE_EXECUTABLE_FORMAT MATCHES "^ELF")
+    set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
+endif()
 
 # set MSVC_FRONTEND, GNU_FRONTEND and MINGW
 if(NOT DEFINED MSVC_FRONTEND AND (MSVC OR CMAKE_C_COMPILER_FRONTEND_VARIANT MATCHES "^MSVC"))

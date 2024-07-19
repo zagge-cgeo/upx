@@ -513,6 +513,9 @@ jobs:
         run: |
           rev=$(git rev-parse --short=7 HEAD)
           echo "UPX_GITREV_SHORT=$rev" >> $GITHUB_ENV
+          if [[ "${{ matrix.zig_target }}" == i386-linux-gnu.2.3.4 ]]; then
+            echo "UPX_CONFIG_DISABLE_SHARED_LIBS=ON" >> $GITHUB_ENV # zig problem
+          fi
           if [[ "${{ matrix.zig_target }}" == x86_64-linux-gnu.2.3.4 ]]; then
             echo "NEED_GCOMPAT=1" >> $GITHUB_ENV
             # TODO FIXME: problem with self-packed upx and musl+gcompat: "Not a valid dynamic program"
@@ -546,6 +549,7 @@ jobs:
           # INFO: it seems the zig driver does handle this automatically(??), so not really needed
           if test "X$ZIG_PIC" = "X-fPIE"; then true;
             echo "ZIG_FLAGS=$ZIG_FLAGS --start-no-unused-arguments -pie --end-no-unused-arguments" >> $GITHUB_ENV
+            echo "UPX_CONFIG_DISABLE_SHARED_LIBS=ON" >> $GITHUB_ENV # conflicts with ZIG_PIC/ZIG_FLAGS
           fi
       - run: set -x; zig version; zig-cc --version; zig-cxx --version
       - run: zig-cc  -E -x c   -dM /dev/null # list predefined macros for C

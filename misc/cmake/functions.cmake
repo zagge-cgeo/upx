@@ -97,6 +97,14 @@ function(upx_make_bool_var result_var_name var_name default_value)
     set(${result_var_name} "${result}" PARENT_SCOPE) # return value
 endfunction()
 
+function(upx_unused_var) # ARGV
+    foreach(var_name ${ARGV})
+        if(DEFINED ${var_name})
+            set(dummy "${${var_name}}")
+        endif()
+    endforeach()
+endfunction()
+
 function(upx_print_var) # ARGV
     foreach(var_name ${ARGV})
         if(DEFINED ${var_name})

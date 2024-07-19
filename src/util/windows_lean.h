@@ -60,6 +60,7 @@
 
 #if defined(__CYGWIN__) && defined(_WIN32)
 #error "unexpected _WIN32"
+#undef _WIN32
 #endif
 #if defined(__CYGWIN__) && defined(_WIN64)
 // #error "unexpected _WIN64"
