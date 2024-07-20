@@ -29,7 +29,16 @@
 i386bxx:  # (*f_unf)(xo->buf, out_len, h.b_cto8, h.b_ftid);
 
 #ifndef NO_METHOD_CHECK
-        cmpl $0x49,4*NBPW(%esp); jne ckend0  # filter: JMP, CALL, 6-byte Jxx
+// 2024-07-18  Filter 0x49 and 0x46 are the same!  src/filter/filter_impl.cpp:
+//    // 32-bit calltrick with jmp, optional jcc; runtime can unfilter more than one block
+//    { 0x46, 6, 0x00ffffff, f_ctok32_e8e9_bswap_le, u_ctok32_e8e9_bswap_le, s_ctok32_e8e9_bswap_le },
+//    { 0x49, 6, 0x00ffffff, f_ctok32_e8e9_bswap_le, u_ctok32_e8e9_bswap_le, s_ctok32_e8e9_bswap_le },
+//
+        mov 4*NBPW(%esp),%eax
+        cmpl $0x49,%eax; je cktop
+        cmpl $0x46,%eax; je cktop
+        jmp ckend0
+cktop:
 #endif
         push %ebp; movl %esp,%ebp
         push %ebx  # C-language saved regs

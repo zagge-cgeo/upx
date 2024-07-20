@@ -204,6 +204,7 @@
     { 0x36, 6, 0x00ffffff, f_ctoj32_e8e9_bswap_le, u_ctoj32_e8e9_bswap_le, s_ctoj32_e8e9_bswap_le },
 
     // 32-bit calltrick with jmp, optional jcc; runtime can unfilter more than one block
+    // 2024-07-18 Note: two tags for the same filter
     { 0x46, 6, 0x00ffffff, f_ctok32_e8e9_bswap_le, u_ctok32_e8e9_bswap_le, s_ctok32_e8e9_bswap_le },
     { 0x49, 6, 0x00ffffff, f_ctok32_e8e9_bswap_le, u_ctok32_e8e9_bswap_le, s_ctok32_e8e9_bswap_le },
 
