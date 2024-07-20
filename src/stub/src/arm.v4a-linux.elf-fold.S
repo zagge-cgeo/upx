@@ -29,9 +29,8 @@
 
 NBPW= 4
 
-#define ARM_OLDABI 1
+#define ARMEL_EABI4 1
 #include "arch/arm/v4a/macros.S"
-#define bkpt .long 0xe7f001f0  /* reserved instr; Linux GNU eabi breakpoint */
 
 sz_Elf32_Ehdr = 13*NBPW
 e_type= 16
@@ -311,13 +310,10 @@ f_unfilter:  @ (char *ptr, uint len, uint cto, uint fid)
 
         t1   .req r2
         t2   .req r3
-
-#ifndef FILTER_ID  /*{*/
-#define FILTER_ID 0x50  /* little-endian */
-#endif  /*}*/
         and fid,fid,#0xff
-        cmp fid,#FILTER_ID  @ last use of fid
-        movne pc,lr  @ no-op if not filter 0x50
+        bic fid,fid,#1  @ 0x51 ==> 0x50
+        cmp fid,#0x50  @ last use of fid
+        movne pc,lr  @ no-op if not filter 0x50 or 0x51
 
         movs  len,len,lsr #2  @ word count
         cmpne ptr,#0

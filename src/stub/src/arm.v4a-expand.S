@@ -57,13 +57,13 @@ f_unfilter:  @ on stack: (char *ptr, uint len, uint cto, uint fid)  // not calla
 
         t1   .req r2
         t2   .req r3
-
 #ifndef FILTER_ID  /*{*/
 #define FILTER_ID 0x50  /* little-endian */
 #endif  /*}*/
         and fid,fid,#0xff
+        bic fid,fid,#1  @ 0x51 ==> 0x50
         cmp fid,#FILTER_ID  @ last use of fid
-        movne pc,lr  @ no-op if not filter 0x50
+        movne pc,lr  @ no-op if not filter 0x50 or 0x51
 
         movs  len,len,lsr #2  @ word count
         cmpne ptr,#0
