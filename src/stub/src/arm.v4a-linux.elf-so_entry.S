@@ -35,8 +35,6 @@ NBPW= 4
 #include "arch/arm/v5a/macros.S"
 #define DEBUG 0
 
-#define bkpt .long 0xe7f001f0  /* reserved instr; Linux GNU eabi breakpoint */
-#define bkpt_th .short 0xde01  /* reserved instr; Linux GNU eabi breakpoint */
 // As of 2023-02-04, "gcc (Debian 10.2.1-6) 10.2.1 20210110" assembles 0xbe10 for:
 //      asm("bkpt #0x10");
 // and a RaspberryPi v2 (32-bit only) running Linux executes as an infinite loop

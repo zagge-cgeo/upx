@@ -50,8 +50,6 @@
 NBPW= 4
 #include "arch/arm/v5a/macros.S"
 
-#define bkpt .long 0xe1200070
-
 sz_b_info= 12
   sz_unc= 0
   sz_cpr= 4

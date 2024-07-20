@@ -32,8 +32,6 @@
 #define ARM_OLDABI 1
 #include "arch/arm/v5a/macros.S"
 
-#define bkpt .long 0xe7f001f0  /* reserved instr; Linux GNU eabi breakpoint */
-#define bkpt_th .short 0xde01  /* reserved instr; Linux GNU eabi breakpoint */
 sz_Elf32_Ehdr = 13*4
 sz_Elf32_Phdr =  8*4
 

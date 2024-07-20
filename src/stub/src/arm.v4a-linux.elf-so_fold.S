@@ -30,7 +30,6 @@
 #define ARM_OLDABI 1
 #include "arch/arm/v4a/macros.S"
 #include "MAX_ELF_HDR.S"
-#define bkpt .long 0xe7f001f0  /* reserved instr "udf #0x10"; Linux GNU eabi breakpoint */
 NBPW= 4
 
 sz_Elf32_Ehdr = 13*4

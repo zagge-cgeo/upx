@@ -34,6 +34,9 @@
                 .section \name,"ax"
 .endm
 
+#define bkpt .long 0xe7f001f0  /* reserved instr; Linux GNU eabi breakpoint */
+#define bkpt_th .short 0xde01  /* reserved instr; Linux GNU eabi breakpoint */
+
 /* macros reduce "noise" when comparing this ARM code to corresponding THUMB code */
 #define PUSH stmdb sp!,
 #define POP  ldmia sp!,
