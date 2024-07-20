@@ -30,7 +30,7 @@
 NBPW= 8
 #define call bl
 
-#define ARM_OLDABI 1
+#define ARMEL_EABI4 1
 #include "arch/arm64/v8/macros.S"
 
 sz_Ehdr= 8*NBPW

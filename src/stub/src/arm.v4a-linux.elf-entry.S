@@ -29,8 +29,8 @@
 *  <jreiser@users.sourceforge.net>
 */
 
-#define ARM_OLDABI 1
 NBPW= 4
+#define ARMEL_EABI4 1
 #include "arch/arm/v4a/macros.S"
 #define call bl
 
@@ -41,7 +41,6 @@ arg4 .req r3
 arg5 .req r4
 arg6 .req r5
 
-#define bkpt .long 0xe7f001f0  /* reserved instr; Linux GNU eabi breakpoint */
 sz_Elf32_Phdr =  8*NBPW
   p_vaddr = 2*NBPW
 sz_Elf32_Ehdr = 13*NBPW
