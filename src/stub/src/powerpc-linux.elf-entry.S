@@ -210,7 +210,7 @@ SYS_mmap= __NR_mmap
 
         mr a0,r_fd
 SYS_close= 6
-        li a0,SYS_close; sc
+        li r0,SYS_close; sc
 
 // Use the unfolded code
         addi r0,r_ADRU,2*NBPW  // skip page_mask, other word
@@ -231,14 +231,6 @@ SYS_close= 6
 //      mtlr    r0  # prepare for indirect jump
 //      addi    sp,sp,96  # de-allocate local frame
 //      blr  # goto return address
-
-mmapRW0:
-        li a5,0  // offset
-mmapRW:
-        li a2,PROT_READ|PROT_WRITE
-mmap:
-        li r0,__NR_mmap; sc; bns+ 0f; teq r0,r0; 0:
-        ret
 
 zfind:
         lwz r0,0(a0); addi a0,a0,NBPW

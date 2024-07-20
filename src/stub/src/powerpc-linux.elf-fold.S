@@ -61,7 +61,7 @@ SZ_FRAME= SZ_LINKA
 
 // In:
 r_exp=   31  // f_exp == &decompress
-r_PMASK= 30  // PAGE_MASK
+  r_buf= 30
 r_ADRU=  29  // &base to unmap
 r_LENU=  28  // length to unmap
 r_fd=    27  // open fd of /proc/self/exe
@@ -71,11 +71,11 @@ r_ADRX=  24  // compressed input
 r_LENX=  23  // total size
 r_FLD=   22
 // Local:
-r_90b=   22
-av_hi=   21
-av_len=  20
-cblk=    19
-r_buf=   18
+cblk=    21
+  r_90b=   r_FLD
+r_PMASK= 20  // (in) PAGE_MASK
+av_hi=   19
+av_len=  18
 
 page_mask:
         .int -0x1000  // default page mask (4KiB)
@@ -102,7 +102,6 @@ mprotect: .globl mprotect
         b sysgo
 
 fold_begin:
-    teq r0,r0  // DEBUG
         mtctr r0  // # words before argc  FIXME: fragile
         lwz r0,0(r_FLD)  // O_BINFO | is_ptinterp | unmap_all_pages
         slwi r0,r0,3*4
@@ -200,7 +199,6 @@ no_pse_env:
         mr a2,r_elfa  // elfaddr
         mr a3,r_auxv  // &Elf32_auxv_t
         la a4,SZ_FRAME(sp)  // &Elf32_Ehdr temporary space
-    teq r0,r0  //DEBUG
         call upx_main  // Out: a0= entry
 // entry= upx_main(b_info *a0, total_size a1, Elf32_Ehdr *a2, ELf32_auxv_t *a3,
 //      tmp_ehdr[])
@@ -275,6 +273,26 @@ SYS_ftruncate= 93
 SYS_mprotect= 125
 SYS_memfd_create= 360
 
+exit: .globl exit
+        li r0,SYS_exit;     5: b 5f
+brk: .globl brk
+        li r0,SYS_brk;      5: b 5f
+readlink: .globl readlink
+        li r0,SYS_readlink; 5: b 5f
+memfd_create: .globl memfd_create
+        li r0,SYS_memfd_create; b 5f
+ftruncate: .globl ftruncate
+        li r0,SYS_ftruncate;5: b 5f
+close: .globl close
+        li r0,SYS_close;    5: b 5f
+write: .globl write
+        li r0,SYS_write;    5: b 5f
+read: .globl read
+        li r0,SYS_read;     5: b 5f
+open: .globl open
+        li r0,SYS_open;     5: b 5f
+munmap: .globl munmap
+        li r0,SYS_munmap;   5: b sysgo
 mmap: .globl mmap
         li r0,SYS_mmap
 sysgo:
@@ -283,27 +301,6 @@ sysgo:
         li a0,-1  // failure; IGNORE errno
 no_fail:
         ret
-
-memfd_create: .globl memfd_create
-        li r0,SYS_memfd_create; b 5f
-ftruncate: .globl ftruncate
-        li r0,SYS_ftruncate;5: b 5f
-exit: .globl exit
-        li r0,SYS_exit;        b 5f
-brk: .globl brk
-        li r0,SYS_brk;      5: b 5f
-readlink: .globl readlink
-        li r0,SYS_readlink; 5: b 5f
-write: .globl write
-        li r0,SYS_write;    5: b 5f
-read: .globl read
-        li r0,SYS_read;     5: b 5f
-open: .globl open
-        li r0,SYS_open;     5: b 5f
-close: .globl close
-        li r0,SYS_close;    5: b 5f
-munmap: .globl munmap
-        li r0,SYS_munmap;   5: b sysgo
 
 memcpy: .globl memcpy  // (dst, src, n)
         cmpwi a2,0; beq- 9f
