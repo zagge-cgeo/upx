@@ -256,7 +256,7 @@ def compress_stub(method, idata):
         # encode upx stub header
         odata = encode_compressed_stub_header(method, idata, odata) + odata
     else:
-        raise Exception, ("invalid method", method, opts.methods)
+        raise Exception("invalid method", method, opts.methods)
     if 1 and len(odata) >= len(idata):
         # not compressible
         return 0, idata

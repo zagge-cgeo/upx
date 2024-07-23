@@ -42,6 +42,10 @@ macro(upx_set_default_build_type type)
     if(NOT upx_global_is_multi_config AND NOT CMAKE_BUILD_TYPE)
         set(CMAKE_BUILD_TYPE "${upx_global_default_build_type}" CACHE STRING "Choose the type of build." FORCE)
     endif()
+    # also enable CMAKE_EXPORT_COMPILE_COMMANDS by default
+    if(NOT DEFINED CMAKE_EXPORT_COMPILE_COMMANDS)
+        set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+    endif()
 endmacro()
 
 # set the default multi-config build type; must be called after project() cmake init
@@ -62,6 +66,22 @@ macro(upx_apply_build_type)
         else()
             set(CMAKE_TRY_COMPILE_CONFIGURATION "${upx_global_default_build_type}")
         endif()
+    endif()
+    # handle CMAKE_BUILD_WITH_INSTALL_RPATH
+    if(NOT DEFINED CMAKE_BUILD_WITH_INSTALL_RPATH)
+        if(CMAKE_GENERATOR MATCHES "Ninja" AND NOT CMAKE_EXECUTABLE_FORMAT MATCHES "^ELF")
+            # info: needed by Ninja generator unless on an ELF-based or XCOFF-based platform
+            set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
+        endif()
+    endif()
+    # and also set MSVC_FRONTEND, GNU_FRONTEND and MINGW
+    if(NOT DEFINED MSVC_FRONTEND AND (MSVC OR CMAKE_C_COMPILER_FRONTEND_VARIANT MATCHES "^MSVC"))
+        set(MSVC_FRONTEND 1)
+    elseif(NOT DEFINED GNU_FRONTEND AND (CMAKE_C_COMPILER_FRONTEND_VARIANT MATCHES "^GNU" OR CMAKE_C_COMPILER_ID MATCHES "(Clang|GNU|LLVM)"))
+        set(GNU_FRONTEND 1)
+    endif()
+    if(NOT DEFINED MINGW AND CMAKE_C_PLATFORM_ID MATCHES "^MinGW")
+        set(MINGW 1)
     endif()
 endmacro()
 
@@ -97,7 +117,7 @@ function(upx_make_bool_var result_var_name var_name default_value)
     set(${result_var_name} "${result}" PARENT_SCOPE) # return value
 endfunction()
 
-function(upx_unused_var) # ARGV
+function(upx_maybe_unused_var) # ARGV
     foreach(var_name ${ARGV})
         if(DEFINED ${var_name})
             set(dummy "${${var_name}}")
@@ -339,6 +359,15 @@ endfunction()
 
 # sanitize a target; note that this may require special run-time support libs from your toolchain
 function(upx_sanitize_target) # ARGV
+    # default sanitizer for Debug builds
+    if(NOT DEFINED upx_sanitize_flags_debug)
+        set(upx_sanitize_flags_debug -fsanitize=undefined -fsanitize-undefined-trap-on-error -fstack-protector-all)
+    endif()
+    # default sanitizer for Release builds
+    if(NOT DEFINED upx_sanitize_flags_release)
+        set(upx_sanitize_flags_release -fstack-protector)
+    endif()
+
     foreach(t ${ARGV})
         if(UPX_CONFIG_DISABLE_SANITIZE)
             # no-op
@@ -356,12 +385,10 @@ function(upx_sanitize_target) # ARGV
             # unsupported compiler; unreliable/broken sanitize implementation before gcc-8 (May 2018)
             message(WARNING "WARNING: ignoring SANITIZE for target '${t}'")
         else()
-            # default sanitizer for Debug builds
-            target_compile_options(${t} PRIVATE $<$<CONFIG:Debug>:-fsanitize=undefined -fsanitize-undefined-trap-on-error -fstack-protector-all>)
-            # default sanitizer for Release builds
-            target_compile_options(${t} PRIVATE $<$<CONFIG:MinSizeRel>:-fstack-protector>)
-            target_compile_options(${t} PRIVATE $<$<CONFIG:Release>:-fstack-protector>)
-            target_compile_options(${t} PRIVATE $<$<CONFIG:RelWithDebInfo>:-fstack-protector>)
+            target_compile_options(${t} PRIVATE $<$<CONFIG:Debug>:${upx_sanitize_flags_debug}>)
+            target_compile_options(${t} PRIVATE $<$<CONFIG:MinSizeRel>:${upx_sanitize_flags_release}>)
+            target_compile_options(${t} PRIVATE $<$<CONFIG:Release>:${upx_sanitize_flags_release}>)
+            target_compile_options(${t} PRIVATE $<$<CONFIG:RelWithDebInfo>:${upx_sanitize_flags_release}>)
         endif()
     endforeach()
 endfunction()

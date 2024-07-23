@@ -68,7 +68,7 @@ upx_cmake_include_hook(2_init)
 # clean up a few files if you accidentally try an in-source build.
 upx_disallow_in_source_build()
 
-# global settings part 1
+# global settings
 if(${CMAKE_VERSION} VERSION_GREATER "3.14.99" AND NOT DEFINED CMAKE_MSVC_RUNTIME_LIBRARY)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
     cmake_policy(SET CMP0091 NEW)
@@ -135,21 +135,6 @@ endif()
 upx_set_default_build_type(Release) # default is CMAKE_BUILD_TYPE=Release
 project(upx VERSION "${UPX_VERSION_STRING}" LANGUAGES C CXX)
 upx_apply_build_type()
-
-# global settings part 2
-if(CMAKE_GENERATOR MATCHES "Ninja" AND NOT CMAKE_EXECUTABLE_FORMAT MATCHES "^ELF")
-    set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
-endif()
-
-# set MSVC_FRONTEND, GNU_FRONTEND and MINGW
-if(NOT DEFINED MSVC_FRONTEND AND (MSVC OR CMAKE_C_COMPILER_FRONTEND_VARIANT MATCHES "^MSVC"))
-    set(MSVC_FRONTEND 1)
-elseif (NOT DEFINED GNU_FRONTEND AND (CMAKE_C_COMPILER_FRONTEND_VARIANT MATCHES "^GNU" OR CMAKE_C_COMPILER_ID MATCHES "(Clang|GNU)"))
-    set(GNU_FRONTEND 1)
-endif()
-if(NOT DEFINED MINGW AND CMAKE_C_PLATFORM_ID MATCHES "^MinGW")
-    set(MINGW 1)
-endif()
 
 #***********************************************************************
 # common compilation flags
@@ -514,6 +499,7 @@ upx_print_var(CMAKE_VERSION UPX_CONFIG_CMAKE_MINIMUM_REQUIRED_VERSION CMAKE_GENE
 if(NOT UPX_CONFIG_CMAKE_DISABLE_PRINT_INFO)
     # print detailed info
     include("${CMAKE_CURRENT_SOURCE_DIR}/misc/cmake/print_info.cmake")
+    upx_print_info()
 endif()
 upx_print_var(CMAKE_INSTALL_PREFIX CMAKE_CONFIGURATION_TYPES CMAKE_TRY_COMPILE_CONFIGURATION CMAKE_BUILD_TYPE)
 if(Threads_FOUND)
