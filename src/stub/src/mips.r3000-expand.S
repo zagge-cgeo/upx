@@ -75,8 +75,8 @@ f_expand: .globl f_expand // f_expand(b_info *, dst, &dstlen)
 #define xsrclen a1
 #define xdst    a2
 #define xdstlen a3
-#define methb   a4
-    lbu methb,b_method(fx_src)  // arg5
+#define meth    a4
+    lbu meth,b_method(fx_src)  // arg5
     move xdstlen,fx_dstlen  // arg4
     move xdst,fx_dst  // arg3
     move a5,fx_src; bal get4unal
@@ -108,22 +108,17 @@ no_unf:
 //    .unreq xsrclen
 //    .unreq xdst
 //    .unreq xdstlen
-//    .unreq methb
+//    .unreq meth
 
 decompress:  // (src *, cpr_len, dst *, &dstlen);
-//  sections NRV2B, etc, inserted here by addLoader() from ::buildLinuxLoader()
-
-  section EXP_TAIL
-#define M_NRV2B_LE32    2
-#define M_NRV2B_8    3
-#define M_NRV2D_LE32    5
-#define M_NRV2D_8    6
-#define M_NRV2E_LE32    8
-#define M_NRV2E_8    9
-#define M_CL1B_LE32     11
-#define M_LZMA          14
-
-#define  hibit r0  /* holds 0x80000000 during decompress */
+    PUSH1 ra  # P_45
+    call go_decompr
+      nop
+        // lzma subroutine returns here with (0==v0) ==> success
+    POP1 ra  # P_45  (1 of 2)
+        // nrv2*_d comes here after computing success/fail
+ret_decompr: .globl ret_decompr
+    ret; nop
 
 #define src  a0
 #define lsrc a1
@@ -135,8 +130,8 @@ eof_nrv: .globl eof_nrv
 eof_n2e: .globl eof_n2e
 eof_n2d: .globl eof_n2d
 eof_n2b: .globl eof_n2b
+        POP1 a6  # P_45 (2 of 2) ra for decompress
         lw at,0*NBPW(sp)  # orig &b_info
-        move a6,ra
         move a5,src; bal get4unal
           la a0,sz_cpr(at)
         move lsrc,v0  # expected src len
@@ -152,13 +147,25 @@ eof_n2b: .globl eof_n2b
           nop
         subu v0,a5,tmp
         subiu v0,sz_binfo  # actual len consumed
-        subu v0,v0,lsrc  # deviation at EOF
-        ret; nop
-
+        b ret_decompr
+          subu v0,v0,lsrc  # deviation at EOF
 #undef tmp
 
-eof_lzma: .globl eof_lzma
-    break  // FIXME eof_lzma
+go_decompr:
+//  sections NRV2B, etc, inserted here by addLoader() from ::buildLinuxLoader()
+
+  section EXP_TAIL
+#define M_NRV2B_LE32    2
+#define M_NRV2B_8    3
+#define M_NRV2D_LE32    5
+#define M_NRV2D_8    6
+#define M_NRV2E_LE32    8
+#define M_NRV2E_8    9
+#define M_CL1B_LE32     11
+#define M_LZMA          14
+
+#define  hibit r0  /* holds 0x80000000 during decompress */
+
 
 unfilter:
 //#include "arch/mips/r3000/bxx.S"  // unfilter code; args in registers, fall-through return
@@ -174,18 +181,24 @@ unfilter:
     UCL_init 32,1,0  // 32 bits (not 8), UCL_SMALL, !UCL_FAST
     decomp_done = eof_n2e
   section NRV2E
+    li at,M_NRV2E_LE32; bne at,meth,not_nrv2e
 #include "arch/mips/r3000/nrv2e_d.ash"
     build nrv2e, full
+not_nrv2e:
 
   section NRV2D
     decomp_done = eof_n2d
+    li at,M_NRV2D_LE32; bne at,meth,not_nrv2d
 #include "arch/mips/r3000/nrv2d_d.ash"
     build nrv2d, full
+not_nrv2d:
 
   section NRV2B
     decomp_done = eof_n2b
+    li at,M_NRV2B_LE32; bne at,meth,not_nrv2b
 #include "arch/mips/r3000/nrv2b_d.ash"
     build nrv2b, full
+not_nrv2b:
 
 #undef off
 #undef len
@@ -196,8 +209,9 @@ unfilter:
 #undef lsrc
 #undef dst
 #undef ldst
+
+  section LZMA_DAISY
+    li at,M_LZMA; bne at,meth,not_lzma
 #undef meth
-
-/* lzma has its own 'section's */
 #include "arch/mips/r3000/lzma_d.S"
-
+not_lzma:

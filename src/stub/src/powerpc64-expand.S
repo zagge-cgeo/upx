@@ -1,4 +1,4 @@
-#/*
+/*
 ;  powerpc64-expand.S -- decompressors for powerpc64le
 ;
 ;  This file is part of the UPX executable compressor.
@@ -70,12 +70,12 @@ f_expand: .globl f_expand // f_expand(b_info *, dst, &dstlen)
     lbz methb,b_method(fx_src)
     movr xdstlen,fx_dstlen  // arg4
     movr xdst,fx_dst  // arg3
-    lwz xsrclen,sz_cpr(xsrc)  // arg2
+    lwz xsrclen,sz_cpr(xsrc)  // arg2  FIXME? possibly unaligned fetch
     addi xsrc,fx_src,sz_binfo // arg1
     call decompress
     movr a3,a0  // save retval
 
-    POP3 a2,a0,a1   // MATCH_80 fx_src,fx_dst,fx_dstlen; keep f_expand.retaddr
+    POP3 a2,a0,a1   // MATCH_80  fx_src,fx_dst,fx_dstlen; keep f_expand.retaddr
     ld a1,0(a1)  // actual length used by decompressor
     PUSH3 a0,a1,a3  // MATCH_81  params for sync_cache
     lbz a3,b_ftid(a2)
@@ -153,8 +153,7 @@ eof_nrv:
 unfilter:
 #include "arch/powerpc/64/bxx.S"  // unfilter code; args in registers, fall-through return
 
-// FIXME: will need extra parameter for multi-method decompression
-#define NO_METHOD_CHECK 1
+#define NO_METHOD_CHECK 1  /* subsumed here by daisy chain */
 
 #define off  a4
 #define len  a5
@@ -162,25 +161,31 @@ unfilter:
 #define disp a7
 
   section NRV2E
+    cmpwi meth,M_NRV2E_LE32; bne not_nrv2e
 #if BIG_ENDIAN
 #include "arch/powerpc/64/nrv2e_d.S"
 #else
 #include "arch/powerpc/64le/nrv2e_d.S"
 #endif
+not_nrv2e:
 
   section NRV2D
+    cmpwi meth,M_NRV2D_LE32; bne not_nrv2d
 #if BIG_ENDIAN
 #include "arch/powerpc/64/nrv2d_d.S"
 #else
 #include "arch/powerpc/64le/nrv2d_d.S"
 #endif
+not_nrv2d:
 
   section NRV2B
+    cmpwi meth,M_NRV2B_LE32; bne not_nrv2b
 #if BIG_ENDIAN
 #include "arch/powerpc/64/nrv2b_d.S"
 #else
 #include "arch/powerpc/64le/nrv2b_d.S"
 #endif
+not_nrv2b:
 
 #undef off
 #undef len
@@ -191,12 +196,18 @@ unfilter:
 #undef lsrc
 #undef dst
 #undef ldst
-#undef meth
 
-/* lzma has its own 'section's */
+  section LZMA_DAISY
+    cmpwi meth,M_LZMA; bne not_lzma
+#undef meth
 #if BIG_ENDIAN
 #include "arch/powerpc/64/lzma_d.S"
 #else
 #include "arch/powerpc/64le/lzma_d.S"
 #endif
 
+section LZMA_DEC30  // appended to LZMA_DEC30 from src/arch/powerpc/32/lzma_d.S
+//eof_lzma:
+        ret  // normal return from LzmaDecode
+not_lzma:
+        // daisy-chain fall through (or EXP_TAIL)

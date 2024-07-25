@@ -2,9 +2,9 @@
 *
 *  This file is part of the UPX executable compressor.
 *
-*  Copyright (C) 1996-2023 Markus Franz Xaver Johannes Oberhumer
-*  Copyright (C) 1996-2023 Laszlo Molnar
-*  Copyright (C) 2000-2023 John F. Reiser
+*  Copyright (C) 1996-2024 Markus Franz Xaver Johannes Oberhumer
+*  Copyright (C) 1996-2024 Laszlo Molnar
+*  Copyright (C) 2000-2024 John F. Reiser
 *  All Rights Reserved.
 *
 *  UPX and the UCL library are free software; you can redistribute them
@@ -57,6 +57,7 @@ PROT_EXEC=  4
 MAP_PRIVATE= 2
 MAP_FIXED=     0x10
 MAP_ANONYMOUS= 0x20
+MFD_EXEC= 0x10
 
 PAGE_SHIFT= 16  // 64KiB PAGE_SIZE
 PAGE_SIZE = -(~0<<PAGE_SHIFT)
@@ -69,6 +70,7 @@ __NR_memfd_create= 360
 __NR_mmap  = 90
 __NR_mprotect = 125
 __NR_munmap = 91
+__NR_close = 6
 __NR_open =  5
 __NR_write = 4
 
@@ -134,11 +136,6 @@ cfl_ret:
         ret
 
   section ELFMAINY
-msg_SELinux:
-        call L72
-L70:
-        .asciz "mmap failed.\n"
-L71:
         // IDENTSTR goes here
 
 #if BIG_ENDIAN  //{
@@ -150,18 +147,9 @@ entry_descr:  // Elf64_Ehdr.e_entry points here (big endian only)
 #endif  //}
 
   section ELFMAINZ
-        .balign 4
-L72:
-        li   a2,L71 - L70  // length
-        mflr a1    // message text
-        li   a0,2  // fd stderr
-        li 0,__NR_write; sc
-die:
-        li a0,127
-        li 0,__NR_exit; sc
 
 r_exp=   31
-r_PMASK= 30
+r_fp=    30
 r_ADRU=  29
 r_LENU=  28
 r_fd=    27
@@ -171,14 +159,13 @@ r_ADRX=  24
 r_LENX=  23
 r_FLD=   22
 r_szuf=  21
-r_fp=    20
+r_PMASK=    20
 r_obinf= 19
 
         /* Decompress the rest of this loader, and jump to it. */
 unfold:  // IN: r_auxv, r_PMASK
         mflr r_FLD  // LrFLD
 
-//Reserve enough space to decompress the folded code of the stub
         lwz r0,  sz_pack2 - f_exp(r_exp)
         la  r_elf,sz_pack2 - f_exp(r_exp)
         sub r_elf,r_elf,r0  // r_elf=&Elf32_Ehdr of stub
@@ -186,11 +173,12 @@ unfold:  // IN: r_auxv, r_PMASK
 
         call 0f; .asciz "upx"; 0:
         mflr a0
-        li a1,0
-SYS_memfd_create= 360
+        li a1,MFD_EXEC
+SYS_memfd_create= __NR_memfd_create
         li r0,SYS_memfd_create; sc; bns+ 0f; teq r0,r0; 0:
         mr r_fd,a0
 
+//Reserve enough space to decompress the folded code of the stub
         mr r_fp,sp
         li r0,-CACHELINE
 // alloca
@@ -212,7 +200,7 @@ SYS_memfd_create= 360
         mr a0,r_fd
         mr a1,sp
         mr a2,r_LENU
-SYS_write= 4
+SYS_write= __NR_write
         li r0,SYS_write; sc; bns+ 0f; teq r0,r0; 0:
         mr sp,r_fp
 
@@ -222,18 +210,19 @@ SYS_write= 4
         li a2,PROT_EXEC|PROT_READ  // PROT_WRITE: DEBUG only
         mr a1,r_LENU
         li a0,0
-SYS_mmap=      90
+SYS_mmap= __NR_mmap
         li r0,SYS_mmap; sc; bns+ 0f; teq r0,r0; 0:
         mr r_ADRU,a0
 
         mr a0,r_fd
-SYS_close= 6
+SYS_close= __NR_close
         li r0,SYS_close; sc; bns+ 0f; teq r0,r0; 0:
 
 // Use the unfolded code
         addi r0,r_ADRU,2*NBPW  // skip page_mask, other word
         add r_ADRX,r_elf,r_obinf  // compressed data
         mtctr r0
+        li r0,(SZ_FRAME+32*NBPW)/NBPW  // words before &argc
         lwz r_LENX, sz_pack2 - f_exp(r_exp)
         bctr
 

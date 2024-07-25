@@ -61,20 +61,23 @@ EXP_TAIL        0x0000000000000000       0x8c
  EXP_TAIL       0x0000000000000000       0x8c tmp/powerpc64le-linux.elf-fold.o
                 0x0000000000000008                eof_nrv
 
-NRV2E           0x0000000000000000      0x154
- NRV2E          0x0000000000000000      0x154 tmp/powerpc64le-linux.elf-fold.o
+NRV2E           0x0000000000000000      0x15c
+ NRV2E          0x0000000000000000      0x15c tmp/powerpc64le-linux.elf-fold.o
 
-NRV2D           0x0000000000000000      0x13c
- NRV2D          0x0000000000000000      0x13c tmp/powerpc64le-linux.elf-fold.o
+NRV2D           0x0000000000000000      0x144
+ NRV2D          0x0000000000000000      0x144 tmp/powerpc64le-linux.elf-fold.o
 
-NRV2B           0x0000000000000000       0xf8
- NRV2B          0x0000000000000000       0xf8 tmp/powerpc64le-linux.elf-fold.o
+NRV2B           0x0000000000000000      0x100
+ NRV2B          0x0000000000000000      0x100 tmp/powerpc64le-linux.elf-fold.o
 
-LZMA_ELF00      0x0000000000000000       0xa0
- LZMA_ELF00     0x0000000000000000       0xa0 tmp/powerpc64le-linux.elf-fold.o
+LZMA_DAISY      0x0000000000000000        0x8
+ LZMA_DAISY     0x0000000000000000        0x8 tmp/powerpc64le-linux.elf-fold.o
 
-LZMA_DEC30      0x0000000000000000       0x2c
- LZMA_DEC30     0x0000000000000000       0x2c tmp/powerpc64le-linux.elf-fold.o
+LZMA_ELF00      0x0000000000000000       0x98
+ LZMA_ELF00     0x0000000000000000       0x98 tmp/powerpc64le-linux.elf-fold.o
+
+LZMA_DEC30      0x0000000000000000       0x30
+ LZMA_DEC30     0x0000000000000000       0x30 tmp/powerpc64le-linux.elf-fold.o
 
 LZMA_DEC10      0x0000000000000000      0xbb8
  LZMA_DEC10     0x0000000000000000      0xbb8 tmp/powerpc64le-linux.elf-fold.o

@@ -1,4 +1,4 @@
-/*  powerpc-linux.elf-entry.S -- Linux program entry point & decompressor (Elf binary)
+/* powerpc-linux.elf-entry.S -- Linux program entry point & decompressor (Elf binary)
 *
 *  This file is part of the UPX executable compressor.
 *
@@ -210,7 +210,7 @@ SYS_mmap= __NR_mmap
 
         mr a0,r_fd
 SYS_close= 6
-        li r0,SYS_close; sc
+        li r0,SYS_close; sc; bns+ 0f; teq r0,r0; 0:
 
 // Use the unfolded code
         addi r0,r_ADRU,2*NBPW  // skip page_mask, other word
@@ -242,7 +242,7 @@ main:
         stmw r2,  SZ_FRAME+ 2*NBPW - NBPW(sp) // save registers r2 thru r31
         mflr r_exp  // &f_exp (decompress)
 
-        la a0,SZ_FRAME+32*NBPW+NBPW(sp)  // &argv; argc could be zero!
+        la a0,SZ_FRAME+32*NBPW +NBPW(sp)  // &argv  (argc might be zero!)
         call zfind  // a0= envp
         call zfind  // a0= &Elf32_auxv
         mr r_auxv,a0  // save for folded code

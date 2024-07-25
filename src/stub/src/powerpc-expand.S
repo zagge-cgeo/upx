@@ -31,13 +31,12 @@
 ;
 */
 
-// FIXME  This assembles, but has ERRORS in translation from amd64
+#ifndef BIG_ENDIAN  //{
+#define BIG_ENDIAN 1  /* PowerPC 32-bit is BigEndian */
+#endif  //}
 
 NBPW= 4
 SZ_DLINE= 128  # size of data cache line in Apple G5
-#ifndef BIG_ENDIAN  //{
-#define BIG_ENDIAN 1
-#endif  //}
 
 #include "arch/powerpc/32/ppc_regs.h"
 #include "arch/powerpc/32/macros.S"
@@ -60,7 +59,7 @@ f_expand: .globl f_expand // f_expand(b_info *, dst, &dstlen)
 #define fx_dst    a1
 #define fx_dstlen a2
     mflr r0
-    PUSH4 fx_src,fx_dst,fx_dstlen,r0  // params to unfilter and sync_cache
+    PUSH4 fx_src,fx_dst,fx_dstlen,r0  // MATCH_80  params to unfilter and sync_cache
 
 // Input to de-compressor:
 #define xsrc    a0
@@ -71,21 +70,21 @@ f_expand: .globl f_expand // f_expand(b_info *, dst, &dstlen)
     lbz methb,b_method(fx_src)
     movr xdstlen,fx_dstlen  // arg4
     movr xdst,fx_dst  // arg3
-    lwz xsrclen,sz_cpr(xsrc)  // arg2
+    lwz xsrclen,sz_cpr(xsrc)  // arg2  FIXME? possibly unaligned fetch
     addi xsrc,fx_src,sz_binfo // arg1
     call decompress
     movr a3,a0  // save retval
 
-    POP3 a2,a0,a1   // fx_src,fx_dst,fx_dstlen; keep f_expand.retaddr
+    POP3 a2,a0,a1   // MATCH_80  fx_src,fx_dst,fx_dstlen; keep f_expand.retaddr
     lwz a1,0(a1)  // actual length used by decompressor
-    PUSH3 a0,a1,a3  // params for sync_cache
+    PUSH3 a0,a1,a3  // MATCH_81  params for sync_cache
     lbz a3,b_ftid(a2)
     lbz a2,b_cto8(a2)
     cmpi cr0,a3,0; beq no_unf
     call unfilter
 no_unf:
 
-    POP2 a0,a1   // dst, len
+    POP2 a0,a1   // MATCH_81  dst, len
     add a1,a1,a0  // lo, hi
 
 CACHELINE=32
@@ -99,7 +98,7 @@ cfl_nrv:
         sync   // wait for all memory operations to finish
         isync  // discard prefetched instructions (if any)
 cfl_ret:
-    POP2 a0,r0   // retval, retaddr from f_expand
+    POP2 a0,r0   // MATCH_80, MATCH_81  retval, retaddr from f_expand
     mtlr r0
     ret
 //    .unreq fx_src
@@ -115,6 +114,10 @@ decompress:  // (src *, cpr_len, dst *, &dstlen);
 //  sections NRV2B, etc, inserted here by addLoader() from ::buildLinuxLoader()
 
   section EXP_TAIL
+// Fall through: daisy chain had no matching method
+        mr a0,methb
+        teq a0,a0
+
 #define M_NRV2B_LE32    2
 #define M_NRV2B_8    3
 #define M_NRV2D_LE32    5
@@ -150,8 +153,7 @@ eof_nrv:
 unfilter:
 #include "arch/powerpc/64/bxx.S"  // unfilter code; args in registers, fall-through return
 
-// FIXME: will need extra parameter for multi-method decompression
-#define NO_METHOD_CHECK 1
+#define NO_METHOD_CHECK 1  /* subsumed here by daisy chain */
 
 #define off  a4
 #define len  a5
@@ -159,13 +161,19 @@ unfilter:
 #define disp a7
 
   section NRV2E
+    cmpwi meth,M_NRV2E_LE32; bne not_nrv2e
 #include "arch/powerpc/32/nrv2e_d.S"
+not_nrv2e:
 
   section NRV2D
+    cmpwi meth,M_NRV2D_LE32; bne not_nrv2d
 #include "arch/powerpc/32/nrv2d_d.S"
+not_nrv2d:
 
   section NRV2B
+    cmpwi meth,M_NRV2B_LE32; bne not_nrv2b
 #include "arch/powerpc/32/nrv2b_d.S"
+not_nrv2b:
 
 #undef off
 #undef len
@@ -176,8 +184,14 @@ unfilter:
 #undef lsrc
 #undef dst
 #undef ldst
-#undef meth
 
-/* lzma has its own 'section's */
+  section LZMA_DAISY
+    cmpwi meth,M_LZMA; bne not_lzma
+#undef meth
 #include "arch/powerpc/32/lzma_d.S"
 
+section LZMA_DEC30  // appended to LZMA_DEC30 from src/arch/powerpc/32/lzma_d.S
+//eof_lzma:
+        ret  // normal return from LzmaDecode
+not_lzma:
+        // daisy-chain fall through (or EXP_TAIL)

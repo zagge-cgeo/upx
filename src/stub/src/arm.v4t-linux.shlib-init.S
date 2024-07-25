@@ -31,7 +31,7 @@
 
 NBPW= 4
 #define ARM_OLDABI 1
-#include "arch/arm/v5a/macros.S"
+#include "arch/arm/v4t/macros.S"
 
 sz_Elf32_Ehdr = 13*NBPW
 sz_Elf32_Phdr =  8*NBPW
@@ -371,13 +371,9 @@ _=-3+_  // 12
         thumb_sys7t __NR_mprotect
 
 //p_unmap
-.if __NR_munmap <= 0xff
-        mov r7,#__NR_munmap
-.else
         mov r7,#__NR_munmap>>16
         lsl r7,#16
         add r7,#__NR_munmap - ((__NR_munmap>>16)<<16)
-.endif
         pop {arg1,arg2, pc}  // goto hatch
 _=-3+_  // 9
         .balign 4

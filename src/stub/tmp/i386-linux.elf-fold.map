@@ -56,22 +56,25 @@ SYSCALLS        0x0000000000000000       0xc0
  .note.GNU-stack
                 0x0000000000000000        0x0 tmp/i386-linux.elf-upxfd_android.o
 
-EXP_HEAD        0x0000000000000000       0xf3
- EXP_HEAD       0x0000000000000000       0xf3 tmp/i386-expand.o
-                0x0000000000000057                f_expand
-                0x0000000000000087                __clear_cache
+EXP_HEAD        0x0000000000000000       0xfc
+ EXP_HEAD       0x0000000000000000       0xfc tmp/i386-expand.o
+                0x0000000000000060                f_expand
+                0x0000000000000090                __clear_cache
 
-EXP_TAIL        0x0000000000000000        0xb
- EXP_TAIL       0x0000000000000000        0xb tmp/i386-expand.o
+EXP_TAIL        0x0000000000000000        0xd
+ EXP_TAIL       0x0000000000000000        0xd tmp/i386-expand.o
 
-NRV2E           0x0000000000000000       0xd2
- NRV2E          0x0000000000000000       0xd2 tmp/i386-expand.o
+NRV2E           0x0000000000000000       0xd0
+ NRV2E          0x0000000000000000       0xd0 tmp/i386-expand.o
 
-NRV2D           0x0000000000000000       0xc5
- NRV2D          0x0000000000000000       0xc5 tmp/i386-expand.o
+NRV2D           0x0000000000000000       0xc3
+ NRV2D          0x0000000000000000       0xc3 tmp/i386-expand.o
 
 NRV2B           0x0000000000000000       0xb0
  NRV2B          0x0000000000000000       0xb0 tmp/i386-expand.o
+
+LZMA_DAISY      0x0000000000000000        0x9
+ LZMA_DAISY     0x0000000000000000        0x9 tmp/i386-expand.o
 
 LZMA_DEC00      0x0000000000000000       0x2e
  LZMA_DEC00     0x0000000000000000       0x2e tmp/i386-expand.o
@@ -85,5 +88,5 @@ LZMA_DEC10      0x0000000000000000      0xa86
 LZMA_DEC20      0x0000000000000000      0xa86
  LZMA_DEC20     0x0000000000000000      0xa86 tmp/i386-expand.o
 
-LZMA_DEC30      0x0000000000000000       0x1a
- LZMA_DEC30     0x0000000000000000       0x1a tmp/i386-expand.o
+LZMA_DEC30      0x0000000000000000       0x1f
+ LZMA_DEC30     0x0000000000000000       0x1f tmp/i386-expand.o

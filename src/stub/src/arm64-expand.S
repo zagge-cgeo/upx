@@ -59,8 +59,8 @@ xsrc    .req x0
 xsrclen .req w1
 xdst    .req x2
 xdstlen .req x3
-methb   .req w4
-    ldrb methb,[fx_src,#b_method]
+meth    .req w4
+    ldrb meth,[fx_src,#b_method]
     mov xdstlen,fx_dstlen  // arg4
     mov xdst,fx_dst  // arg3
     ldr xsrclen,[xsrc,#sz_cpr]  // arg2
@@ -96,8 +96,8 @@ decompress:  // (src *, cpr_len, dst *, &dstlen);
   section EXP_TAIL
 // Fall through: daisy chain had no matching method
         mov x0,#-1
-        mov w1,methb
-        bkpt
+        mov w1,meth
+        bkpt  // EXP_TAIL daisy chain fail
 
         src .req x0
         dst .req x2
@@ -149,15 +149,24 @@ eof_lzma: .globl eof_lzma
 #define M_CL1B_LE32     11
 #define M_LZMA          14
 
+#define NO_METHOD_CHECK 1  /* subsumed here by daisy chain */
+
   section NRV2E
+    cmp meth,#M_NRV2E_LE32; bne not_nrv2e
 #include "arch/arm64/v8/nrv2e_d32.S"
+not_nrv2e:
 
   section NRV2D
+    cmp meth,#M_NRV2E_LE32; bne not_nrv2d
 #include "arch/arm64/v8/nrv2d_d32.S"
+not_nrv2d:
 
   section NRV2B
+    cmp meth,#M_NRV2B_LE32; bne not_nrv2b
 #include "arch/arm64/v8/nrv2b_d32.S"
+not_nrv2b:
 
-/* lzma has its own 'section's */
+  section LZMA_DAISY
+    cmp meth,#M_LZMA; bne not_lzma
 #include "arch/arm64/v8/lzma_d.S"
-
+not_lzma:

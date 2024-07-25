@@ -20,17 +20,20 @@ EXP_HEAD        0x0000000000000000       0xe1
  EXP_HEAD       0x0000000000000000       0xe1 tmp/amd64-expand.o
                 0x0000000000000000                f_expand
 
-NRV2E           0x0000000000000000       0xe6
- NRV2E          0x0000000000000000       0xe6 tmp/amd64-expand.o
+NRV2E           0x0000000000000000       0xe4
+ NRV2E          0x0000000000000000       0xe4 tmp/amd64-expand.o
 
-NRV2D           0x0000000000000000       0xd8
- NRV2D          0x0000000000000000       0xd8 tmp/amd64-expand.o
+NRV2D           0x0000000000000000       0xd6
+ NRV2D          0x0000000000000000       0xd6 tmp/amd64-expand.o
 
-NRV2B           0x0000000000000000       0xc2
- NRV2B          0x0000000000000000       0xc2 tmp/amd64-expand.o
+NRV2B           0x0000000000000000       0xc0
+ NRV2B          0x0000000000000000       0xc0 tmp/amd64-expand.o
 
-LZMA_ELF00      0x0000000000000000       0x6f
- LZMA_ELF00     0x0000000000000000       0x6f tmp/amd64-expand.o
+LZMA_DAISY      0x0000000000000000        0xa
+ LZMA_DAISY     0x0000000000000000        0xa tmp/amd64-expand.o
+
+LZMA_ELF00      0x0000000000000000       0x65
+ LZMA_ELF00     0x0000000000000000       0x65 tmp/amd64-expand.o
 
 .data           0x0000000000000000        0x0
  .data          0x0000000000000000        0x0 tmp/amd64-linux.elf-fold.o
@@ -71,8 +74,8 @@ LZMA_DEC10      0x0000000000000000      0x9f7
 LZMA_DEC20      0x0000000000000000      0x9f7
  LZMA_DEC20     0x0000000000000000      0x9f7 tmp/amd64-expand.o
 
-LZMA_DEC30      0x0000000000000000       0x1b
- LZMA_DEC30     0x0000000000000000       0x1b tmp/amd64-expand.o
+LZMA_DEC30      0x0000000000000000       0x19
+ LZMA_DEC30     0x0000000000000000       0x19 tmp/amd64-expand.o
 
 EXP_TAIL        0x0000000000000000       0x14
  EXP_TAIL       0x0000000000000000       0x14 tmp/amd64-expand.o

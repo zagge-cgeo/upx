@@ -53,9 +53,11 @@ retaddr = 2*NBPW  // lr === pc
 
 ////  teq r0,r0  // debugging
 
+#ifndef NO_METHOD_CHECK
 #define M_LZMA          14
         cmplwi cr0,meth,M_LZMA
         bne   cr0,not_lzma
+#endif
         mr a7,sp  // sp of caller
 
 //Prepare for call to:
@@ -134,7 +136,9 @@ lzma_go:  // fall through into LzmaDecode: use LZMA_DEC10 or LZMA_DEC20 as subro
         blr  // return to *-expand.S: f_expand ==> decompress
 #endif
 
-not_lzma:  // fall into daisy chain
+#ifndef NO_METHOD_CHECK
+not_lzma:
+#endif
 
 // vi:ts=8:et
 

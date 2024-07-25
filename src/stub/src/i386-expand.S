@@ -163,10 +163,13 @@ decompress:  // sections NRV2B, etc, are inserted here
     or $(~0),disp  // -1: initial displacement
     cld
     movzbl -NBPW(src),%edx  // method
-#define methb %dl
+#define meth %dl
 
   section EXP_TAIL
-eof:  // decompressors jump here when done
+    int3  // daisy chain failed: no matching decompressor
+    hlt
+
+eof:  // non-lzma decompressors jump here when done
         pop %ebp  // MATCH_54
         pop %eax  // MATCH_53 dst_orig
         sub %eax,%edi  // dst -= original dst
@@ -182,14 +185,22 @@ eof:  // decompressors jump here when done
 #define M_CL1B_LE32     11
 #define M_LZMA          14
 
+#define NO_METHOD_CHECK 1  /* subsumed here by daisy chain */
+
   section NRV2E
+    cmp $M_NRV2E_LE32,meth; jne not_nrv2e
 #include "arch/i386/nrv2e_d32-easy.S"
+not_nrv2e:
 
   section NRV2D
+    cmp $M_NRV2D_LE32,meth; jne not_nrv2d
 #include "arch/i386/nrv2d_d32-easy.S"
+not_nrv2d:
 
   section NRV2B
+    cmp $M_NRV2B_LE32,meth; jne not_nrv2b
 #include "arch/i386/nrv2b_d32-easy.S"
+not_nrv2b:
 
 #undef off
 #undef len
@@ -199,10 +210,21 @@ eof:  // decompressors jump here when done
 
 #undef src
 #undef dst
+
+section LZMA_DAISY
+    cmp $M_LZMA,meth; jne not_lzma
 #undef meth
 
 // lzma code is written in intel syntax!
 ///* lzma has its own 'section's */
     .intel_syntax noprefix
 #include "arch/i386/lzma_d.S"
+    .att_syntax
 
+section LZMA_DEC30  // REPLACES LZMA_DEC30 from src/arch/i386/lzma_d.S
+//eof_lzma:  already has set retval and *dstlen
+        pop %ebp  // MARCH_54
+        add $3*NBPW,%esp  // MATCH_53, MATCH_52, MATCH_51
+        ret
+
+not_lzma:  // fall into next decompressor (EXP_TAIL)

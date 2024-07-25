@@ -1480,7 +1480,8 @@ PackLinuxElf32::buildLinuxLoader(
             len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "NRV2E");
         }
         if (((1u<<M_LZMA)) & m_decompr) {
-            len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "LZMA_ELF00,LZMA_DEC20,LZMA_DEC30");
+            len += snprintf(&sec[len], sizeof(sec) - len, ",%s",
+                "LZMA_DAISY,LZMA_ELF00,LZMA_DEC20,LZMA_DEC30");
         }
         len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "EXP_TAIL,SO_TAIL,SO_MAIN");
         (void)len;  // Pacify the anal-retentive static analyzer which hates a good idiom.
@@ -1516,7 +1517,8 @@ PackLinuxElf32::buildLinuxLoader(
             len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "NRV2E");
         }
         if (((1u<<M_LZMA)) & m_decompr) {
-            len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "LZMA_ELF00,LZMA_DEC20,LZMA_DEC30");
+            len += snprintf(&sec[len], sizeof(sec) - len, ",%s",
+                "LZMA_DAISY,LZMA_ELF00,LZMA_DEC20,LZMA_DEC30");
         }
         len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "EXP_TAIL,SYSCALLS");
         (void)len;
@@ -1637,7 +1639,8 @@ PackLinuxElf64::buildLinuxLoader(
             len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "NRV2E");
         }
         if (((1u<<M_LZMA)) & m_decompr) {
-            len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "LZMA_ELF00,LZMA_DEC20,LZMA_DEC30");
+            len += snprintf(&sec[len], sizeof(sec) - len, ",%s",
+                "LZMA_DAISY,LZMA_ELF00,LZMA_DEC20,LZMA_DEC30");
         }
         len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "EXP_TAIL,SO_TAIL,SO_MAIN");
         (void)len;
@@ -1670,7 +1673,8 @@ PackLinuxElf64::buildLinuxLoader(
             len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "NRV2E");
         }
         if (((1u<<M_LZMA)) & m_decompr) {
-            len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "LZMA_ELF00,LZMA_DEC20,LZMA_DEC30");
+            len += snprintf(&sec[len], sizeof(sec) - len, ",%s",
+                "LZMA_DAISY,LZMA_ELF00,LZMA_DEC20,LZMA_DEC30");
         }
         len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "EXP_TAIL,SYSCALLS");
         (void)len;

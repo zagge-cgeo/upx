@@ -851,6 +851,7 @@ tc.arm64-win64.pe.objcopy  = arm64-linux-objcopy-2.25 -F elf64-littleaarch64
 tc.arm64-win64.pe.objdump  = arm64-linux-objdump-2.25
 
 arm64-win64.pe.h : $(srcdir)/src/$$T.S
+	@echo; echo TARGET=$@  PATH=$(PATH); echo
 	$(call tc,gcc) -c -x assembler-with-cpp $< -o tmp/$T.bin
 	$(call tc,f-embed_objinfo,tmp/$T.bin)
 	$(call tc,bin2h-c) tmp/$T.bin $@

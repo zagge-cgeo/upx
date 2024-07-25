@@ -91,15 +91,25 @@ get_page_mask: .globl get_page_mask
         blr
 
 Pprotect: .globl Pprotect
-mprotect: .globl mprotect
-        mr a4,a0  // 1st arg
-        mflr a5; call get_page_mask; mtlr a5
-        not r0,a0  // frag mask
-        and t1,a4,r0  // frag
-        sub a0,a4,t1
-        add a1,a1,t1
-        li r0,SYS_mprotect
-        b sysgo
+        mflr r0; bl 0f; 0: mflr r6; mtlr r0; lwz r0,page_mask - 0b(r6)
+        andc r0,a0,r0  // offset within page
+        sub a0,a0,r0
+        add a1,a1,r0
+        b mprotect
+
+Pmap: .globl Pmap
+        mflr r0; bl 0f; 0: mflr r6; mtlr r0; lwz r0,page_mask - 0b(r6)
+        andc r0,a0,r0  // offset within page
+        sub a0,a0,r0
+        add a1,a1,r0
+        b mmap
+
+Punmap: .globl Punmap
+        mflr r0; bl 0f; 0: mflr r6; mtlr r0; lwz r0,page_mask - 0b(r6)
+        andc r0,a0,r0  // offset within page
+        sub a0,a0,r0
+        add a1,a1,r0
+        b munmap
 
 fold_begin:
         mtctr r0  // # words before argc  FIXME: fragile
@@ -291,6 +301,8 @@ read: .globl read
         li r0,SYS_read;     5: b 5f
 open: .globl open
         li r0,SYS_open;     5: b 5f
+mprotect: .globl mprotect
+        li 0,SYS_mprotect;  5: b 5f
 munmap: .globl munmap
         li r0,SYS_munmap;   5: b sysgo
 mmap: .globl mmap

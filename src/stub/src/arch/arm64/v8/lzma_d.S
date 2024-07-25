@@ -43,10 +43,6 @@ src  .req x0
 lsrc .req w1
 dst  .req x2
 ldst .req x3  /* Out: actually a reference: &len_dst */
-meth .req w4
-
-#define M_LZMA          14
-        cmp meth,#M_LZMA; bne not_lzma
 
 t0   .req w7
 t1   .req w8
@@ -69,7 +65,7 @@ t1x  .req x8
         sub sp,sp,t0,uxtw
         mov x4,sp
 1:  // clear lzma probability array
-        stp xzr,xzr,[x4],#2*8
+        stp xzr,xzr,[x4],#2*NBPW
         cmp x4,t1x
         blo 1b
 
@@ -129,13 +125,11 @@ eof_lzma:
 
 #undef lsrc
 #undef ldst
-#undef meth
 
     .unreq src
     .unreq lsrc
     .unreq dst
     .unreq ldst
-    .unreq meth
     .unreq t0
     .unreq t1
     .unreq t1x

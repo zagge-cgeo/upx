@@ -2,9 +2,9 @@
 *
 *  This file is part of the UPX executable compressor.
 *
-*  Copyright (C) 1996-2023 Markus Franz Xaver Johannes Oberhumer
-*  Copyright (C) 1996-2023 Laszlo Molnar
-*  Copyright (C) 2000-2023 John F. Reiser
+*  Copyright (C) 1996-2024 Markus Franz Xaver Johannes Oberhumer
+*  Copyright (C) 1996-2024 Laszlo Molnar
+*  Copyright (C) 2000-2024 John F. Reiser
 *  All Rights Reserved.
 *
 *  UPX and the UCL library are free software; you can redistribute them
@@ -93,7 +93,7 @@ OVERHEAD= 2048
 
 // In:
 r_exp=   31  // f_exp == &decompress
-r_PMASK= 30  // PAGE_MASK
+r_PMASK= 30  // page_mask
 r_ADRU=  29  // &base to unmap
 r_LENU=  28  // length to unmap
 r_fd=    27  // open fd of /proc/self/exe
@@ -109,34 +109,33 @@ av_len=  20
 cblk=    19
 r_buf=   18
 
-PAGE_MASK: .quad ~0<<16  // default
+page_mask: .quad ~0<<16  // default
         .quad 0  // something else?
         b fold_begin
 
 get_page_mask: .globl get_page_mask
-        mflr r0
-        bl 0f; 0:
-        mtctr r0
-        mflr r3
-        ld r3,PAGE_MASK - 0b(r3)
-        bctr
+        mflr r0  // retaddr
+        call 0f; 0: mflr a0
+        mtlr r0  // original retaddr
+        ld a0,page_mask - 0b(a0)
+        ret
 
 Pprotect: .globl Pprotect
-        mflr r0; bl 0f; 0: mflr r6; mtlr r0; ld r0,PAGE_MASK - 0b(r6)
+        mflr r0; bl 0f; 0: mflr r6; mtlr r0; ld r0,page_mask - 0b(r6)
         andc r0,a0,r0  // offset within page
         sub a0,a0,r0
         add a1,a1,r0
         b mprotect
 
 Pmap: .globl Pmap
-        mflr r0; bl 0f; 0: mflr r6; mtlr r0; ld r0,PAGE_MASK - 0b(r6)
+        mflr r0; bl 0f; 0: mflr r6; mtlr r0; ld r0,page_mask - 0b(r6)
         andc r0,a0,r0  // offset within page
         sub a0,a0,r0
         add a1,a1,r0
         b mmap
 
 Punmap: .globl Punmap
-        mflr r0; bl 0f; 0: mflr r6; mtlr r0; ld r0,PAGE_MASK - 0b(r6)
+        mflr r0; bl 0f; 0: mflr r6; mtlr r0; ld r0,page_mask - 0b(r6)
         andc r0,a0,r0  // offset within page
         sub a0,a0,r0
         add a1,a1,r0
@@ -144,7 +143,7 @@ Punmap: .globl Punmap
 
 fold_begin:
 ////    teq r0,r0  // debugging
-        mtctr r0  // # words of stuff   FIXME
+        mtctr r0  // # words before argc  FIXME: fragile
         lwz r0,0(r_FLD)  // O_BINFO | is_ptinterp | unmap_all_pages
         slwi r0,r0,3*4
         mtcrf 0x8,r0  // cr4.eq = unmap_all_pages

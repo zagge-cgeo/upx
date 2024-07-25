@@ -27,6 +27,7 @@
 ;
 */
 
+NBPW= 8
 #define section .section
 
 section LZMA_ELF00
@@ -48,8 +49,8 @@ section LZMA_ELF00
 //      pushq dst  // MATCH_53
 //      subq src,lsrc //restore the value of lsrc
 
-#define M_LZMA          14
 #ifndef NO_METHOD_CHECK
+#define M_LZMA          14
         cmpb $ M_LZMA,methb; jne not_lzma
 #endif
         pushq %rbp; movq %rsp,%rbp  // we use alloca
@@ -115,27 +116,27 @@ section LZMA_DEC20
 #endif
 
 section LZMA_DEC30
-        movq -1*8(%rbp),%rsi  // MATCH_70  src [after header]
+        movq -1*NBPW(%rbp),%rsi  // MATCH_70  src [after header]
 #ifdef WINDOWS_BACK
-        movq  2*8(%rbp),%rdi  // dst  (actually an un-checked bug)
+        movq  2*NBPW(%rbp),%rdi  // dst  (actually an un-checked bug)
 #else
-        movq  1*8(%rbp),%rdi  // dst
+        movq  1*NBPW(%rbp),%rdi  // dst
 #endif
         movl szSizeT(%rbx),%ecx; addq %rcx,%rsi  //  inSizeProcessed
         movl        (%rbx),%edx; addq %rdx,%rdi  // outSizeProcessed
         leave  // movl %ebp,%rsp; popq %rbp
-#ifndef NO_METHOD_CHECK
 #ifdef WINDOWS_BACK
-        jmp eof_lzma
+        jmp eof_lzma_win
 #else
-        jmp eof
+        jmp eof_lzma
 #endif // WINDOWS_BACK
 
+#ifndef NO_METHOD_CHECK
 not_lzma:
         push %rdi; pop %rsi  # src = arg1
         # fall into next daisy-chain method
-eof_lzma:
 #endif // NO_METHOD_CHECK
+eof_lzma_win:
 
 // vi:ts=8:et
 

@@ -176,15 +176,22 @@ go_meth:
 #define M_LZMA          14
 
 // Daisy chain of decoding methods that were used
+#define NO_METHOD_CHECK 1  /* subsumed here by daisy chain */
 
   section NRV2E
+    cmp $M_NRV2E_LE32,meth; jne not_nrv2e
 #include "arch/amd64/nrv2e_d.S"
+not_nrv2e:
 
   section NRV2D
+    cmp $M_NRV2D_LE32,meth; jne not_nrv2d
 #include "arch/amd64/nrv2d_d.S"
+not_nrv2d:
 
   section NRV2B
+    cmp $M_NRV2B_LE32,meth; jne not_nrv2b
 #include "arch/amd64/nrv2b_d.S"
+not_nrv2b:
 
 #undef off
 #undef len
@@ -192,6 +199,9 @@ go_meth:
 #undef bits
 #undef displ
 #undef dispq
+
+section LZMA_DAISY
+    cmp $M_LZMA,meth; jne not_lzma
 
 section LZMA_ELF00  // prefix for parameter juggling
         push dst; push src  // MATCH_60
@@ -203,6 +213,7 @@ section LZMA_ELF00  // prefix for parameter juggling
         pop %arg1; pop %arg3  // MATCH_60
 
 #include "arch/amd64/lzma_d.S"
+not_lzma:
 
   section EXP_TAIL
 // Fall through: daisy chain had no matching method
@@ -210,7 +221,7 @@ section LZMA_ELF00  // prefix for parameter juggling
         or $~0,%eax  // "errno"
         int3; hlt  // no method
 
-eof:
+eof_lzma:
 eof_n2b:
 eof_n2d:
 eof_n2e:

@@ -47,26 +47,29 @@ SYSCALLS        0x0000000000000000      0x178
                 0x0000000000000130                mprotect
                 0x0000000000000128                mkdir
 
-EXP_HEAD        0x0000000000000000       0x94
- EXP_HEAD       0x0000000000000000       0x94 tmp/mips.r3000-linux.elf-fold.o
+EXP_HEAD        0x0000000000000000       0xfc
+ EXP_HEAD       0x0000000000000000       0xfc tmp/mips.r3000-linux.elf-fold.o
+                0x00000000000000b4                eof_n2e
                 0x0000000000000000                f_expand
+                0x00000000000000b4                eof_n2b
+                0x00000000000000b4                eof_nrv
+                0x00000000000000b4                eof_n2d
+                0x00000000000000ac                ret_decompr
 
-EXP_TAIL        0x0000000000000000       0x4c
- EXP_TAIL       0x0000000000000000       0x4c tmp/mips.r3000-linux.elf-fold.o
-                0x0000000000000000                eof_n2e
-                0x0000000000000000                eof_n2b
-                0x0000000000000048                eof_lzma
-                0x0000000000000000                eof_nrv
-                0x0000000000000000                eof_n2d
+EXP_TAIL        0x0000000000000000        0x0
+ EXP_TAIL       0x0000000000000000        0x0 tmp/mips.r3000-linux.elf-fold.o
 
-NRV2E           0x0000000000000000      0x154
- NRV2E          0x0000000000000000      0x154 tmp/mips.r3000-linux.elf-fold.o
+NRV2E           0x0000000000000000      0x15c
+ NRV2E          0x0000000000000000      0x15c tmp/mips.r3000-linux.elf-fold.o
 
-NRV2D           0x0000000000000000      0x144
- NRV2D          0x0000000000000000      0x144 tmp/mips.r3000-linux.elf-fold.o
+NRV2D           0x0000000000000000      0x14c
+ NRV2D          0x0000000000000000      0x14c tmp/mips.r3000-linux.elf-fold.o
 
-NRV2B           0x0000000000000000      0x128
- NRV2B          0x0000000000000000      0x128 tmp/mips.r3000-linux.elf-fold.o
+NRV2B           0x0000000000000000      0x130
+ NRV2B          0x0000000000000000      0x130 tmp/mips.r3000-linux.elf-fold.o
+
+LZMA_DAISY      0x0000000000000000        0x8
+ LZMA_DAISY     0x0000000000000000        0x8 tmp/mips.r3000-linux.elf-fold.o
 
 LZMA_ELF00      0x0000000000000000       0xa8
  LZMA_ELF00     0x0000000000000000       0xa8 tmp/mips.r3000-linux.elf-fold.o
