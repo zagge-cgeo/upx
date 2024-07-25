@@ -130,6 +130,13 @@ jobs:
         run: |
           N=$(echo "upx-${GITHUB_REF_NAME}-${GITHUB_SHA:0:7}-${{ matrix.os }}" | sed 's/[^0-9a-zA-Z_.-]/-/g')
           mkdir -p "tmp/artifact/$N"
+          dirs="gcc/debug gcc/release clang/debug clang/release"
+          if test "${{ matrix.use_extra }}" = "true"; then
+            dirs="$dirs gcc-m32/debug gcc-m32/release gcc-mx32/debug gcc-mx32/release"
+            dirs="$dirs cross-windows-mingw32/debug cross-windows-mingw32/release"
+            dirs="$dirs cross-windows-mingw64/debug cross-windows-mingw64/release"
+          fi
+          for d in $dirs; do DESTDIR="$PWD/tmp/artifact/$N/Install/$d" cmake --install build/extra/$d; done
           (cd build && shopt -s nullglob && cp -ai --parents */upx{,.exe} */*/*/upx{,.exe} "../tmp/artifact/$N")
           (cd tmp/artifact && tar --sort=name -czf "$N.tar.gz" "$N" && rm -rf "./$N")
           echo "artifact_name=$N" >> $GITHUB_ENV
@@ -260,6 +267,9 @@ jobs:
           X="${{ matrix.xcode_version }}"; test -n "$X" && X="-xcode-$X"
           N=$(echo "upx-${GITHUB_REF_NAME}-${GITHUB_SHA:0:7}-${{ matrix.os }}$X" | sed 's/[^0-9a-zA-Z_.-]/-/g')
           mkdir -p "tmp/artifact/$N"
+          dirs="clang/debug clang/release"
+          test -n "${{ matrix.gcc }}" && dirs="$dirs gcc/debug gcc/release"
+          for d in $dirs; do DESTDIR="$PWD/tmp/artifact/$N/Install/$d" cmake --install build/extra/$d; done
           (cd build && rsync -R -a */*/*/upx "../tmp/artifact/$N/")
           (cd tmp/artifact && gtar --sort=name -czf "$N.tar.gz" "$N" && rm -rf "./$N")
           echo "artifact_name=$N" >> $GITHUB_ENV
@@ -542,8 +552,8 @@ jobs:
           chmod +x zig-ar zig-cc zig-cxx zig-ranlib
           ls -la; head zig-ar zig-cc zig-cxx zig-ranlib
           # update ZIG_TARGET
-          ZIG_TARGET=${ZIG_TARGET/i386-/x86-}  # i386 => x86
-          ZIG_TARGET=${ZIG_TARGET/muslsf/musl} # muslsf => musl
+          ZIG_TARGET=${ZIG_TARGET/i386-/x86-}    # i386 => x86
+          ZIG_TARGET=${ZIG_TARGET/-muslsf/-musl} # muslsf => musl
           echo "ZIG_TARGET=$ZIG_TARGET" >> $GITHUB_ENV
           # -fPIE is for compilation only => also use the correct linker flag "-pie"
           # INFO: it seems the zig driver does handle this automatically(??), so not really needed
@@ -569,6 +579,10 @@ jobs:
         run: |
           N=$(echo "upx-${GITHUB_REF_NAME}-${GITHUB_SHA:0:7}-zigcc-${{ matrix.zig_target }}${ZIG_PIC}" | sed 's/[^0-9a-zA-Z_.-]/-/g')
           mkdir -p "tmp/artifact/$N"
+          if [[ "${{ matrix.zig_target }}" == *-linux* ]]; then
+            dirs="${ZIG_TARGET}${ZIG_PIC}/debug ${ZIG_TARGET}${ZIG_PIC}/release"
+            for d in $dirs; do DESTDIR="$PWD/tmp/artifact/$N/Install/$d" cmake --install build/zig/$d; done
+          fi
           (cd build && shopt -s nullglob && cp -ai --parents */upx{,.exe} */*/*/upx{,.exe} "../tmp/artifact/$N")
           (cd tmp/artifact && tar --sort=name -czf "$N.tar.gz" "$N" && rm -rf "./$N")
           echo "artifact_name=$N" >> $GITHUB_ENV
