@@ -7686,6 +7686,8 @@ int const *
 PackLinuxElf32x86::getFilters() const
 {
     static const int filters[] = {
+        // 0x49 is 5-byte CALL or JMP, and 6-byte Jxx
+        // 0x46 is 5-byte CALL or JMP
         0x49, 0x46,
 // FIXME 2002-11-11: We use stub/fold_elf86.asm, which calls the
 // decompressor multiple times, and unfilter is independent of decompress.

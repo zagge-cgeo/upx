@@ -27,14 +27,10 @@
 //#include "regs.h"
 
 i386bxx:  # (*f_unf)(xo->buf, out_len, h.b_cto8, h.b_ftid);
-
+        mov 4*NBPW(%esp),%eax  # ftid
 #ifndef NO_METHOD_CHECK
-// 2024-07-18  Filter 0x49 and 0x46 are the same!  src/filter/filter_impl.cpp:
-//    // 32-bit calltrick with jmp, optional jcc; runtime can unfilter more than one block
-//    { 0x46, 6, 0x00ffffff, f_ctok32_e8e9_bswap_le, u_ctok32_e8e9_bswap_le, s_ctok32_e8e9_bswap_le },
-//    { 0x49, 6, 0x00ffffff, f_ctok32_e8e9_bswap_le, u_ctok32_e8e9_bswap_le, s_ctok32_e8e9_bswap_le },
-//
-        mov 4*NBPW(%esp),%eax
+// Filter 0x46 is 5-byte CALL or unconditional JMP
+// FIlter 0x49 also includes 6-byte consitional Jxx
         cmpl $0x49,%eax; je cktop
         cmpl $0x46,%eax; je cktop
         jmp ckend0
@@ -48,6 +44,7 @@ cktop:
         movl 2*NBPW(%ebp),%esi  // src
         movl 3*NBPW(%ebp),%ecx  // len
         movl 4*NBPW(%ebp),%edx  // b_cto8 (%dl)
+        movb %al,%dh  # ftid
         lea (1- 4)(%esi,%ecx),%ecx  # beyond last possible displacement
         movl %esi,%ebx  // start of buffer
         jmp ckstart
@@ -55,7 +52,9 @@ ckloop4:
         cmpl %ecx,%esi; jae ckend
         push %esi  # tail merge
 ckloop3:
-        pop %esi; lodsb  # next main opcode
+        pop %esi; movzbl (%esi),%eax  # next main opcode
+        lea 1(%esi),%esi  # avoid lodsb because Read-Modify-Write of %eax
+        cmpb $0x49,%dh; jne ckloop2  # do not consider 6-byte conditional jxx
         cmpb $0x80,%al; jb ckloop2  # lo of 6-byte Jcc
         cmpb $0x8F,%al; ja ckloop2  # hi of 6-byte Jcc
         cmpb $0x0F,-2(%esi); je ckmark  # prefix of 6-byte Jcc
@@ -73,7 +72,9 @@ ckmark:
         stosl
 ckstart:
         cmpl %ecx,%esi; jae ckend
-        lodsb; jmp ckloop2  # 0x0F prefix would overlap previous displacement
+        movzbl (%esi),%eax
+        lea 1(%esi),%esi
+        jmp ckloop2  # 0x0F prefix would overlap previous displacement
 ckend:
         pop %edi
         pop %esi
