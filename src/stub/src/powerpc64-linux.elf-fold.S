@@ -107,7 +107,7 @@ r_FLD=   22  // &O_BINFO; overlaps r_pse
 r_pse=   22  // &"/proc/self/exe"; overlaps r_FLD
 av_hi=   21
 // r_PMASK= 20
-av_len=  19 
+av_len=  19
 cblk=    18
 
 page_mask: .quad ~0<<16  // default
