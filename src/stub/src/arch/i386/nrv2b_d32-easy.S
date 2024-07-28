@@ -38,7 +38,7 @@ lit_n2b:
         incl %esi; movb %dl,(%edi)
         incl %edi
 top_n2b:
-        movb (%esi),%dl  # prefetch: literal, or bottom 8 bits of offset
+        movzbl (%esi),%edx  # prefetch: literal, or bottom 8 bits of offset
         jnextb1yp lit_n2b
         push $1; pop off
 offmore_n2b:
@@ -46,7 +46,7 @@ offmore_n2b:
         jnextb0np offmore_n2b
 
         subl $ 3,off; jc len_n2b  # use previous offset
-        shll $ 8,off; movzbl %dl,%edx
+        shll $ 8,off
         orl %edx,off; incl %esi
         xorl $~0,off; jz eof
         movl     off,disp
