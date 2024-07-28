@@ -126,8 +126,8 @@ public:
 
 protected:
     // unpacker tests - these may throw exceptions
-    virtual bool testUnpackVersion(int version) const;
-    virtual bool testUnpackFormat(int format) const;
+    virtual bool testUnpackVersion(int version) const may_throw;
+    virtual bool testUnpackFormat(int format) const may_throw;
 
 protected:
     // implementation

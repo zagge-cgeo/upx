@@ -31,13 +31,15 @@ function(upx_print_info) # ARGV
     upx_print_var(CMAKE_SIZEOF_VOID_P)
 
     # binutils
-    upx_print_var(CMAKE_EXECUTABLE_FORMAT CMAKE_AR CMAKE_RANLIB)
+    upx_print_var(CMAKE_EXECUTABLE_FORMAT CMAKE_EXECUTABLE_SUFFIX UPX_CONFIG_CMAKE_EXECUTABLE_SUFFIX)
+    upx_print_var(CMAKE_AR CMAKE_RANLIB)
 
     # compilers
     foreach(lang IN ITEMS ASM C CXX)
         upx_print_var(CMAKE_${lang}_COMPILER_LAUNCHER)
         upx_print_var(CMAKE_${lang}_COMPILER)
         upx_print_var(CMAKE_${lang}_COMPILER_ID)
+        upx_print_var(CMAKE_${lang}_SIMULATE_ID)
         upx_print_var(CMAKE_${lang}_COMPILER_VERSION)
         upx_print_var(CMAKE_${lang}_COMPILER_FRONTEND_VARIANT )
         upx_print_var(CMAKE_${lang}_COMPILER_ARCHITECTURE_ID)
@@ -50,6 +52,7 @@ function(upx_print_info) # ARGV
     upx_print_var(CMAKE_BUILD_WITH_INSTALL_RPATH)
     upx_print_var(CMAKE_INTERPROCEDURAL_OPTIMIZATION CMAKE_POSITION_INDEPENDENT_CODE)
     upx_print_var(PROPERTY_TARGET_SUPPORTS_SHARED_LIBS)
+    upx_print_var(UPX_CONFIG_SANITIZE_FLAGS_DEBUG UPX_CONFIG_SANITIZE_FLAGS_RELEASE)
 
     # shortcuts
     upx_print_var(APPLE CLANG CYGWIN GNU_FRONTEND GNUC MINGW MSVC MSVC_FRONTEND MSVC_IDE MSVC_TOOLSET_VERSION MSVC_VERSION MSYS UNIX WIN32 WIN64)

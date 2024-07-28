@@ -136,6 +136,10 @@ upx_set_default_build_type(Release) # default is CMAKE_BUILD_TYPE=Release
 project(upx VERSION "${UPX_VERSION_STRING}" LANGUAGES C CXX)
 upx_apply_build_type()
 
+if(DEFINED UPX_CONFIG_CMAKE_EXECUTABLE_SUFFIX)
+    set(CMAKE_EXECUTABLE_SUFFIX "${UPX_CONFIG_CMAKE_EXECUTABLE_SUFFIX}")
+endif()
+
 #***********************************************************************
 # common compilation flags
 #***********************************************************************

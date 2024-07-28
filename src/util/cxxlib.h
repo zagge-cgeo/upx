@@ -773,8 +773,12 @@ inline void owner_free(OwningPointer(T)(&object)) noexcept {
 #if defined(__clang__) || __GNUC__ != 7
 template <class T>
 inline void owner_delete(T (&array)[]) noexcept DELETED_FUNCTION;
+template <class T>
+inline void owner_free(T (&array)[]) noexcept DELETED_FUNCTION;
 #endif
 template <class T, std::size_t N>
 inline void owner_delete(T (&array)[N]) noexcept DELETED_FUNCTION;
+template <class T, std::size_t N>
+inline void owner_free(T (&array)[N]) noexcept DELETED_FUNCTION;
 
 } // namespace upx

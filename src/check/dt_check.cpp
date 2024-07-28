@@ -210,6 +210,8 @@ typedef __PTRADDR_TYPE__ expected_ptraddr_t;
     static_assert(std::is_integral<B>::value, "");                                                 \
     static_assert(std::is_signed<A>::value == std::is_signed<B>::value, "");                       \
     static_assert(std::is_unsigned<A>::value == std::is_unsigned<B>::value, "");                   \
+    static_assert(std::is_signed<A>::value == !std::is_unsigned<A>::value, "");                    \
+    static_assert(std::is_signed<B>::value == !std::is_unsigned<B>::value, "");                    \
     static_assert(sizeof(A) == sizeof(B), "");                                                     \
     static_assert(alignof(A) == alignof(B), "")
 
@@ -226,6 +228,10 @@ ASSERT_SAME_TYPE(uintptr_t, std::uintptr_t);
 // true types
 ASSERT_SAME_TYPE(ptrdiff_t, true_ptrdiff_t);
 ASSERT_SAME_TYPE(size_t, true_size_t);
+#if __cplusplus >= 201103L
+typedef decltype(nullptr) true_nullptr_t;
+static_assert(std::is_same<std::nullptr_t, true_nullptr_t>::value, "");
+#endif
 
 // expected types
 #if defined(__PTRDIFF_TYPE__)
@@ -879,6 +885,18 @@ void upx_compiler_sanity_check(void) noexcept {
     static_assert(sizeof(void *) >= 4);
     static_assert(sizeof(upx_off_t) >= 8);
     static_assert(sizeof(upx_off_t) >= sizeof(long long));
+
+// __int64
+#if defined(_MSC_VER)
+    {
+        ASSERT_SAME_TYPE(long long, __int64);
+        ASSERT_SAME_TYPE(unsigned long long, unsigned __int64);
+        typedef __int64 my_int64;
+        typedef unsigned __int64 my_uint64;
+        ASSERT_SAME_TYPE(long long, my_int64);
+        ASSERT_SAME_TYPE(unsigned long long, my_uint64);
+    }
+#endif
 
     static_assert(sizeof(BE16) == 2);
     static_assert(sizeof(BE32) == 4);

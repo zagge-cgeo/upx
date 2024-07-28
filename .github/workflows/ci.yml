@@ -207,10 +207,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # NOTE: Xcode updates regularly tend to break Homebrew clang/gcc; often some ld64 issue; use "xcode_version" as needed; or try "-Wl,-ld_classic"
           # NOTE: macos does not have "env -C"; only with brew coreutils
           # NOTE: macos-11 does not have "readlink -f"; only on macos >= 12 or with brew coreutils
           # { os: macos-11, gcc: gcc-10, gxx: g++-10, testsuite: true } # macos-11 is EOL; scheduled for removal from GitHub actions
-          - { os: macos-12, gcc: gcc-11, gxx: g++-11, testsuite: true }
+          - { os: macos-12, gcc: gcc-12, gxx: g++-12, testsuite: true }
           - { os: macos-13, testsuite: true } # use default Xcode-15; NOTE: gcc-12 on macos-13 does not work with Xcode-15
           - { os: macos-13, gcc: gcc-12, gxx: g++-12, testsuite: true, xcode_version: 14.3.1 }
           # { os: macos-14, gcc: gcc-13, gxx: g++-13, testsuite: true }                        # gcc-13: INTERNAL ERROR in ld64

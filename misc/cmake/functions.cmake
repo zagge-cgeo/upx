@@ -365,15 +365,14 @@ endfunction()
 
 # sanitize a target; note that this may require special run-time support libs from your toolchain
 function(upx_sanitize_target) # ARGV
-    # default sanitizer for Debug builds
-    if(NOT DEFINED upx_sanitize_flags_debug)
-        set(upx_sanitize_flags_debug -fsanitize=undefined -fsanitize-undefined-trap-on-error -fstack-protector-all)
+    if(NOT DEFINED UPX_CONFIG_SANITIZE_FLAGS_DEBUG)
+        # default sanitizer for Debug builds
+        set(UPX_CONFIG_SANITIZE_FLAGS_DEBUG -fsanitize=undefined -fsanitize-undefined-trap-on-error -fstack-protector-all)
     endif()
-    # default sanitizer for Release builds
-    if(NOT DEFINED upx_sanitize_flags_release)
-        set(upx_sanitize_flags_release -fstack-protector)
+    if(NOT DEFINED UPX_CONFIG_SANITIZE_FLAGS_RELEASE)
+        # default sanitizer for Release builds
+        set(UPX_CONFIG_SANITIZE_FLAGS_RELEASE -fstack-protector)
     endif()
-
     foreach(t ${ARGV})
         if(UPX_CONFIG_DISABLE_SANITIZE)
             # no-op
@@ -391,10 +390,10 @@ function(upx_sanitize_target) # ARGV
             # unsupported compiler; unreliable/broken sanitize implementation before gcc-8 (May 2018)
             message(WARNING "WARNING: ignoring SANITIZE for target '${t}'")
         else()
-            target_compile_options(${t} PRIVATE $<$<CONFIG:Debug>:${upx_sanitize_flags_debug}>)
-            target_compile_options(${t} PRIVATE $<$<CONFIG:MinSizeRel>:${upx_sanitize_flags_release}>)
-            target_compile_options(${t} PRIVATE $<$<CONFIG:Release>:${upx_sanitize_flags_release}>)
-            target_compile_options(${t} PRIVATE $<$<CONFIG:RelWithDebInfo>:${upx_sanitize_flags_release}>)
+            target_compile_options(${t} PRIVATE $<$<CONFIG:Debug>:${UPX_CONFIG_SANITIZE_FLAGS_DEBUG}>)
+            target_compile_options(${t} PRIVATE $<$<CONFIG:MinSizeRel>:${UPX_CONFIG_SANITIZE_FLAGS_RELEASE}>)
+            target_compile_options(${t} PRIVATE $<$<CONFIG:Release>:${UPX_CONFIG_SANITIZE_FLAGS_RELEASE}>)
+            target_compile_options(${t} PRIVATE $<$<CONFIG:RelWithDebInfo>:${UPX_CONFIG_SANITIZE_FLAGS_RELEASE}>)
         endif()
     endforeach()
 endfunction()

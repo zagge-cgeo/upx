@@ -231,7 +231,7 @@ forceinline constexpr upx_uint64_t bswap64(upx_uint64_t v) noexcept { return std
 
 #elif (ACC_CC_MSC)
 
-ACC_COMPILE_TIME_ASSERT_HEADER(sizeof(long) == 4)
+static_assert(sizeof(long) == 4);
 
 // _byteswap_XXX is unfortunately *not* constexpr with current MSVC
 forceinline bele_constexpr unsigned bswap16(unsigned v) noexcept {
