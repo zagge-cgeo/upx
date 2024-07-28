@@ -93,21 +93,22 @@ OVERHEAD= 2048
 
 // In:
 r_exp=   31  // f_exp == &decompress
-r_PMASK= 30  // page_mask
+  r_buf=   30  // Local
 r_ADRU=  29  // &base to unmap
 r_LENU=  28  // length to unmap
-r_fd=    27  // open fd of /proc/self/exe
+r_fd=    27  // for fd of /proc/self/exe
 r_auxv=  26
 r_elfa=  25  // original &Elf64_Ehdr of stub
 r_ADRX=  24  // compressed input
 r_LENX=  23  // total size
-r_FLD=   22
+r_FLD=   22  // &O_BINFO; overlaps r_pse
+  r_PMASK= 20  // page_mask
 // Local:
-r_pse=   22  // &"/proc/self/exe"
+r_pse=   22  // &"/proc/self/exe"; overlaps r_FLD
 av_hi=   21
-av_len=  20
-cblk=    19
-r_buf=   18
+// r_PMASK= 20
+av_len=  19 
+cblk=    18
 
 page_mask: .quad ~0<<16  // default
         .quad 0  // something else?
@@ -145,6 +146,7 @@ fold_begin:
 ////    teq r0,r0  // debugging
         mtctr r0  // # words before argc  FIXME: fragile
         lwz r0,0(r_FLD)  // O_BINFO | is_ptinterp | unmap_all_pages
+// r_FLD dead
         slwi r0,r0,3*4
         mtcrf 0x8,r0  // cr4.eq = unmap_all_pages
         call L90
@@ -193,14 +195,17 @@ no_buf:
         movr a1,r_buf  // buffer
         movr a0,r_pse  //     "/proc/self/exe"
         call readlink; la a2,-L_PFX(r_buf)  // a0= len; a2= buffer
+// r_buf dead
         cmpdi a0,0; bgt 0f  // success
         la a2,L90a - L_pse(r_pse)  // "   =/proc/self/exe"
+// r_pse dead
         li a0,L90  - (NBPW+ L90a)  // round_up(NBPW, strlen("/proc/self/exe"))
 0:
         addi a0,a0,L_PFX  // len += strlen("   =");
         add a1,a2,a0  // beyond end of path
         mtctr a0
         movr a0,cblk  // old &strings
+// cblk dead
         li a2,0
         stbu a2,-1(a0)  // NUL terminate
 0: // slide path up

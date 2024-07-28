@@ -159,7 +159,7 @@ r_ADRX=  24
 r_LENX=  23
 r_FLD=   22
 r_szuf=  21
-r_PMASK=    20
+r_PMASK= 20
 r_obinf= 19
 
         /* Decompress the rest of this loader, and jump to it. */
@@ -215,6 +215,7 @@ SYS_mmap= __NR_mmap
         mr r_ADRU,a0
 
         mr a0,r_fd
+// r_fd dead
 SYS_close= __NR_close
         li r0,SYS_close; sc; bns+ 0f; teq r0,r0; 0:
 
