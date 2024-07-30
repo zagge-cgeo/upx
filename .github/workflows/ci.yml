@@ -17,6 +17,7 @@ env:
   UPX_CMAKE_CONFIG_FLAGS: -Wdev --warn-uninitialized
   UPX_DEBUG_TEST_FLOAT_DIVISION_BY_ZERO: 1
   UPX_DEBUG_TEST_LIBC_QSORT: 1
+  ZSTD_CLEVEL: 9
   # 2024-06-07
   ZIG_DIST_VERSION: 0.13.0
 
@@ -136,9 +137,13 @@ jobs:
             dirs="$dirs cross-windows-mingw32/debug cross-windows-mingw32/release"
             dirs="$dirs cross-windows-mingw64/debug cross-windows-mingw64/release"
           fi
-          for d in $dirs; do DESTDIR="$PWD/tmp/artifact/$N/Install/$d" cmake --install build/extra/$d; done
+          for d in $dirs; do DESTDIR="$PWD/tmp/artifact/$N/InstallWithDestdir/$d" cmake --install build/extra/$d; done
+          for d in $dirs; do DESTDIR="$PWD/tmp/artifact/$N/InstallWithDestdirAndStrip/$d" cmake --install build/extra/$d --strip; done
+          for d in $dirs; do cmake --install build/extra/$d --prefix "$PWD/tmp/artifact/$N/InstallWithPrefix/$d"; done
+          for d in $dirs; do cmake --install build/extra/$d --prefix "$PWD/tmp/artifact/$N/InstallWithPrefixAndStrip/$d" --strip; done
           (cd build && shopt -s nullglob && cp -ai --parents */upx{,.exe} */*/*/upx{,.exe} "../tmp/artifact/$N")
-          (cd tmp/artifact && tar --sort=name -czf "$N.tar.gz" "$N" && rm -rf "./$N")
+          if command -v hardlink >/dev/null; then (cd "tmp/artifact/$N" && hardlink .) fi
+          (cd tmp/artifact && tar --sort=name --zstd -cf "$N.tar.zst" "$N" && rm -rf "./$N" && ls -la)
           echo "artifact_name=$N" >> $GITHUB_ENV
       - name: ${{ format('Upload artifact {0}', env.artifact_name) }}
         uses: actions/upload-artifact@v4
@@ -227,12 +232,12 @@ jobs:
           test -z "$HOMEBREW_PREFIX" && HOMEBREW_PREFIX="$(brew --prefix)"
           echo "HOMEBREW_PREFIX=$HOMEBREW_PREFIX" >> $GITHUB_ENV
           # testsuite needs working "readlink -en" and "sha256sum -b"
-          packages="ninja parallel"
+          packages="ninja parallel util-linux"
           test -e "$HOMEBREW_PREFIX/opt/coreutils/libexec/gnubin/readlink" || packages="$packages coreutils"
           if test -n "$packages"; then
             echo "===== brew leaves:"; brew leaves; echo "===== brew list:"; brew list --versions
             # only run "brew update" if needed
-            if ! brew install $packages; then brew update && brew install $packages; fi
+            if ! brew install $packages; then echo "===== brew update" && brew update && brew install $packages; fi
           fi
           mkdir -p ~/.parallel && : > ~/.parallel/$(echo 6305-4721 | tr 0-7 leticlwi)
           echo "UPX_DEBUG_FORCE_PACK_MACOS=1" >> $GITHUB_ENV
@@ -270,9 +275,14 @@ jobs:
           mkdir -p "tmp/artifact/$N"
           dirs="clang/debug clang/release"
           test -n "${{ matrix.gcc }}" && dirs="$dirs gcc/debug gcc/release"
-          for d in $dirs; do DESTDIR="$PWD/tmp/artifact/$N/Install/$d" cmake --install build/extra/$d; done
+          for d in $dirs; do DESTDIR="$PWD/tmp/artifact/$N/InstallWithDestdir/$d" cmake --install build/extra/$d; done
+          for d in $dirs; do DESTDIR="$PWD/tmp/artifact/$N/InstallWithDestdirAndStrip/$d" cmake --install build/extra/$d --strip; done
+          for d in $dirs; do cmake --install build/extra/$d --prefix "$PWD/tmp/artifact/$N/InstallWithPrefix/$d"; done
+          for d in $dirs; do cmake --install build/extra/$d --prefix "$PWD/tmp/artifact/$N/InstallWithPrefixAndStrip/$d" --strip; done
           (cd build && rsync -R -a */*/*/upx "../tmp/artifact/$N/")
-          (cd tmp/artifact && gtar --sort=name -czf "$N.tar.gz" "$N" && rm -rf "./$N")
+          hardlink="$HOMEBREW_PREFIX/opt/util-linux/bin/hardlink"
+          if test -f "$hardlink"; then (cd "tmp/artifact/$N" && $hardlink .) fi
+          (cd tmp/artifact && gtar --sort=name --zstd -cf "$N.tar.zst" "$N" && rm -rf "./$N" && ls -la)
           echo "artifact_name=$N" >> $GITHUB_ENV
       - name: ${{ format('Upload artifact {0}', env.artifact_name) }}
         uses: actions/upload-artifact@v4
@@ -340,7 +350,16 @@ jobs:
         run: |
           N=$(echo "upx-${GITHUB_REF_NAME}-${GITHUB_SHA:0:7}-${{ matrix.os }}" | sed 's/[^0-9a-zA-Z_.-]/-/g')
           mkdir -p "tmp/artifact/$N"
+          DESTDIR="$PWD/tmp/artifact/$N/InstallWithDestdir/debug"   cmake --install build/debug   --config Debug
+          DESTDIR="$PWD/tmp/artifact/$N/InstallWithDestdir/release" cmake --install build/release --config Release
+          DESTDIR="$PWD/tmp/artifact/$N/InstallWithDestdirAndStrip/debug"   cmake --install build/debug   --config Debug   --strip
+          DESTDIR="$PWD/tmp/artifact/$N/InstallWithDestdirAndStrip/release" cmake --install build/release --config Release --strip
+          cmake --install build/debug   --config Debug   --prefix "$PWD/tmp/artifact/$N/InstallWithPrefix/debug"
+          cmake --install build/release --config Release --prefix "$PWD/tmp/artifact/$N/InstallWithPrefix/release"
+          cmake --install build/debug   --config Debug   --prefix "$PWD/tmp/artifact/$N/InstallWithPrefixAndStrip/debug"   --strip
+          cmake --install build/release --config Release --prefix "$PWD/tmp/artifact/$N/InstallWithPrefixAndStrip/release" --strip
           (cd build && cp -ai --parents */*/upx.exe "../tmp/artifact/$N")
+          (cd tmp/artifact && tar --sort=name --zstd -cf "$N.tar.zst" "$N" && rm -rf "./$N" && ls -la)
           echo "artifact_name=$N" >> $GITHUB_ENV
       - name: ${{ format('Upload artifact {0}', env.artifact_name) }}
         uses: actions/upload-artifact@v4
@@ -435,6 +454,7 @@ jobs:
           N=$(echo "upx-${GITHUB_REF_NAME}-${GITHUB_SHA:0:7}-windows-${{ matrix.name }}" | sed 's/[^0-9a-zA-Z_.-]/-/g')
           mkdir -p "tmp/artifact/$N/$B"
           cp -ai build/$C/$B/upx/upx*.exe "tmp/artifact/$N/$B"
+          (cd tmp/artifact && tar --sort=name --zstd -cf "$N.tar.zst" "$N" && rm -rf "./$N" && ls -la)
           echo "artifact_name=$N" >> $GITHUB_ENV
       - name: ${{ format('Upload artifact {0}', env.artifact_name) }}
         uses: actions/upload-artifact@v4
@@ -512,7 +532,7 @@ jobs:
         if: ${{ job.container }}
         shell: sh
         run: |
-          apk update && apk upgrade && apk add bash cmake curl file git make parallel tar xz
+          apk update && apk upgrade && apk add bash cmake curl file git make parallel tar util-linux xz zstd
           # set PATH like in Ubuntu
           echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
           git config --global --add safe.directory '*' # needed when running in a container
@@ -582,10 +602,14 @@ jobs:
           mkdir -p "tmp/artifact/$N"
           if [[ "${{ matrix.zig_target }}" == *-linux* ]]; then
             dirs="${ZIG_TARGET}${ZIG_PIC}/debug ${ZIG_TARGET}${ZIG_PIC}/release"
-            for d in $dirs; do DESTDIR="$PWD/tmp/artifact/$N/Install/$d" cmake --install build/zig/$d; done
+            for d in $dirs; do DESTDIR="$PWD/tmp/artifact/$N/InstallWithDestdir/$d" cmake --install build/zig/$d; done
+            for d in $dirs; do DESTDIR="$PWD/tmp/artifact/$N/InstallWithDestdirAndStrip/$d" cmake --install build/zig/$d --strip; done
+            for d in $dirs; do cmake --install build/zig/$d --prefix "$PWD/tmp/artifact/$N/InstallWithPrefix/$d"; done
+            for d in $dirs; do cmake --install build/zig/$d --prefix "$PWD/tmp/artifact/$N/InstallWithPrefixAndStrip/$d" --strip; done
           fi
           (cd build && shopt -s nullglob && cp -ai --parents */upx{,.exe} */*/*/upx{,.exe} "../tmp/artifact/$N")
-          (cd tmp/artifact && tar --sort=name -czf "$N.tar.gz" "$N" && rm -rf "./$N")
+          if command -v hardlink >/dev/null; then (cd "tmp/artifact/$N" && hardlink .) fi
+          (cd tmp/artifact && tar --sort=name --zstd -cf "$N.tar.zst" "$N" && rm -rf "./$N" && ls -la)
           echo "artifact_name=$N" >> $GITHUB_ENV
       - name: ${{ format('Upload artifact {0}', env.artifact_name) }}
         uses: actions/upload-artifact@v4
