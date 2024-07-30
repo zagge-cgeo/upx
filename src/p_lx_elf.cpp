@@ -1521,6 +1521,7 @@ PackLinuxElf32::buildLinuxLoader(
                 "LZMA_DAISY,LZMA_ELF00,LZMA_DEC20,LZMA_DEC30");
         }
         len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "EXP_TAIL,SYSCALLS");
+        //fprintf(stderr, "%s\n", sec);
         (void)len;
         addLoader(sec, nullptr);
         relocateLoader();
