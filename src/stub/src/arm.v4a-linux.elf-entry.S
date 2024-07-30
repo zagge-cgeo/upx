@@ -378,6 +378,11 @@ mempcpy: .globl mempcpy  // (dst, src, n)
 .globl unlink;    unlink:    do_sys __NR_unlink; ret
 .globl write;     write:     do_sys __NR_write; ret
 
+        .globl my_bkpt
+my_bkpt:
+        bkpt  // my_bkpt
+        ret
+
 // __NR_oldmmap gets ENOSYS!  Must use __NR_mmap2 with all args in registers
 // Called from C (5th and 6th arg on stack), so must preserve r4 and r5
 mmap: .globl mmap

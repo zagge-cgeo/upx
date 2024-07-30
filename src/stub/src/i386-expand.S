@@ -208,22 +208,26 @@ not_nrv2b:
 #undef displ
 #undef dispq
 
-#undef src
-#undef dst
-
 section LZMA_DAISY
     cmp $M_LZMA,meth; jne not_lzma
+    push (sz_cpr - sz_binfo)(src)  // MATCH_90  inSize
+#define O_INS  (0*NBPW)
+#define O_OUTS (4*NBPW)
+
 #undef meth
+#undef src
+#undef dst
 
 // lzma code is written in intel syntax!
 ///* lzma has its own 'section's */
     .intel_syntax noprefix
-#include "arch/i386/lzma_d.S"
+#include "arch/i386/lzma-multi_d.S"
     .att_syntax
 
 section LZMA_DEC30  // REPLACES LZMA_DEC30 from src/arch/i386/lzma_d.S
 //eof_lzma:  already has set retval and *dstlen
-        pop %ebp  // MARCH_54
+        pop %edx  // MATCH_90 toss inSize
+        pop %ebp  // MATCH_54
         add $3*NBPW,%esp  // MATCH_53, MATCH_52, MATCH_51
         ret
 
