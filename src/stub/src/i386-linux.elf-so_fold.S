@@ -75,7 +75,7 @@ eof:  // end of a compressed extent
 // Subroutines and syscalls needed by upx_so_main
 //
 my_bkpt: .globl my_bkpt
-        int3
+        int3  // my_bkpt
         ret
 
 memset: .globl memset  // void *memset(void *s, int c, size_t n);
