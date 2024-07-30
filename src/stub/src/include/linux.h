@@ -568,7 +568,7 @@ off_t lseek(int fd, off_t offset, int whence);
 int memfd_create(char const *, unsigned);
 int munmap(void *, size_t);
 int mprotect(void const *, size_t, int);
-int open(char const *, unsigned, unsigned);
+int open(char const *, int, int);
 int openat(int fd, char const *, unsigned, unsigned);
 ssize_t read(int, void *, size_t);
 int unlink(char const *);

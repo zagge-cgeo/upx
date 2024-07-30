@@ -134,11 +134,13 @@ struct stat { // __NR_stat = 106 + NR_SYSCALL_BASE
 #define NO_WANT_OPEN 1
 #define NO_WANT_READ 1
 #include "include/linux.h"  // syscalls; i386 inlines via "int 0x80"
+extern int open(char const *, int, int);
 
 extern int fstatat(int dirfd, const char *restrict pathname,
     struct stat *restrict statbuf, int flags);
 
 #define ENOENT 2   /* no such name */
+#define EINVAL 22  /* invalid arguemnt */
 #define ENOSPC 28  /* no space left on device */
 #define ENOSYS 38  /* no such system call */
 
@@ -272,6 +274,10 @@ static int strncmplc(char const *s1, char const *s2, unsigned n)
 #define ANDROID_TEST 0
 
 #define MFD_EXEC 0x10
+//#define O_RDWR 2
+#define O_DIRECTORY 0200000  /* 0x010000 */
+#define O_TMPFILE 020000000  /* 0x400000 */
+
 extern int memfd_create(char const *name, unsigned flags);
 extern int ftruncate(int fd, size_t length);
 extern ssize_t write(int fd, void const *buf, size_t length);
@@ -287,7 +293,20 @@ unsigned long upx_mmap_and_fd( // returns (mapped_addr | (1+ fd))
 
     unsigned long addr = 0;  // for result
     // Early 32-bit Android did not implement memfd_create
-    int fd = (ANDROID_TEST ? -ENOSYS : memfd_create(addr_string("upx"), MFD_EXEC));
+    int fd = -ENOSYS;
+    if (!ANDROID_TEST) {
+        char const *name = addr_string("upx");
+        fd = memfd_create(name, MFD_EXEC);
+        if (-EINVAL == fd) { // MFD_EXEC unknown to ubuntu-20.04
+            fd = memfd_create(name, 0);  // try again
+        }
+        if (fd < 0) { // last chance for Linux
+            fd = open(addr_string("/dev/shm"), O_RDWR | O_DIRECTORY | O_TMPFILE, 0700);
+            if (fd < 0) {
+                my_bkpt(addr_string("memfd_create"));
+            }
+        }
+    }
 
 #if ANDROID_FRIEND  //{
     // Varying __NR_ftruncate on Android can hurt even if memfd_create() succeeds.
