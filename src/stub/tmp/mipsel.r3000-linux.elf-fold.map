@@ -8,9 +8,9 @@ Linker script and memory map
 
 TARGET(elf32-littlemips)
 
-.text           0x0000000000000000      0xd3c
+.text           0x0000000000000000      0xdbc
  *(.text)
- .text          0x0000000000000000      0xd3c tmp/mipsel.r3000-linux.elf-fold.o
+ .text          0x0000000000000000      0xdbc tmp/mipsel.r3000-linux.elf-fold.o
                 0x00000000000000d0                get_page_mask
                 0x0000000000000c9c                upx_mmap_and_fd
                 0x00000000000000f0                get_upxfn_path
@@ -19,7 +19,7 @@ TARGET(elf32-littlemips)
                 0x0000000000000010                get4unal
                 0x0000000000000128                close
  *(.data)
- .data          0x0000000000000d3c        0x0 tmp/mipsel.r3000-linux.elf-fold.o
+ .data          0x0000000000000dbc        0x0 tmp/mipsel.r3000-linux.elf-fold.o
 
 SYSCALLS        0x0000000000000000      0x178
  SYSCALLS       0x0000000000000000      0x178 tmp/mipsel.r3000-linux.elf-fold.o

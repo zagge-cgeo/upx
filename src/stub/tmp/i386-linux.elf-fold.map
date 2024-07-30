@@ -7,18 +7,18 @@ Name             Origin             Length             Attributes
 Linker script and memory map
 
 
-.text           0x0000000000000000      0xcb7
+.text           0x0000000000000000      0xd1b
  .text          0x0000000000000000      0x183 tmp/i386-linux.elf-fold.o
                 0x0000000000000004                get_page_mask
                 0x0000000000000011                get_upxfn_path
  *fill*         0x0000000000000183        0x1 00
- .text          0x0000000000000184      0x37f tmp/i386-linux.elf-upxfd_android.o
+ .text          0x0000000000000184      0x3e1 tmp/i386-linux.elf-upxfd_android.o
                 0x000000000000038b                upx_mmap_and_fd
- *fill*         0x0000000000000503        0x1 00
- .text          0x0000000000000504        0x0 tmp/i386-expand.o
- .text          0x0000000000000504      0x7b3 tmp/i386-linux.elf-main2.o
-                0x0000000000000659                underlay
-                0x0000000000000b63                upx_main
+ *fill*         0x0000000000000565        0x3 00
+ .text          0x0000000000000568        0x0 tmp/i386-expand.o
+ .text          0x0000000000000568      0x7b3 tmp/i386-linux.elf-main2.o
+                0x00000000000006bd                underlay
+                0x0000000000000bc7                upx_main
 
 .data           0x0000000000000000        0x0
  .data          0x0000000000000000        0x0 tmp/i386-linux.elf-fold.o
@@ -64,29 +64,29 @@ EXP_HEAD        0x0000000000000000      0x111
 EXP_TAIL        0x0000000000000000        0xd
  EXP_TAIL       0x0000000000000000        0xd tmp/i386-expand.o
 
-NRV2E           0x0000000000000000       0xd6
- NRV2E          0x0000000000000000       0xd6 tmp/i386-expand.o
+NRV2E           0x0000000000000000       0xd4
+ NRV2E          0x0000000000000000       0xd4 tmp/i386-expand.o
 
-NRV2D           0x0000000000000000       0xca
- NRV2D          0x0000000000000000       0xca tmp/i386-expand.o
+NRV2D           0x0000000000000000       0xc8
+ NRV2D          0x0000000000000000       0xc8 tmp/i386-expand.o
 
 NRV2B           0x0000000000000000       0xb4
  NRV2B          0x0000000000000000       0xb4 tmp/i386-expand.o
 
-LZMA_DAISY      0x0000000000000000        0x9
- LZMA_DAISY     0x0000000000000000        0x9 tmp/i386-expand.o
+LZMA_DAISY      0x0000000000000000        0xc
+ LZMA_DAISY     0x0000000000000000        0xc tmp/i386-expand.o
 
-LZMA_DEC00      0x0000000000000000       0x2e
- LZMA_DEC00     0x0000000000000000       0x2e tmp/i386-expand.o
+LZMA_DEC00      0x0000000000000000       0x36
+ LZMA_DEC00     0x0000000000000000       0x36 tmp/i386-expand.o
 
 LZMA_ELF00      0x0000000000000000       0x48
  LZMA_ELF00     0x0000000000000000       0x48 tmp/i386-expand.o
 
-LZMA_DEC10      0x0000000000000000      0xb39
- LZMA_DEC10     0x0000000000000000      0xb39 tmp/i386-expand.o
+LZMA_DEC10      0x0000000000000000      0xb3e
+ LZMA_DEC10     0x0000000000000000      0xb3e tmp/i386-expand.o
 
-LZMA_DEC20      0x0000000000000000      0xb39
- LZMA_DEC20     0x0000000000000000      0xb39 tmp/i386-expand.o
+LZMA_DEC20      0x0000000000000000      0xb3e
+ LZMA_DEC20     0x0000000000000000      0xb3e tmp/i386-expand.o
 
-LZMA_DEC30      0x0000000000000000       0x1f
- LZMA_DEC30     0x0000000000000000       0x1f tmp/i386-expand.o
+LZMA_DEC30      0x0000000000000000       0x20
+ LZMA_DEC30     0x0000000000000000       0x20 tmp/i386-expand.o
