@@ -156,7 +156,7 @@ protected:
 // <type_traits>
 **************************************************************************/
 
-// is_bounded_array: identical to C++20 std::is_bounded_array
+// is_bounded_array from C++20
 template <class T>
 struct is_bounded_array : public std::false_type {};
 template <class T, std::size_t N>
@@ -173,6 +173,22 @@ template <class T, class... Ts>
 struct is_same_any : public std::disjunction<std::is_same<T, Ts>...> {};
 template <class T, class... Ts>
 inline constexpr bool is_same_any_v = is_same_any<T, Ts...>::value;
+
+// remove_cvref from C++20
+template <class T>
+struct remove_cvref {
+    typedef typename std::remove_cv<typename std::remove_reference<T>::type>::type type;
+};
+template <class T>
+using remove_cvref_t = typename remove_cvref<T>::type;
+
+// type_identity from C++20
+template <class T>
+struct type_identity {
+    typedef T type;
+};
+template <class T>
+using type_identity_t = typename type_identity<T>::type;
 
 /*************************************************************************
 // <bit> C++20

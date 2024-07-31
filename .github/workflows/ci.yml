@@ -137,10 +137,10 @@ jobs:
             dirs="$dirs cross-windows-mingw32/debug cross-windows-mingw32/release"
             dirs="$dirs cross-windows-mingw64/debug cross-windows-mingw64/release"
           fi
-          for d in $dirs; do DESTDIR="$PWD/tmp/artifact/$N/InstallWithDestdir/$d" cmake --install build/extra/$d; done
-          for d in $dirs; do DESTDIR="$PWD/tmp/artifact/$N/InstallWithDestdirAndStrip/$d" cmake --install build/extra/$d --strip; done
-          for d in $dirs; do cmake --install build/extra/$d --prefix "$PWD/tmp/artifact/$N/InstallWithPrefix/$d"; done
-          for d in $dirs; do cmake --install build/extra/$d --prefix "$PWD/tmp/artifact/$N/InstallWithPrefixAndStrip/$d" --strip; done
+          for d in $dirs; do DESTDIR="$PWD/tmp/artifact/$N/InstallWithCMake/InstallWithDestdir/$d" cmake --install build/extra/$d; done
+          for d in $dirs; do DESTDIR="$PWD/tmp/artifact/$N/InstallWithCMake/InstallWithDestdirAndStrip/$d" cmake --install build/extra/$d --strip; done
+          for d in $dirs; do cmake --install build/extra/$d --prefix "$PWD/tmp/artifact/$N/InstallWithCMake/InstallWithPrefix/$d"; done
+          for d in $dirs; do cmake --install build/extra/$d --prefix "$PWD/tmp/artifact/$N/InstallWithCMake/InstallWithPrefixAndStrip/$d" --strip; done
           (cd build && shopt -s nullglob && cp -ai --parents */upx{,.exe} */*/*/upx{,.exe} "../tmp/artifact/$N")
           if command -v hardlink >/dev/null; then (cd "tmp/artifact/$N" && hardlink .) fi
           (cd tmp/artifact && tar --sort=name --zstd -cf "$N.tar.zst" "$N" && rm -rf "./$N" && ls -la)
@@ -275,13 +275,13 @@ jobs:
           mkdir -p "tmp/artifact/$N"
           dirs="clang/debug clang/release"
           test -n "${{ matrix.gcc }}" && dirs="$dirs gcc/debug gcc/release"
-          for d in $dirs; do DESTDIR="$PWD/tmp/artifact/$N/InstallWithDestdir/$d" cmake --install build/extra/$d; done
-          for d in $dirs; do DESTDIR="$PWD/tmp/artifact/$N/InstallWithDestdirAndStrip/$d" cmake --install build/extra/$d --strip; done
-          for d in $dirs; do cmake --install build/extra/$d --prefix "$PWD/tmp/artifact/$N/InstallWithPrefix/$d"; done
-          for d in $dirs; do cmake --install build/extra/$d --prefix "$PWD/tmp/artifact/$N/InstallWithPrefixAndStrip/$d" --strip; done
+          for d in $dirs; do DESTDIR="$PWD/tmp/artifact/$N/InstallWithCMake/InstallWithDestdir/$d" cmake --install build/extra/$d; done
+          for d in $dirs; do DESTDIR="$PWD/tmp/artifact/$N/InstallWithCMake/InstallWithDestdirAndStrip/$d" cmake --install build/extra/$d --strip; done
+          for d in $dirs; do cmake --install build/extra/$d --prefix "$PWD/tmp/artifact/$N/InstallWithCMake/InstallWithPrefix/$d"; done
+          for d in $dirs; do cmake --install build/extra/$d --prefix "$PWD/tmp/artifact/$N/InstallWithCMake/InstallWithPrefixAndStrip/$d" --strip; done
           (cd build && rsync -R -a */*/*/upx "../tmp/artifact/$N/")
           hardlink="$HOMEBREW_PREFIX/opt/util-linux/bin/hardlink"
-          if test -f "$hardlink"; then (cd "tmp/artifact/$N" && $hardlink .) fi
+          if test -f "$hardlink"; then (cd "tmp/artifact/$N" && "$hardlink" .) fi
           (cd tmp/artifact && gtar --sort=name --zstd -cf "$N.tar.zst" "$N" && rm -rf "./$N" && ls -la)
           echo "artifact_name=$N" >> $GITHUB_ENV
       - name: ${{ format('Upload artifact {0}', env.artifact_name) }}
@@ -350,14 +350,14 @@ jobs:
         run: |
           N=$(echo "upx-${GITHUB_REF_NAME}-${GITHUB_SHA:0:7}-${{ matrix.os }}" | sed 's/[^0-9a-zA-Z_.-]/-/g')
           mkdir -p "tmp/artifact/$N"
-          DESTDIR="$PWD/tmp/artifact/$N/InstallWithDestdir/debug"   cmake --install build/debug   --config Debug
-          DESTDIR="$PWD/tmp/artifact/$N/InstallWithDestdir/release" cmake --install build/release --config Release
-          DESTDIR="$PWD/tmp/artifact/$N/InstallWithDestdirAndStrip/debug"   cmake --install build/debug   --config Debug   --strip
-          DESTDIR="$PWD/tmp/artifact/$N/InstallWithDestdirAndStrip/release" cmake --install build/release --config Release --strip
-          cmake --install build/debug   --config Debug   --prefix "$PWD/tmp/artifact/$N/InstallWithPrefix/debug"
-          cmake --install build/release --config Release --prefix "$PWD/tmp/artifact/$N/InstallWithPrefix/release"
-          cmake --install build/debug   --config Debug   --prefix "$PWD/tmp/artifact/$N/InstallWithPrefixAndStrip/debug"   --strip
-          cmake --install build/release --config Release --prefix "$PWD/tmp/artifact/$N/InstallWithPrefixAndStrip/release" --strip
+          DESTDIR="$PWD/tmp/artifact/$N/InstallWithCMake/InstallWithDestdir/debug"   cmake --install build/debug   --config Debug
+          DESTDIR="$PWD/tmp/artifact/$N/InstallWithCMake/InstallWithDestdir/release" cmake --install build/release --config Release
+          DESTDIR="$PWD/tmp/artifact/$N/InstallWithCMake/InstallWithDestdirAndStrip/debug"   cmake --install build/debug   --config Debug   --strip
+          DESTDIR="$PWD/tmp/artifact/$N/InstallWithCMake/InstallWithDestdirAndStrip/release" cmake --install build/release --config Release --strip
+          cmake --install build/debug   --config Debug   --prefix "$PWD/tmp/artifact/$N/InstallWithCMake/InstallWithPrefix/debug"
+          cmake --install build/release --config Release --prefix "$PWD/tmp/artifact/$N/InstallWithCMake/InstallWithPrefix/release"
+          cmake --install build/debug   --config Debug   --prefix "$PWD/tmp/artifact/$N/InstallWithCMake/InstallWithPrefixAndStrip/debug"   --strip
+          cmake --install build/release --config Release --prefix "$PWD/tmp/artifact/$N/InstallWithCMake/InstallWithPrefixAndStrip/release" --strip
           (cd build && cp -ai --parents */*/upx.exe "../tmp/artifact/$N")
           (cd tmp/artifact && tar --sort=name --zstd -cf "$N.tar.zst" "$N" && rm -rf "./$N" && ls -la)
           echo "artifact_name=$N" >> $GITHUB_ENV
@@ -602,10 +602,10 @@ jobs:
           mkdir -p "tmp/artifact/$N"
           if [[ "${{ matrix.zig_target }}" == *-linux* ]]; then
             dirs="${ZIG_TARGET}${ZIG_PIC}/debug ${ZIG_TARGET}${ZIG_PIC}/release"
-            for d in $dirs; do DESTDIR="$PWD/tmp/artifact/$N/InstallWithDestdir/$d" cmake --install build/zig/$d; done
-            for d in $dirs; do DESTDIR="$PWD/tmp/artifact/$N/InstallWithDestdirAndStrip/$d" cmake --install build/zig/$d --strip; done
-            for d in $dirs; do cmake --install build/zig/$d --prefix "$PWD/tmp/artifact/$N/InstallWithPrefix/$d"; done
-            for d in $dirs; do cmake --install build/zig/$d --prefix "$PWD/tmp/artifact/$N/InstallWithPrefixAndStrip/$d" --strip; done
+            for d in $dirs; do DESTDIR="$PWD/tmp/artifact/$N/InstallWithCMake/InstallWithDestdir/$d" cmake --install build/zig/$d; done
+            for d in $dirs; do DESTDIR="$PWD/tmp/artifact/$N/InstallWithCMake/InstallWithDestdirAndStrip/$d" cmake --install build/zig/$d --strip; done
+            for d in $dirs; do cmake --install build/zig/$d --prefix "$PWD/tmp/artifact/$N/InstallWithCMake/InstallWithPrefix/$d"; done
+            for d in $dirs; do cmake --install build/zig/$d --prefix "$PWD/tmp/artifact/$N/InstallWithCMake/InstallWithPrefixAndStrip/$d" --strip; done
           fi
           (cd build && shopt -s nullglob && cp -ai --parents */upx{,.exe} */*/*/upx{,.exe} "../tmp/artifact/$N")
           if command -v hardlink >/dev/null; then (cd "tmp/artifact/$N" && hardlink .) fi

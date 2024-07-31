@@ -187,6 +187,26 @@ TEST_CASE("upx::noncopyable") {
 // <type_traits>
 **************************************************************************/
 
+static_assert(!upx::is_bounded_array_v<std::nullptr_t>);
+static_assert(!upx::is_bounded_array_v<decltype(nullptr)>);
+static_assert(!upx::is_bounded_array_v<void *>);
+static_assert(!upx::is_bounded_array_v<int *>);
+static_assert(!upx::is_bounded_array_v<const int *>);
+static_assert(!upx::is_bounded_array_v<volatile int *>);
+static_assert(!upx::is_bounded_array_v<const volatile int *>);
+static_assert(upx::is_bounded_array_v<int[1]>);
+static_assert(upx::is_bounded_array_v<const int[1]>);
+static_assert(upx::is_bounded_array_v<volatile int[1]>);
+static_assert(upx::is_bounded_array_v<const volatile int[1]>);
+static_assert(upx::is_bounded_array_v<int[1u]>);
+static_assert(upx::is_bounded_array_v<const int[1u]>);
+static_assert(upx::is_bounded_array_v<volatile int[1u]>);
+static_assert(upx::is_bounded_array_v<const volatile int[1u]>);
+static_assert(upx::is_bounded_array_v<int[1l]>);
+static_assert(upx::is_bounded_array_v<const int[1l]>);
+static_assert(upx::is_bounded_array_v<volatile int[1l]>);
+static_assert(upx::is_bounded_array_v<const volatile int[1l]>);
+
 static_assert(upx::is_same_all_v<int>);
 static_assert(upx::is_same_all_v<int, int>);
 static_assert(upx::is_same_all_v<int, int, int>);
@@ -210,6 +230,36 @@ static_assert(!upx::is_same_any_v<upx_uintptr_t, unsigned, unsigned long, unsign
 #else
 static_assert(upx::is_same_any_v<upx_uintptr_t, unsigned, unsigned long, unsigned long long>);
 #endif
+
+static_assert(std::is_same_v<int, upx::remove_cvref_t<int> >);
+static_assert(std::is_same_v<int, upx::remove_cvref_t<const int> >);
+static_assert(std::is_same_v<int, upx::remove_cvref_t<int &> >);
+static_assert(std::is_same_v<int, upx::remove_cvref_t<const int &> >);
+static_assert(std::is_same_v<int, upx::remove_cvref_t<int &&> >);
+static_assert(std::is_same_v<int, upx::remove_cvref_t<const int &&> >);
+static_assert(std::is_same_v<int *, upx::remove_cvref_t<int *> >);
+static_assert(std::is_same_v<int *, upx::remove_cvref_t<int *const> >);
+static_assert(std::is_same_v<const int *, upx::remove_cvref_t<const int *> >);
+static_assert(std::is_same_v<int *, upx::remove_cvref_t<int *&> >);
+static_assert(std::is_same_v<int *, upx::remove_cvref_t<int *const &> >);
+static_assert(std::is_same_v<const int *, upx::remove_cvref_t<const int *&> >);
+static_assert(std::is_same_v<int *, upx::remove_cvref_t<int *&&> >);
+static_assert(std::is_same_v<int *, upx::remove_cvref_t<int *const &&> >);
+static_assert(std::is_same_v<const int *, upx::remove_cvref_t<const int *&&> >);
+static_assert(std::is_same_v<int[1], upx::remove_cvref_t<int[1]> >);
+static_assert(std::is_same_v<int[1], upx::remove_cvref_t<const int[1]> >);
+
+static_assert(std::is_same_v<int, upx::type_identity_t<int> >);
+static_assert(std::is_same_v<const int, upx::type_identity_t<const int> >);
+static_assert(std::is_same_v<int *, upx::type_identity_t<int *> >);
+static_assert(std::is_same_v<int *const, upx::type_identity_t<int *const> >);
+static_assert(std::is_same_v<const int *, upx::type_identity_t<const int *> >);
+static_assert(std::is_same_v<int &, upx::type_identity_t<int &> >);
+static_assert(std::is_same_v<const int &, upx::type_identity_t<const int &> >);
+static_assert(std::is_same_v<int &&, upx::type_identity_t<int &&> >);
+static_assert(std::is_same_v<const int &&, upx::type_identity_t<const int &&> >);
+static_assert(std::is_same_v<int[1], upx::type_identity_t<int[1]> >);
+static_assert(std::is_same_v<const int[1], upx::type_identity_t<const int[1]> >);
 
 /*************************************************************************
 // <bit>

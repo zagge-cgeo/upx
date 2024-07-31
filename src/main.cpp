@@ -1211,6 +1211,7 @@ int upx_main(int argc, char *argv[]) may_throw {
     }
 
     // Allow serial re-use of upx_main() as a subroutine
+    exit_code = EXIT_OK;
     opt->reset();
 
 #if (ACC_OS_CYGWIN || ACC_OS_DOS16 || ACC_OS_DOS32 || ACC_OS_EMX || ACC_OS_TOS || ACC_OS_WIN16 ||  \
@@ -1313,8 +1314,10 @@ int upx_main(int argc, char *argv[]) may_throw {
 
     /* start work */
     set_term(stdout);
-    if (do_files(i, argc, argv) != 0)
+    if (do_files(i, argc, argv) != 0) {
+        assert(exit_code != 0);
         return exit_code;
+    }
 
     if (gitrev[0]) {
         // also see UPX_CONFIG_DISABLE_GITREV in CMakeLists.txt
