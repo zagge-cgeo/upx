@@ -38,6 +38,7 @@ function(upx_print_info) # ARGV
     foreach(lang IN ITEMS ASM C CXX)
         upx_print_var(CMAKE_${lang}_COMPILER_LAUNCHER)
         upx_print_var(CMAKE_${lang}_COMPILER)
+        upx_print_var(CMAKE_${lang}_COMPILER_ARG1)
         upx_print_var(CMAKE_${lang}_COMPILER_ID)
         upx_print_var(CMAKE_${lang}_SIMULATE_ID)
         upx_print_var(CMAKE_${lang}_COMPILER_VERSION)

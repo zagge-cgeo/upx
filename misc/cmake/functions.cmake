@@ -35,7 +35,7 @@ macro(upx_disallow_in_source_build)
     endif()
 endmacro()
 
-# set the default build type; must be called before project() cmake init
+# set the default build type; must be called BEFORE project() cmake init
 macro(upx_set_default_build_type type)
     set(upx_global_default_build_type "${type}")
     get_property(upx_global_is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
@@ -54,7 +54,7 @@ macro(upx_set_default_build_type type)
     endif()
 endmacro()
 
-# set the default multi-config build type; must be called after project() cmake init
+# set the default multi-config build type; must be called AFTER project() cmake init
 macro(upx_apply_build_type)
     if(upx_global_is_multi_config)
         set(c "${CMAKE_CONFIGURATION_TYPES}")
@@ -73,13 +73,6 @@ macro(upx_apply_build_type)
             set(CMAKE_TRY_COMPILE_CONFIGURATION "${upx_global_default_build_type}")
         endif()
     endif()
-    # handle CMAKE_BUILD_WITH_INSTALL_RPATH
-    if(NOT DEFINED CMAKE_BUILD_WITH_INSTALL_RPATH)
-        if(CMAKE_GENERATOR MATCHES "Ninja" AND NOT CMAKE_EXECUTABLE_FORMAT MATCHES "^ELF")
-            # info: needed by Ninja generator unless on an ELF-based or XCOFF-based platform
-            set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
-        endif()
-    endif()
     # and also set MSVC_FRONTEND, GNU_FRONTEND and MINGW
     if(NOT DEFINED MSVC_FRONTEND AND (MSVC OR CMAKE_C_COMPILER_FRONTEND_VARIANT MATCHES "^MSVC"))
         set(MSVC_FRONTEND 1)
@@ -88,6 +81,24 @@ macro(upx_apply_build_type)
     endif()
     if(NOT DEFINED MINGW AND CMAKE_C_PLATFORM_ID MATCHES "^MinGW")
         set(MINGW 1)
+    endif()
+endmacro()
+
+# handle the default RPATH settings; must be called BEFORE project() cmake init
+macro(upx_set_default_rpath)
+endmacro()
+
+# handle the default RPATH settings; must be called AFTER project() cmake init
+macro(upx_apply_rpath)
+    if(NOT DEFINED CMAKE_BUILD_WITH_INSTALL_RPATH)
+        if(APPLE) # macOS
+            set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
+            set(CMAKE_BUILD_WITH_INSTALL_NAME_DIR ON)
+            set(CMAKE_INSTALL_NAME_DIR "@rpath")
+        elseif(CMAKE_GENERATOR MATCHES "Ninja" AND NOT CMAKE_EXECUTABLE_FORMAT MATCHES "^ELF")
+            # info: needed by Ninja generator unless on an ELF-based or XCOFF-based platform
+            set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
+        endif()
     endif()
 endmacro()
 
@@ -394,6 +405,15 @@ function(upx_sanitize_target) # ARGV
             target_compile_options(${t} PRIVATE $<$<CONFIG:MinSizeRel>:${UPX_CONFIG_SANITIZE_FLAGS_RELEASE}>)
             target_compile_options(${t} PRIVATE $<$<CONFIG:Release>:${UPX_CONFIG_SANITIZE_FLAGS_RELEASE}>)
             target_compile_options(${t} PRIVATE $<$<CONFIG:RelWithDebInfo>:${UPX_CONFIG_SANITIZE_FLAGS_RELEASE}>)
+            get_target_property(target_type ${t} TYPE)
+            if(NOT ",${target_type}," STREQUAL ",STATIC_LIBRARY,")
+            if(${CMAKE_VERSION} VERSION_GREATER "3.12.99")
+            target_link_options(${t} PRIVATE $<$<CONFIG:Debug>:${UPX_CONFIG_SANITIZE_FLAGS_DEBUG}>)
+            target_link_options(${t} PRIVATE $<$<CONFIG:MinSizeRel>:${UPX_CONFIG_SANITIZE_FLAGS_RELEASE}>)
+            target_link_options(${t} PRIVATE $<$<CONFIG:Release>:${UPX_CONFIG_SANITIZE_FLAGS_RELEASE}>)
+            target_link_options(${t} PRIVATE $<$<CONFIG:RelWithDebInfo>:${UPX_CONFIG_SANITIZE_FLAGS_RELEASE}>)
+            endif() # CMAKE_VERSION
+            endif() # target_type
         endif()
     endforeach()
 endfunction()

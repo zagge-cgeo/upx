@@ -133,8 +133,10 @@ endif()
 
 # CMake init
 upx_set_default_build_type(Release) # default is CMAKE_BUILD_TYPE=Release
+upx_set_default_rpath()
 project(upx VERSION "${UPX_VERSION_STRING}" LANGUAGES C CXX)
 upx_apply_build_type()
+upx_apply_rpath()
 
 if(DEFINED UPX_CONFIG_CMAKE_EXECUTABLE_SUFFIX)
     set(CMAKE_EXECUTABLE_SUFFIX "${UPX_CONFIG_CMAKE_EXECUTABLE_SUFFIX}")
