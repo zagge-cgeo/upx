@@ -157,7 +157,7 @@ eof_lzma: .globl eof_lzma
 not_nrv2e:
 
   section NRV2D
-    cmp meth,#M_NRV2E_LE32; bne not_nrv2d
+    cmp meth,#M_NRV2D_LE32; bne not_nrv2d
 #include "arch/arm64/v8/nrv2d_d32.S"
 not_nrv2d:
 
