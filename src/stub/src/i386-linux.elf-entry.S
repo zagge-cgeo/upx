@@ -177,6 +177,14 @@ AT_PAGESZ= 6  // /usr/include/elf.h
         sub u_len,%esp  // alloca
         and $-2*NBPW,%esp  // align stack
 
+        push %edi  // save
+        lea NBPW(%esp,r_unc),%edi  // after unfolded code
+        mov old_sp,%ecx
+        sub %edi,%ecx
+        mov $0xa5,%al
+        rep stosb  // memcheck defense
+        pop %edi  // restore
+
         lea (2*NBPW + D_FOLD)(r_unc),%eax; add %esp,%eax
         and $-2*NBPW,%eax; push %eax  // MATCH_31 where to put pathname
         mov %eax,%ecx
@@ -357,7 +365,7 @@ uname: .globl uname
         push %ebp; mov %esp,%ebp
         push %ebx
         mov 2*NBPW(%ebp),%ebx
-        push $__NR_olduname; pop %eax; int $0x80
+        push $__NR_uname; pop %eax; int $0x80
         pop %ebx; pop %ebp
         ret
 

@@ -334,7 +334,7 @@ uname: .globl uname
         mov  %ebp,%esp
         push %ebx
         mov  %ebx, [2*NBPW + %ebp]
-        push __NR_olduname; pop %eax; int 0x80
+        push __NR_uname; pop %eax; int 0x80
         pop %ebx; pop %ebp
         ret
 
