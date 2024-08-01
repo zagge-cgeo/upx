@@ -98,7 +98,7 @@ SYS_open     =   5 + SYSBASE
 //0:    .word -0b + l_info
 section MACHMAINX
 _start: .globl _start
-////    int3
+    int3
         call main  // push &f_exp
 
   section MACH_UNC
@@ -220,7 +220,15 @@ setup:
 /* NRV_TAIL is empty */
 
   section MACHMAINY
+eof_lzma:
+        mov $0x1234,%ecx; jmp eof
+eof_n2b:
+eof_n2d:
+eof_n2e:
+        mov $0x5678,%ecx; jmp eof
+
 eof:
+   int3
         pop %rcx  // &input_eof
         movq %rsi,%rax; subq %rcx,%rax  // src -= eof;  // return 0: good; else: bad
         pop %rdx;       subq %rdx,%rdi  // dst -= original dst
