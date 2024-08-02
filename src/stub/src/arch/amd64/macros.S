@@ -41,4 +41,8 @@
                 .code64
 .endm
 
+.macro  endbr64
+        .byte 0xf3,0x0f,0x1e,0xfa
+.endm
+
 // vi:ts=8:et:nowrap

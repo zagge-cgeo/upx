@@ -101,7 +101,9 @@ upxfn_path= . - 2*NBPW  // displacement to filename string
 mflg_data=  . - 1*NBPW  // QNZ vs Linux
 
 fold_begin:
+        endbr32
 ////  int3  // DEBUG
+                endbr32
         pop ebx; push ebx  // F_ADRX: elfaddr + (O_BINFO | is_ptinterp | unmap_all_pages)
         jmp L10
 
@@ -285,7 +287,7 @@ L60:
         push eax  // 32 bytes of zeroes now on stack, ready for 'popa'
 
         mov al, __NR_munmap  // eax was 0 from L60
-        jmp [edi]  // unmap ourselves via escape hatch, then goto entry
+        /*notrack*/ jmp [edi]  // unmap ourselves via escape hatch, then goto entry
 
         section SYSCALLS
 // Sometimes linux enforces page-aligned address

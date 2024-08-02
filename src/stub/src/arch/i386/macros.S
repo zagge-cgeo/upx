@@ -717,4 +717,8 @@ section LXUNF035
         ret
 .endm
 
+.macro  endbr32
+        .byte 0xf3,0x0f,0x1e,0xfb
+.endm
+
 // vi:ts=8:et:nowrap

@@ -104,6 +104,7 @@ M_NRV2B_LE32= 2
 section ELFMAINX
 sz_pack2 = -NBPW+ _start
 _start: .globl _start
+        endbr32
 ///    nop; int3  // DEBUG  i386 entry.S
         call L70  // MATCH_08  push $&getbit
 L70ret:
@@ -322,7 +323,7 @@ eof_n2b:
 
         mov F_ADRU(%ebp),%eax
         add $D_FOLD,%eax  // PAGE_MASK, upxfd_path, mflg_data
-        jmp *%eax
+        /*notrack*/ jmp *%eax
 // %esp:
 //  MATCH_13  ptr unfolded_code; for escape hatch
 //  MATCH_12  len unfolded code; for escape hatch

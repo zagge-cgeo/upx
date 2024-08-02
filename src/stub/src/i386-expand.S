@@ -77,6 +77,9 @@ sz_binfo= 3*4
 
 f_unfilter:  // (*f_unf)(xo->buf, out_len, h.b_cto8, h.b_ftid);
 #include "arch/i386/bxx.S"
+.macro  endbr32
+        .byte 0xf3,0x0f,0x1e,0xfb
+.endm
 
 // int f_expand(nrv_byte const *src, nrv_byte *dst, size_t *dstlen)  // C-callable
 // Includes unfilter and cache flush.
@@ -128,6 +131,7 @@ refill:
         movzbl (%esi),%edx  // pre-fetch: literal, or bottom 8 bits of offset
         rep; ret
 getbit:
+        endbr32 // from "call *%edx"
         addl bits,bits; jz refill  // Carry= next bit
         rep; ret
 

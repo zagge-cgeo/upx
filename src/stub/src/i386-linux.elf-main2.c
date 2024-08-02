@@ -289,27 +289,31 @@ make_hatch_i386(
     unsigned frag_mask
 )
 {
-    char *hatch = 0;
+    unsigned *hatch = 0;
+    unsigned code[2] = {
+        0x586180cd,  // int #0x80; popa; pop %eax
+        0x90e0ff3e,  // notrack jmp *%eax; nop
+    }
     DPRINTF("make_hatch %%p %%p %%x\\n", phdr, next_unc, frag_mask);
     if (phdr->p_type==PT_LOAD && phdr->p_flags & PF_X) {
         next_unc += phdr->p_memsz - phdr->p_filesz;  // Skip over local .bss
         frag_mask &= -(long)next_unc;  // bytes left on page
-        unsigned /*const*/ escape = 0xc36180cd;  // "int $0x80; popa; ret"
-        if (4 <= frag_mask) {
-            hatch = next_unc;
-            *(long *)&hatch[0] = escape;
+        if (sizeof(code) <= frag_mask) {
+            hatch = (unsigned *)next_unc;
+            hatch[0] = code[0];
+            hatch[1] = code[1];
         }
         else { // Does not fit at hi end of .text, so must use a new page "permanently"
-            unsigned long fdmap = upx_mmap_and_fd((void *)0, sizeof(escape), nullptr);
+            unsigned long fdmap = upx_mmap_and_fd((void *)0, sizeof(code), nullptr);
             unsigned mfd = -1+ (0xfff& fdmap);
-            write(mfd, &escape, sizeof(escape));
-            hatch = mmap((void *)(fdmap & ~0xffful), sizeof(escape),
+            write(mfd, &code, sizeof(code));
+            hatch = mmap((void *)(fdmap & ~0xffful), sizeof(code),
               PROT_READ|PROT_EXEC, MAP_PRIVATE, mfd, 0);
             close(mfd);
         }
     }
     DPRINTF("hatch=%%p\\n", hatch);
-    return hatch;
+    return (char *)hatch;
 }
 #elif defined(__arm__)  /*}{*/
 extern unsigned get_sys_munmap(void);

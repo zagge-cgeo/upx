@@ -253,16 +253,22 @@ make_hatch_x86_64(
 )
 {
     char *hatch = next_unc;
-    unsigned const sz_code = 4;
+    int code[3] =  {
+        0xfa1e0ff3,  // endbr64
+        0x585a050f,  // syscall; pop %arg3{%rdx}; pop %rax
+        0x90e0ff3e,  // notrack jmp *%rax; nop
+    };
     DPRINTF("make_hatch %%p %%p %%x\\n", phdr, next_unc, frag_mask);
     if (phdr->p_type==PT_LOAD && phdr->p_flags & PF_X) {
-        if (sz_code <= (frag_mask & -(long)hatch)) {
-            ((long *)hatch)[0] = 0xc35a050f;  // syscall; pop %arg3{%rdx); ret
+        if (sizeof(code) <= (unsigned)(frag_mask & -(long)hatch)) {
+            ((int *)hatch)[0] = code[0];  // endbr64
+            ((int *)hatch)[1] = code[1];  // syscall; pop %arg3{%rdx}; pop %rax
+            ((int *)hatch)[2] = code[2];  // notrack jmp *%rax; nop
         }
         else { // Does not fit at hi end of .text, so must use a new page "permanently"
             int mfd = upxfd_create(addr_string("upx"), MFD_EXEC);  // the directory entry
-            write(mfd, addr_string("\x0f\x05\x5a\xc3"), sz_code);
-            hatch = mmap(0, sz_code, PROT_READ|PROT_EXEC, MAP_SHARED, mfd, 0);
+            write(mfd, &code, sizeof(code));
+            hatch = mmap(0, sizeof(code), PROT_READ|PROT_EXEC, MAP_SHARED, mfd, 0);
             close(mfd);
         }
     }

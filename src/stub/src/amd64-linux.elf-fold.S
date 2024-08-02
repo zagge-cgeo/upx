@@ -86,6 +86,7 @@ PAGE_MASK: .quad -1<<12  // default
 // no 'section', thus '.text'; also loaded first in amd64-linux.elf-fold.bin.
 // Code from amd64-linux.elf-main.c is also .text, and is next.
 fold_begin:
+        endbr64
 ////    int3  # DEBUG
         mov %r13,F_UNMAPA(%rbp)
         mov %r13,%rax; and $is_ptinterp,%eax; or %eax,F_ELFA(%rbp)
@@ -202,7 +203,7 @@ no_pse_map:
         pop %arg1  # ADRU: unfolded upx_main etc.
         pop %arg2  # LENU
         push $__NR_munmap; pop %rax
-        jmp *(%r14)  # goto: syscall; pop %rdx; ret
+        /*notrack*/ jmp *(%r14)  # goto: syscall; pop %rdx; ret
 
 get_page_mask: .globl get_page_mask
         mov PAGE_MASK(%rip),%rax

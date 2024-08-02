@@ -86,6 +86,7 @@ M_NRV2E_LE32=8
   section ELFMAINX
 sz_pack2= .-4
 _start: .globl _start
+        endbr64
 ////    nop; int3  # uncomment for debugging
 
         pop %rcx  // argc
@@ -304,6 +305,7 @@ here:  // OUT: %rdi= (2+ retaddrj) without disturbing shadow stack
         ret
 
 getbit:
+        .byte 0xf3,0x0f,0x1e,0xfa  // endbr64 // from "call *%rdx"
         addl bits,bits; jz refill  // Carry= next bit
         rep; ret
 refill:
