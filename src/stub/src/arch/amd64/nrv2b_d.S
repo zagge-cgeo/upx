@@ -45,7 +45,7 @@ lit_n2b:
         incq %rsi; movb %dl,(%rdi)
         incq %rdi
 top_n2b:
-        movb (%rsi),%dl  # prefetch: literal, or bottom 8 bits of offset
+        movzbl (%rsi),%edx  # prefetch: literal, or bottom 8 bits of offset
         jnextb1yp lit_n2b
         lea 1(lenq),off  # [len= 0] off= 1
 offmore_n2b:
@@ -53,8 +53,8 @@ offmore_n2b:
         jnextb0np offmore_n2b
 
         subl $ 3,off; jc len_n2b  # use previous offset
-        shll $ 8,off; movzbl %dl,%edx
-        orl %edx,off; incq %rsi
+        shll $ 8,off; incq %rsi
+        orl %edx,off
         xorl $~0,off; jz EOF
         movslq off,dispq  # XXX: 2GB
 len_n2b:

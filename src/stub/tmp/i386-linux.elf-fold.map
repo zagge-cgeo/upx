@@ -7,18 +7,18 @@ Name             Origin             Length             Attributes
 Linker script and memory map
 
 
-.text           0x0000000000000000      0xd1b
- .text          0x0000000000000000      0x183 tmp/i386-linux.elf-fold.o
-                0x0000000000000004                get_page_mask
-                0x0000000000000011                get_upxfn_path
- *fill*         0x0000000000000183        0x1 00
- .text          0x0000000000000184      0x3e1 tmp/i386-linux.elf-upxfd_android.o
-                0x000000000000038b                upx_mmap_and_fd
- *fill*         0x0000000000000565        0x3 00
- .text          0x0000000000000568        0x0 tmp/i386-expand.o
- .text          0x0000000000000568      0x7b3 tmp/i386-linux.elf-main2.o
-                0x00000000000006bd                underlay
-                0x0000000000000bc7                upx_main
+.text           0x0000000000000000      0xd30
+ .text          0x0000000000000000      0x18b tmp/i386-linux.elf-fold.o
+                0x000000000000000c                get_page_mask
+                0x0000000000000019                get_upxfn_path
+ *fill*         0x000000000000018b        0x1 00
+ .text          0x000000000000018c      0x3e1 tmp/i386-linux.elf-upxfd_android.o
+                0x0000000000000393                upx_mmap_and_fd
+ *fill*         0x000000000000056d        0x3 00
+ .text          0x0000000000000570        0x0 tmp/i386-expand.o
+ .text          0x0000000000000570      0x7c0 tmp/i386-linux.elf-main2.o
+                0x00000000000006c5                underlay
+                0x0000000000000bdc                upx_main
 
 .data           0x0000000000000000        0x0
  .data          0x0000000000000000        0x0 tmp/i386-linux.elf-fold.o
@@ -56,8 +56,8 @@ SYSCALLS        0x0000000000000000       0xc0
  .note.GNU-stack
                 0x0000000000000000        0x0 tmp/i386-linux.elf-upxfd_android.o
 
-EXP_HEAD        0x0000000000000000      0x111
- EXP_HEAD       0x0000000000000000      0x111 tmp/i386-expand.o
+EXP_HEAD        0x0000000000000000      0x115
+ EXP_HEAD       0x0000000000000000      0x115 tmp/i386-expand.o
                 0x0000000000000071                f_expand
                 0x00000000000000a1                __clear_cache
 

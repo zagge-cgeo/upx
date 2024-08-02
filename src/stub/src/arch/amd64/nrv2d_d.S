@@ -45,7 +45,7 @@ lit_n2d:
         incq %rsi; movb %dl,(%rdi)
         incq %rdi
 top_n2d:
-        movb (%rsi),%dl  // speculate: literal, or bottom 8 bits of offset
+        movzbl (%rsi),%edx  // speculate: literal, or bottom 8 bits of offset
         jnextb1yp lit_n2d
         lea 1(lenq),off  // [len= 0] off= 1
         jmp getoff_n2d
@@ -58,8 +58,8 @@ getoff_n2d:
         jnextb0np off_n2d
 
         subl $ 3,off; jc offprev_n2d
-        shll $ 8,off; movzbl %dl,%edx
-        orl %edx,off; incq %rsi
+        shll $ 8,off; incq %rsi
+        orl %edx,off
         xorl $~0,off; jz EOF
         sarl     off  // Carry= original low bit
         movslq   off,dispq  // XXX: 2GB

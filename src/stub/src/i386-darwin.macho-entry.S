@@ -201,7 +201,7 @@ M_NRV2E_LE32=8
 #define GETBITp \
         addl bits,bits; jnz 0f; \
         movl (%esi),bits; subl $-4,%esi; \
-        adcl bits,bits; movb (%esi),%dl; \
+        adcl bits,bits; movzbl (%esi),%edx; \
 0:
 /* Same, but without prefetch (not useful for length of match.) */
 #define jnextb0n jnextb0y
@@ -225,21 +225,21 @@ getbit:
 refill:
         movl (%esi),bits; subl $-4,%esi  // next 32 bits; set Carry
         adcl bits,bits  // LSB= 1 (CarryIn); CarryOut= next bit
-        movb (%esi),%dl  // speculate: literal, or bottom 8 bits of offset
+        movzbl (%esi),%edx  // speculate: literal, or bottom 8 bits of offset
         rep; ret
 
 copy:  // In: len, %edi, disp;  Out: 0==len, %edi, disp;  trashes %eax, %edx
         leal (%edi,disp),%eax; cmpl $5,len  // <=3 is forced
-        movb (%eax),%dl; jbe copy1  // <=5 for better branch predict
+        movzbl (%eax),%edx; jbe copy1  // <=5 for better branch predict
         cmpl $-4,disp;   ja  copy1  // 4-byte chunks would overlap
         subl $4,len  // adjust for termination cases
 copy4:
         movl (%eax),%edx; addl $4,      %eax; subl $4,len
         movl %edx,(%edi); leal  4(%edi),%edi; jnc copy4
-        addl $4,len; movb (%eax),%dl; jz copy0
+        addl $4,len; movzbl (%eax),%edx; jz copy0
 copy1:
         incl %eax; movb %dl,(%edi); decl len
-            movb (%eax),%dl
+            movzbl (%eax),%edx
                 leal 1(%edi),%edi;  jnz copy1
 copy0:
         rep; ret

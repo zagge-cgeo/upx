@@ -46,8 +46,8 @@ offmore_n2b:
         jnextb0np offmore_n2b
 
         subl $ 3,off; jc len_n2b  # use previous offset
-        shll $ 8,off
-        orl %edx,off; incl %esi
+        shll $ 8,off; incl %esi
+        orl %edx,off
         xorl $~0,off; jz eof
         movl     off,disp
 len_n2b:
