@@ -499,17 +499,20 @@ brk:    do_sys __NR_brk; ret
         .globl munmap
 munmap: do_sys __NR_munmap; ret
 
+O_RDWR= 2
+O_DIRECTORY= 0200000  // 0x010000
+O_TMPFILE= 020000000  // 0x400000
+
 ufdc_bits: .int O_RDWR|O_DIRECTORY|O_TMPFILE
 upxfd_create: .globl upxfd_create // (char *tag, unsigned flags)
+        mov x3,x0  // save tag
 0: // try memfd_create
         mov w8,#__NR_memfd_create; svc #0
         tst w0,w0; bpl ok_memfd  // success
         cbz w1, no_memfd  // memfd_create failed twice
+        mov x0,x3  // tag
         mov w1,#0; b 0b  // try again without MFD_EXEC
 no_memfd:  // so try /dev/shm
-O_RDWR= 2
-O_DIRECTORY= 0200000  // 0x010000
-O_TMPFILE= 020000000  // 0x400000
         mov w3,#0700
         ldr w2,ufdc_bits
         adr x1,devshm

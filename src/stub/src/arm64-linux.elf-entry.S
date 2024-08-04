@@ -82,6 +82,7 @@ __NR_mmap     = 0xde  // 222
 __NR_mprotect = 0xe2  // 226
 __NR_munmap   = 0xd7  // 215
 __NR_openat   = 0x38  //  56
+  AT_FDCWD= -100
 __NR_write    = 0x40  //  64
 
 MFD_EXEC= 0x0010  // memfd_create should allow later PROT_EXEC
@@ -179,8 +180,25 @@ L00:
         mov xFOLD,lr
 
         mov w1,#MFD_EXEC  // flags
+0: // try memfd_create
         adr x0,strupx
-        do_sys __NR_memfd_create; mov mfd,w0
+        do_sys __NR_memfd_create
+        tbz w0,#31,ok_memfd  // success
+        cbz w1,no_memfd  // already failed twice
+        mov w1,wzr; b 0b  // try atain without MFD_EXEC
+no_memfd:  // so try /dev/shm
+O_RDWR= 2
+O_DIRECTORY= 0200000  // 0x010000
+O_TMPFILE= 020000000  // 0x400000
+        call 0f; .int 0700, O_RDWR|O_DIRECTORY|O_TMPFILE; .asciz "/dev/shm"
+        .balign 4; 0:
+        ldr w3,[lr],#4  // mode
+        ldr w2,[lr],#4  // flags
+        mov x1,lr  // name
+        mov w0,#AT_FDCWD
+        do_sys __NR_openat
+ok_memfd:
+        mov mfd,w0
 
 // alloca() for de-compressed stub
         ldr w0,[xFOLD,#sz_unc + LBINFO - LxFOLD]  // .sz_unc of fold

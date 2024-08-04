@@ -34,8 +34,8 @@ OUTPUT(tmp/arm64-linux.elf-fold.bin elf64-littleaarch64)
  .bss           0x0000000000000000        0x0 tmp/arm64-expand.o
  .bss           0x0000000000000000        0x0 tmp/arm64-linux.elf-main2.o
 
-SYSCALLS        0x0000000000000000      0x110
- SYSCALLS       0x0000000000000000      0x110 tmp/arm64-linux.elf-fold.o
+SYSCALLS        0x0000000000000000      0x118
+ SYSCALLS       0x0000000000000000      0x118 tmp/arm64-linux.elf-fold.o
                 0x0000000000000000                my_bkpt
                 0x0000000000000008                exit
                 0x0000000000000010                read
@@ -45,13 +45,13 @@ SYSCALLS        0x0000000000000000      0x110
                 0x0000000000000040                brk
                 0x000000000000004c                munmap
                 0x000000000000005c                upxfd_create
-                0x0000000000000094                ftruncate
-                0x00000000000000a0                unlink
-                0x00000000000000b4                readlink
-                0x00000000000000bc                open
-                0x00000000000000d8                __clear_cache
-                0x00000000000000ec                memcpy
-                0x0000000000000100                memset
+                0x000000000000009c                ftruncate
+                0x00000000000000a8                unlink
+                0x00000000000000bc                readlink
+                0x00000000000000c4                open
+                0x00000000000000e0                __clear_cache
+                0x00000000000000f4                memcpy
+                0x0000000000000108                memset
 
 EXP_HEAD        0x0000000000000000      0x104
  EXP_HEAD       0x0000000000000000      0x104 tmp/arm64-expand.o

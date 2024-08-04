@@ -314,7 +314,16 @@ unsigned long upx_mmap_and_fd( // returns (mapped_addr | (1+ fd))
 #define BUFLEN 4096
     void *buf = alloca(BUFLEN); *(int *)buf = 0;
     uname((struct utsname *)buf);
-    int const not_android = (ANDROID_TEST ? 0 : strncmplc(addr_string("andr"), buf, 4));
+    int const not_android = (ANDROID_TEST ? 0
+        : (    0 != strncmplc(addr_string("and"),
+                    &((char const *)&buf)[0*65 /*sysname*/], 3)  // claims  Android
+            && 0 == strncmplc(addr_string("Lin"),
+                    &((char const *)&buf)[0*65 /*sysname*/], 3)  // claims  Linux
+            && '4'<  ((char const *)&buf)[2*65 /*release*/]  )  // young enough
+        );
+          // 2024-08-01: TermUX on Android 14 arm64 running 32-bit program:
+          // claims it is Linux, but kernel is 4.19, and ftruncate() {__NR_ 93)
+          // gets signal SIGSYS instead of errno ENOSYS; so is not really Linux!
 
     // Work-around for missing memfd_create syscall on early 32-bit Android.
     if (!not_android && !pathname) { // must ask
