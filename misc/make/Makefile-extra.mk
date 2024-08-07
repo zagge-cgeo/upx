@@ -302,6 +302,10 @@ endif
 # it easy to set other variables like CMAKE_AR or CMAKE_RANLIB
 #***********************************************************************
 
+UPX_CMAKE_CONFIG_FLAGS += $(UPX_CMAKE_CONFIG_FLAGS_GENERATOR)
+UPX_CMAKE_CONFIG_FLAGS += $(UPX_CMAKE_CONFIG_FLAGS_TOOLSET)
+UPX_CMAKE_CONFIG_FLAGS += $(UPX_CMAKE_CONFIG_FLAGS_PLATFORM)
+
 $(call check_undefined,__add_cmake_config)
 # promote an environment or Make variable to a CMake cache entry:
 __add_cmake_config = $(and $($1),-D$1="$($1)")

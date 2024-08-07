@@ -106,14 +106,12 @@ TEST_CASE("mem_size") {
 // ptr util
 **************************************************************************/
 
-int ptr_diff_bytes(const void *a, const void *b) {
-    if very_unlikely (a == nullptr) {
+int ptr_diff_bytes(const void *a, const void *b) may_throw {
+    if very_unlikely (a == nullptr)
         throwCantPack("ptr_diff_bytes null 1; take care");
-    }
-    if very_unlikely (b == nullptr) {
+    if very_unlikely (b == nullptr)
         throwCantPack("ptr_diff_bytes null 2; take care");
-    }
-    ptrdiff_t d = (const charptr) a - (const charptr) b;
+    upx_sptraddr_t d = ptraddr_diff(a, b);
     if (a >= b) {
         if very_unlikely (!mem_size_valid_bytes(d))
             throwCantPack("ptr_diff_bytes-1; take care");
@@ -121,10 +119,11 @@ int ptr_diff_bytes(const void *a, const void *b) {
         if very_unlikely (!mem_size_valid_bytes(0ll - d))
             throwCantPack("ptr_diff_bytes-2; take care");
     }
+    assert_noexcept(d == ((const charptr) a - (const charptr) b));
     return ACC_ICONV(int, d);
 }
 
-unsigned ptr_udiff_bytes(const void *a, const void *b) {
+unsigned ptr_udiff_bytes(const void *a, const void *b) may_throw {
     int d = ptr_diff_bytes(a, b);
     if very_unlikely (d < 0)
         throwCantPack("ptr_udiff_bytes; take care");
@@ -1026,7 +1025,7 @@ TEST_CASE("get_ratio") {
 // compat
 **************************************************************************/
 
-#if defined(__wasi__) && 1 // TODO later - wait for wasm/wasi exception handling proposal
+#if defined(__wasi__) && 1 // TODO later: wait for wasm/wasi exception handling proposal
 extern "C" {
 void *__cxa_allocate_exception(std::size_t thrown_size) throw() { return ::malloc(thrown_size); }
 void __cxa_throw(void *thrown_exception, /*std::type_info*/ void *tinfo, void (*dest)(void *)) {

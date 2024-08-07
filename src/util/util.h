@@ -105,6 +105,10 @@ forceinline upx_ptraddr_t ptr_get_address(const void *p) noexcept { return (upx_
 forceinline upx_ptraddr_t ptr_get_address(upx_uintptr_t p) noexcept { return p; }
 #endif
 
+forceinline upx_sptraddr_t ptraddr_diff(const void *a, const void *b) noexcept {
+    return ptr_get_address(a) - ptr_get_address(b);
+}
+
 template <size_t Alignment>
 forceinline bool ptr_is_aligned(const void *p) noexcept {
     static_assert(upx::has_single_bit(Alignment));

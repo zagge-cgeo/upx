@@ -35,6 +35,15 @@ macro(upx_disallow_in_source_build)
     endif()
 endmacro()
 
+# ternary conditional operator
+macro(upx_ternary result_var_name condition true_value false_value)
+    if(${condition})
+        set(${result_var_name} "${true_value}")
+    else()
+        set(${result_var_name} "${false_value}")
+    endif()
+endmacro()
+
 # set the default build type; must be called BEFORE project() cmake init
 macro(upx_set_default_build_type type)
     set(upx_global_default_build_type "${type}")
@@ -73,41 +82,35 @@ macro(upx_apply_build_type)
             set(CMAKE_TRY_COMPILE_CONFIGURATION "${upx_global_default_build_type}")
         endif()
     endif()
-    # and also set MSVC_FRONTEND, GNU_FRONTEND and MINGW
+endmacro()
+
+# set MINGW, MSVC_FRONTEND, GNU_FRONTEND and MSVC_SIMULATE
+macro(upx_set_global_vars)
+    if(NOT DEFINED MINGW AND CMAKE_C_PLATFORM_ID MATCHES "^MinGW")
+        set(MINGW 1)
+    endif()
     if(NOT DEFINED MSVC_FRONTEND AND (MSVC OR CMAKE_C_COMPILER_FRONTEND_VARIANT MATCHES "^MSVC"))
         set(MSVC_FRONTEND 1)
     elseif(NOT DEFINED GNU_FRONTEND AND (CMAKE_C_COMPILER_FRONTEND_VARIANT MATCHES "^GNU" OR CMAKE_C_COMPILER_ID MATCHES "(Clang|GNU|LLVM)"))
         set(GNU_FRONTEND 1)
     endif()
-    if(NOT DEFINED MINGW AND CMAKE_C_PLATFORM_ID MATCHES "^MinGW")
-        set(MINGW 1)
+    if(NOT DEFINED MSVC_SIMULATE AND (CMAKE_C_SIMULATE_ID MATCHES "^MSVC"))
+        set(MSVC_SIMULATE 1)
     endif()
 endmacro()
 
-# handle the default RPATH settings; must be called BEFORE project() cmake init
-macro(upx_set_default_rpath)
-endmacro()
-
-# handle the default RPATH settings; must be called AFTER project() cmake init
-macro(upx_apply_rpath)
-    if(NOT DEFINED CMAKE_BUILD_WITH_INSTALL_RPATH)
-        if(APPLE) # macOS
-            set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
-            set(CMAKE_BUILD_WITH_INSTALL_NAME_DIR ON)
-            set(CMAKE_INSTALL_NAME_DIR "@rpath")
-        elseif(CMAKE_GENERATOR MATCHES "Ninja" AND NOT CMAKE_EXECUTABLE_FORMAT MATCHES "^ELF")
-            # info: needed by Ninja generator unless on an ELF-based or XCOFF-based platform
-            set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
-        endif()
-    endif()
-endmacro()
-
-# ternary conditional operator
-macro(upx_ternary result_var_name condition true_value false_value)
-    if(${condition})
-        set(${result_var_name} "${true_value}")
+# useful for CI jobs: check for working BUILD_RPATH
+macro(upx_check_working_build_rpath var_name)
+    if(WIN32 OR MINGW OR CYGWIN)
+        # always works; DLLs reside next to the executables
+        upx_cache_bool_vars(ON ${var_name})
+    elseif(CMAKE_BUILD_WITH_INSTALL_RPATH OR CMAKE_SKIP_RPATH OR CMAKE_SKIP_BUILD_RPATH)
+        # cannot work; BUILD_RPATH is disabled by global CMake settings
+        set(${var_name} OFF)
+        upx_cache_bool_vars(OFF ${var_name})
     else()
-        set(${result_var_name} "${false_value}")
+        # we do not know if/how the BUILD_RPATH is set; be cautious by default
+        upx_cache_bool_vars(OFF ${var_name})
     endif()
 endmacro()
 

@@ -15,11 +15,12 @@ env:
   DEBIAN_FRONTEND: noninteractive
   UPX_CMAKE_BUILD_FLAGS: --verbose
   UPX_CMAKE_CONFIG_FLAGS: -Wdev --warn-uninitialized
+  UPX_CONFIG_HAVE_WORKING_BUILD_RPATH: 'ON'
   UPX_DEBUG_TEST_FLOAT_DIVISION_BY_ZERO: 1
   UPX_DEBUG_TEST_LIBC_QSORT: 1
   ZSTD_CLEVEL: 9
-  # 2024-06-07
-  ZIG_DIST_VERSION: 0.13.0
+  # 2024-08-03
+  ZIG_DIST_VERSION: 0.14.0-dev.839+a931bfada
 
 jobs:
   job-rebuild-and-verify-stubs:
@@ -76,8 +77,6 @@ jobs:
   job-linux-cmake: # uses cmake + make
     if: true
     needs: [ job-rebuild-and-verify-stubs ]
-    name: ${{ format('{0}', matrix.os) }}
-    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
@@ -87,6 +86,8 @@ jobs:
           # GitHub ubuntu-24.04 is BETA; BUG: currently i386 programs can abort with "The futex facility returned an unexpected error code"
           #   THIS IS A KNOWN ISSUE: https://github.com/actions/runner-images/issues/9848
           - { os: ubuntu-24.04 } # TODO later: enable extra+wine once the GitHub VM is fixed
+    name: ${{ format('{0}', matrix.os) }}
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Install extra 32-bit and MinGW packages
         if: ${{ matrix.use_extra }}
@@ -206,8 +207,6 @@ jobs:
   job-macos-cmake: # uses cmake + make
     if: true
     needs: [ job-rebuild-and-verify-stubs ]
-    name: ${{ format('{0} {1}{2}', matrix.os, matrix.xcode_version && 'xcode-' || '',  matrix.xcode_version) }}
-    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
@@ -222,6 +221,8 @@ jobs:
           # { os: macos-14, gcc: gcc-13, gxx: g++-13, testsuite: true }                        # gcc-13: INTERNAL ERROR in ld64
           # { os: macos-14, gcc: gcc-13, gxx: g++-13, testsuite: true, xcode_version: 14.3.1 } # gcc-13: MISSING HEADER FILES
           - { os: macos-14, gcc: gcc-12, gxx: g++-12, testsuite: true } # => use gcc-12 for now
+    name: ${{ format('{0} {1}{2}', matrix.os, matrix.xcode_version && 'xcode-' || '',  matrix.xcode_version) }}
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: maxim-lobanov/setup-xcode@v1
         if: ${{ matrix.xcode_version }}
@@ -327,14 +328,14 @@ jobs:
   job-windows-cmake: # uses cmake + msbuild
     if: true
     needs: [ job-rebuild-and-verify-stubs ]
-    name: ${{ format('{0}', matrix.name) }}
-    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - { name: windows-2019-amd64, os: windows-2019, vsversion: 2019, vsarch: amd64 }
           - { name: windows-2022-amd64, os: windows-2022, vsversion: 2022, vsarch: amd64 }
+    name: ${{ format('{0}', matrix.name) }}
+    runs-on: ${{ matrix.os }}
     steps:
       - run: git config --global core.autocrlf false
       - uses: actions/checkout@v4
@@ -379,11 +380,6 @@ jobs:
   job-windows-toolchains: # build "by hand" using cmd.exe
     if: github.repository_owner == 'upx'
     needs: [ job-rebuild-and-verify-stubs ]
-    name: ${{ format('windows {0}', matrix.name) }}
-    runs-on: ${{ matrix.os }}
-    env:
-      C: ${{ matrix.name }}
-      B: release
     strategy:
       fail-fast: false
       matrix:
@@ -396,6 +392,11 @@ jobs:
           # { name: arm64x-win64-vs2022,  os: windows-2022, vsversion: 2022, vsarch: amd64_arm64, cl_machine_flags: -arm64EC, link_machine_flags: '/machine:arm64x' }
           - { name: i386-win32-vs2019,    os: windows-2019, vsversion: 2019, vsarch: amd64_x86 }
           - { name: i386-win32-vs2022,    os: windows-2022, vsversion: 2022, vsarch: amd64_x86 }
+    name: ${{ format('windows {0}', matrix.name) }}
+    runs-on: ${{ matrix.os }}
+    env:
+      C: ${{ matrix.name }}
+      B: release
     steps:
       - run: git config --global core.autocrlf false
       - uses: actions/checkout@v4
@@ -483,9 +484,6 @@ jobs:
   job-linux-zigcc: # uses cmake + make
     if: github.repository_owner == 'upx'
     needs: [ job-rebuild-and-verify-stubs ]
-    name: ${{ format('zigcc {0} {1}', matrix.zig_target, matrix.zig_pic) }}
-    runs-on: ubuntu-latest
-    container: alpine:3.20
     strategy:
       fail-fast: false
       matrix:
@@ -519,9 +517,13 @@ jobs:
           # { zig_target: x86_64-macos.12.0-none }
           # { zig_target: x86_64-macos.13.0-none }
           - { zig_target: x86_64-windows-gnu }
+    name: ${{ format('zigcc {0} {1}', matrix.zig_target, matrix.zig_pic) }}
+    runs-on: ubuntu-latest
+    container: alpine:3.20
     env:
       # zig is currently missing winpthreads; see https://github.com/ziglang/zig/issues/10989
       UPX_CONFIG_EXPECT_THREADS: ${{ contains(matrix.zig_target, '-windows') && 'OFF' || 'ON' }}
+      UPX_CONFIG_HAVE_WORKING_BUILD_RPATH: ''
       # for zig-cc wrapper scripts (see below):
       ZIG_CPPFLAGS: -DUPX_DOCTEST_CONFIG_MULTITHREADING
       ZIG_FLAGS: ${{ matrix.zig_flags }}
@@ -545,7 +547,7 @@ jobs:
           rev=$(git rev-parse --short=7 HEAD)
           echo "UPX_GITREV_SHORT=$rev" >> $GITHUB_ENV
           if [[ "${{ matrix.zig_target }}" == i386-linux-gnu.2.3.4 ]]; then
-            echo "UPX_CONFIG_DISABLE_SHARED_LIBS=ON" >> $GITHUB_ENV # zig problem
+            echo "UPX_CONFIG_DISABLE_SHARED_LIBS=ON" >> $GITHUB_ENV # zig problem when linking in Debug mode
           fi
           if [[ "${{ matrix.zig_target }}" == x86_64-linux-gnu.2.3.4 ]]; then
             echo "NEED_GCOMPAT=1" >> $GITHUB_ENV

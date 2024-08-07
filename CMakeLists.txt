@@ -78,7 +78,7 @@ upx_cache_bool_vars(ON
     CMAKE_C_STANDARD_REQUIRED CMAKE_CXX_STANDARD_REQUIRED
     CMAKE_EXPORT_COMPILE_COMMANDS CMAKE_REQUIRED_QUIET
 )
-# internal UPX settings
+# internal UPX settings; useful for CI jobs
 upx_cache_bool_vars(OFF
     UPX_CONFIG_CMAKE_DISABLE_TEST UPX_CONFIG_CMAKE_DISABLE_INSTALL
     UPX_CONFIG_CMAKE_DISABLE_PRINT_INFO UPX_CONFIG_CMAKE_DISABLE_PLATFORM_CHECK
@@ -133,13 +133,16 @@ endif()
 
 # CMake init
 upx_set_default_build_type(Release) # default is CMAKE_BUILD_TYPE=Release
-upx_set_default_rpath()
 project(upx VERSION "${UPX_VERSION_STRING}" LANGUAGES C CXX)
 upx_apply_build_type()
-upx_apply_rpath()
+upx_set_global_vars()
+upx_check_working_build_rpath(UPX_CONFIG_HAVE_WORKING_BUILD_RPATH)
 
 if(DEFINED UPX_CONFIG_CMAKE_EXECUTABLE_SUFFIX)
     set(CMAKE_EXECUTABLE_SUFFIX "${UPX_CONFIG_CMAKE_EXECUTABLE_SUFFIX}")
+endif()
+if(NOT UPX_CONFIG_CMAKE_DISABLE_INSTALL AND CMAKE_INSTALL_PREFIX)
+    include(GNUInstallDirs)
 endif()
 
 #***********************************************************************
@@ -479,9 +482,6 @@ if(NOT CMAKE_INSTALL_PREFIX)
     #message(FATAL_ERROR "ERROR: CMAKE_INSTALL_PREFIX is not defined")
     message(WARNING "WARNING: CMAKE_INSTALL_PREFIX is not defined")
 endif()
-if(CMAKE_INSTALL_PREFIX)
-    include(GNUInstallDirs)
-endif()
 # install files
 if(CMAKE_INSTALL_PREFIX AND DEFINED CMAKE_INSTALL_BINDIR)
     install(TARGETS upx DESTINATION "${CMAKE_INSTALL_BINDIR}")
@@ -522,6 +522,7 @@ endif()
 # extra sanity checks to detect incompatible C vs CXX settings
 if(NOT UPX_CONFIG_CMAKE_DISABLE_PLATFORM_CHECK)
     upx_platform_check_mismatch(CMAKE_C_PLATFORM_ID CMAKE_CXX_PLATFORM_ID)
+    upx_platform_check_mismatch(CMAKE_C_SIMULATE_ID CMAKE_CXX_SIMULATE_ID)
     upx_platform_check_mismatch(CMAKE_C_COMPILER_ABI CMAKE_CXX_COMPILER_ABI)
     upx_platform_check_mismatch(CMAKE_C_COMPILER_FRONTEND_VARIANT CMAKE_CXX_COMPILER_FRONTEND_VARIANT)
 endif()
