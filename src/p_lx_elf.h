@@ -149,6 +149,7 @@ protected:
     virtual void ARM_updateLoader(OutputFile *);
     virtual int  ARM_is_QNX(void);
 
+    virtual upx_uint64_t canPack_Shdr(Elf32_Phdr const *pload_x0);
     virtual void pack1(OutputFile *, Filter &) override;  // generate executable header
     virtual void asl_pack2_Shdrs(OutputFile *, unsigned pre_xct_top);  // AndroidSharedLibrary processes Shdrs
     virtual void asl_slide_Shdrs();  // by so_slide if above xct_off

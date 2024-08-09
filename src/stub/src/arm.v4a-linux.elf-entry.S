@@ -193,7 +193,7 @@ unfold:
         mov arg3,sp  // &pathname (currently a null string "")
         mov arg2,u_len
         mov arg1,#0  // kernel chooses addr
-        call upx_mmap_and_fd  // (addr + (1+ fd)) = (ptr, len, pathname, frag_mask)
+        call upx_mmap_and_fd  // (addr + (1+ fd)) = (ptr, len, pathname)
         mov r1,r0,lsr #12
         mov r1,r1,lsl #12
         sub r0,r0,r1
@@ -265,7 +265,7 @@ zfind:
         ret
 
 f_expand:
-#define LINUX_ARM_CACHEFLUSH 1
+#undef LINUX_ARM_CACHEFLUSH
 #define NO_METHOD_CHECK 1
 #include "arch/arm/v4a/nrv2b_d8.S"
 

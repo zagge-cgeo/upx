@@ -30,7 +30,7 @@
  */
 
 #ifndef DEBUG  //{
-#define DEBUG 0
+#define DEBUG 1
 #endif  //}
 
 #define NO_WANT_MMAP 1
@@ -293,7 +293,7 @@ make_hatch_i386(
     unsigned code[2] = {
         0x586180cd,  // int #0x80; popa; pop %eax
         0x90e0ff3e,  // notrack jmp *%eax; nop
-    }
+    };
     DPRINTF("make_hatch %%p %%p %%x\\n", phdr, next_unc, frag_mask);
     if (phdr->p_type==PT_LOAD && phdr->p_flags & PF_X) {
         next_unc += phdr->p_memsz - phdr->p_filesz;  // Skip over local .bss

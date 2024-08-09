@@ -247,7 +247,15 @@ static int create_upxfn_path(char *name, char *buf)
 // Also 32-bit Android has inconsistent __NR_ftruncate,
 // so use direct write()
 //
-struct utsname;
+struct utsname {
+    char sysname[65];
+    char nodename[65];
+    char release[65];
+    char version[65];
+    char machine[65];
+    char domainname[65];
+
+};
 extern int uname(struct utsname *);
 extern char * get_upxfn_path(void);
 
@@ -310,28 +318,33 @@ unsigned long upx_mmap_and_fd( // returns (mapped_addr | (1+ fd))
 
 #if ANDROID_FRIEND  //{
     // Varying __NR_ftruncate on Android can hurt even if memfd_create() succeeds.
-    // On Linux, struct utsname has 6 arrays of size 257; but size can be larger.
-#define BUFLEN 4096
-    void *buf = alloca(BUFLEN); *(int *)buf = 0;
-    uname((struct utsname *)buf);
+    // On Linux, struct utsname has 6 arrays of size 65; but size can be larger.
+#define BUFLEN PATH_MAX
+    union {
+        struct utsname uts;
+        char buf[BUFLEN];
+    } u;
+
+    uname(&u.uts);
     int const not_android = (ANDROID_TEST ? 0
-        : (    0 != strncmplc(addr_string("and"),
-                    &((char const *)&buf)[0*65 /*sysname*/], 3)  // claims  Android
-            && 0 == strncmplc(addr_string("Lin"),
-                    &((char const *)&buf)[0*65 /*sysname*/], 3)  // claims  Linux
-            && '4'<  ((char const *)&buf)[2*65 /*release*/]  )  // young enough
-        );
+        : (    0 != strncmplc(addr_string("and"), &u.uts.sysname[0], 3)
+            && 0 == strncmplc(addr_string("Lin"), &u.uts.sysname[0], 3)
+            && '4'<  u.uts.release[0] ));
           // 2024-08-01: TermUX on Android 14 arm64 running 32-bit program:
-          // claims it is Linux, but kernel is 4.19, and ftruncate() {__NR_ 93)
+          // claims it is Linux, but kernel is 4.19, and ftruncate() {__NR_ 93}
           // gets signal SIGSYS instead of errno ENOSYS; so is not really Linux!
 
     // Work-around for missing memfd_create syscall on early 32-bit Android.
     if (!not_android && !pathname) { // must ask
         pathname = get_upxfn_path();
+        if (!pathname) { // persistence not desired, so use this->u.buf;
+            pathname = &u.buf[0];
+            pathname[0] = '\0';
+        }
     }
     if (!not_android && -ENOSYS == fd && pathname) {
         if ('\0' == pathname[0]) { // first time; create the pathname and file
-            int rv = create_upxfn_path(pathname, buf);
+            int rv = create_upxfn_path(pathname, u.buf);
             if (rv < 0) {
                 return rv;
             }
@@ -361,11 +374,11 @@ unsigned long upx_mmap_and_fd( // returns (mapped_addr | (1+ fd))
         }
 #if ANDROID_FRIEND  //{
         else { // !not_android: ftruncate has varying system call number on 32-bit
-            memset(buf, 0, BUFLEN);
+            memset(u.buf, 0, BUFLEN);
             unsigned wlen = datlen;
             while (0 < wlen) {
                 int x = (wlen < BUFLEN) ? wlen : BUFLEN;
-                if (x != write(fd, buf, x)) {
+                if (x != write(fd, u.buf, x)) {
                     return -ENOSPC;
                 }
                 wlen -= x;

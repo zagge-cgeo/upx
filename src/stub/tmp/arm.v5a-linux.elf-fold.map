@@ -8,7 +8,7 @@ Linker script and memory map
 
 TARGET(elf32-littlearm)
 
-.text           0x0000000000000000     0x1060
+.text           0x0000000000000000     0x1b7c
  *(.text)
  .text          0x0000000000000000      0x344 tmp/arm.v5a-linux.elf-fold.o
                 0x0000000000000004                get_page_mask
@@ -21,17 +21,17 @@ TARGET(elf32-littlearm)
                 0x0000000000000024                Pprotect
                 0x00000000fffffff4                PAGE_MASK
                 0x0000000000000024                mprotect
- .text          0x0000000000000344      0x484 tmp/arm.v5a-linux.elf-upxfd_android.o
+ .text          0x0000000000000344      0x488 tmp/arm.v5a-linux.elf-upxfd_android.o
                 0x0000000000000580                upx_mmap_and_fd
- .text          0x00000000000007c8        0x0 tmp/arm.v5a-expand.o
- .text          0x00000000000007c8      0x898 tmp/arm.v5a-linux.elf-main2.o
-                0x0000000000000ffc                underlay
-                0x0000000000000ecc                upx_main
+ .text          0x00000000000007cc        0x0 tmp/arm.v5a-expand.o
+ .text          0x00000000000007cc     0x13b0 tmp/arm.v5a-linux.elf-main2.o
+                0x0000000000001ad4                underlay
+                0x0000000000001874                upx_main
  *(.data)
- .data          0x0000000000001060        0x0 tmp/arm.v5a-linux.elf-fold.o
- .data          0x0000000000001060        0x0 tmp/arm.v5a-linux.elf-upxfd_android.o
- .data          0x0000000000001060        0x0 tmp/arm.v5a-expand.o
- .data          0x0000000000001060        0x0 tmp/arm.v5a-linux.elf-main2.o
+ .data          0x0000000000001b7c        0x0 tmp/arm.v5a-linux.elf-fold.o
+ .data          0x0000000000001b7c        0x0 tmp/arm.v5a-linux.elf-upxfd_android.o
+ .data          0x0000000000001b7c        0x0 tmp/arm.v5a-expand.o
+ .data          0x0000000000001b7c        0x0 tmp/arm.v5a-linux.elf-main2.o
 
 SYSCALLS        0x0000000000000000      0x214
  SYSCALLS       0x0000000000000000      0x214 tmp/arm.v5a-linux.elf-fold.o
@@ -60,8 +60,8 @@ SYSCALLS        0x0000000000000000      0x214
                 0x00000000000000d8                mkdir
                 0x000000000000001c                close
 
-EXP_HEAD        0x0000000000000000       0xe0
- EXP_HEAD       0x0000000000000000       0xe0 tmp/arm.v5a-expand.o
+EXP_HEAD        0x0000000000000000       0xdc
+ EXP_HEAD       0x0000000000000000       0xdc tmp/arm.v5a-expand.o
                 0x0000000000000074                f_expand
 
 EXP_TAIL        0x0000000000000000       0x24

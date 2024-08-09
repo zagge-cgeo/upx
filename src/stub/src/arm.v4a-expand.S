@@ -152,7 +152,7 @@ no_filt:
     ldr arg1,[sp,#1*NBPW]  // dst
     ldr arg2,[arg2]  // dstlen
     add arg2,arg2,arg1  // &dst[dstlen]
-    call __clear_cache
+    //call __clear_cache  // subsumed by write()+mmap()
 
     mov r0,#0; str r0,[sp]  // success return from f_expand  FIXME
     ldmia sp!,{r0,r1,r2,r3,r4,r5,r6,r7,pc}  // end f_expand
