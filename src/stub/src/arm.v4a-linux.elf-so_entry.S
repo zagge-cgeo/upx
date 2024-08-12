@@ -172,7 +172,7 @@ _start: .globl _start  // in Thumb mode  (via PackLinuxElf32::pack3)
         // argc,argv,envp, r3 convenience, r4-r7 callee-saved, lr ret_addr
         stmfd sp!,{r0,r1,r2, r3, r4,r5,r6,r7, lr}  // MATCH_99
 
-        sub sp,sp,#3*NBPW  // space for ADRU, LENU, PMASK
+        sub sp,sp,#F_ARGC  // space for ADRU, LENU, PMASK
 F_ADRU= 0 * NBPW
 F_LENU= 1 * NBPW
 F_PMASK=2 * NBPW
@@ -195,7 +195,8 @@ L70_ret:
         mov arg1,#0  // any page address
         call upx_mmap_and_fd
         add arg4,sp,#F_LENU  // &dstlen
-        and arg3,r0,rPMASK  // dst for decompress
+        mov arg3,r0,lsr #12
+        mov arg3,arg3,lsl #12  // dst for decompress
         str arg3,[sp,#F_ADRU]
         mov arg2,r7  // srclen
           sub mfd,r0,arg3

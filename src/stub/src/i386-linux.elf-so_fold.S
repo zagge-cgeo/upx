@@ -8,13 +8,10 @@ NBPW= 4
 #endif  //}
 
 // %esp:
-//   MATCH_13  ptr unfolded_code; for escape hatch
-//   MATCH_12  len unfolded code; for escape hatch
-//   MATCH_14  &so_info:
-//     .long offset(.)  // detect relocation
-//     .long offset(user DT_INIT)
-//     .long offset(escape_hatch)
-//     .long offset({l_info; p_info; b_info; compressed data})
+//  MATCH_14  &so_info
+//            PMASK
+//            ADRU
+//            LENU
 //  MATCH_03  pusha regs {%edi,%esi,%ebp,%esp,%ebx,%edx,%ecx,%eax}
 //            ret_addr
 //  MATCH_00  argc
@@ -22,27 +19,46 @@ NBPW= 4
 //  MATCH_07  envp
 
   section SO_HEAD
-fold:
-    mov %esp,%eax
-    mov 2*NBPW(%eax),%ecx  // &so_info
+ZERO:
+PAGE_MASK: .int 0xfffff000  // default
+qflg_data: .int 0  // QNX vs Linux: MAP_PRIVATE | MAP_ANONYMOUS
+upxfn_path:.int 0  // displacement from ZERO
+
+fold_begin: .globl fold_begin
+        jmp L05
+
+get_page_mask: .globl get_page_mask
+    call 0f; 0: pop %eax
+    movl PAGE_MASK-0b(%eax),%eax
+    ret
+
+get_upxfn_path: .globl get_upxfn_path  // char * (*)(void)
+    call 0f; 0: pop %ecx; lea ZERO-0b(%ecx),%ecx
+    mov upxfn_path-ZERO(%ecx),%eax  // offset(upxfn_path)
+    test %eax,%eax; jz 1f
+    add  %ecx,%eax; 1:  // &path
+    ret
+
+L05:  // %esp/ &so_info,PMASK,F_ADRU,F_LENU,8regs,ret_addr,argc
+  int3
+    pop %ecx  // &so_info
+    lea (3+8+1)*NBPW(%esp),%eax  // &{argc,argv,envp}
     sub $MAX_ELF_HDR_32,%esp; push %esp  // &elf_tmp
-    add $(3+8+1)*NBPW,%eax; push %eax  // &{argc,argv,envp}
+    push %eax  // &{argc,argv,envp}
     push %ecx  // &so_info
     call upx_so_main  // (&so_info, &{argc, argv, envp}, &elf_tmp); returns &escape_hatch
-    add $MAX_ELF_HDR_32 + 3*NBPW,%esp  // remove args
+    add $MAX_ELF_HDR_32 + (3+1)*NBPW,%esp  // remove args and PMASK
     mov %eax,%ebp  // save &escape_hatch
 
-    pop %ebx  // MATCH_13  ptr unfolded code
-    pop %ecx  // MATCH_12  len unfolded code
-    pop %edx  // MATCH_14  discard &so_info
+#define sys1 ebx
+#define sys2 ecx
+    pop %sys1  // MATCH_13  ADRU
+    pop %sys2  // MATCH_12  LENU
     push $__NR_munmap; pop %eax
     jmp *%ebp  // goto &escape_hatch
-
-    ret  // MATCH_30  ==>escape_hatch:
         //  syscall
-        //  pop %ebx
-        //  pop %ebp
-        //  ???
+        //  popa
+        //  ret
 
 L10:
   section ptr_NEXT
@@ -102,6 +118,17 @@ memcpy: .globl memcpy  // void (memcpy(void *dst, void const *src, size_t len)
     sub $3*NBPW,%esp // space for dst,src,len
     push %edx  // ret_addr
     ret
+
+mempcpy: .globl mempcpy  // (dst, src, n)
+        push %ebp; mov %esp,%ebp
+        push %edi; push %esi
+        mov (2+ 2)*NBPW(%ebp),%ecx
+        mov (2+ 1)*NBPW(%ebp),%esi
+        mov (2+ 0)*NBPW(%ebp),%edi
+        rep movsb
+        mov %edi,%eax
+        pop %esi; pop %edi; pop %ebp
+        ret
 
 /* 32-bit mode only! */
 __NR_read=  3
