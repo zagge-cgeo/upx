@@ -19,16 +19,16 @@ env:
   UPX_DEBUG_TEST_FLOAT_DIVISION_BY_ZERO: 1
   UPX_DEBUG_TEST_LIBC_QSORT: 1
   ZSTD_CLEVEL: 9
-  # 2024-08-03
-  ZIG_DIST_VERSION: 0.14.0-dev.839+a931bfada
+  # 2024-08-13
+  ZIG_DIST_VERSION: 0.14.0-dev.1033+25096ed89
 
 jobs:
   job-rebuild-and-verify-stubs:
     name: Rebuild stubs
     runs-on: ubuntu-latest
-    container: ubuntu:24.04 # glibc-2.39
-    #container: debian:12-slim # also works; glibc-2.36
-    #container: debian:testing-slim # also works; currently at glibc-2.38
+    container: ubuntu:24.04 # provides glibc-2.39
+    #container: debian:12-slim # also works; provides glibc-2.36
+    #container: debian:testing-slim # also works; currently provides glibc-2.38
     steps:
       - name: Install packages
         run: |
@@ -85,6 +85,7 @@ jobs:
           - { os: ubuntu-22.04, use_extra: true, use_wine: true }
           # GitHub ubuntu-24.04 is BETA; BUG: currently i386 programs can abort with "The futex facility returned an unexpected error code"
           #   THIS IS A KNOWN ISSUE: https://github.com/actions/runner-images/issues/9848
+          # { os: ubuntu-24.04, use_extra: true, use_wine: true }
           - { os: ubuntu-24.04 } # TODO later: enable extra+wine once the GitHub VM is fixed
     name: ${{ format('{0}', matrix.os) }}
     runs-on: ${{ matrix.os }}
@@ -144,7 +145,7 @@ jobs:
           for d in $dirs; do cmake --install build/extra/$d --prefix "$PWD/tmp/artifact/$N/InstallWithCMake/InstallWithPrefixAndStrip/$d" --strip; done
           (cd build && shopt -s nullglob && cp -ai --parents */upx{,.exe} */*/*/upx{,.exe} "../tmp/artifact/$N")
           if command -v hardlink >/dev/null; then (cd "tmp/artifact/$N" && hardlink .) fi
-          (cd tmp/artifact && tar --sort=name --zstd -cf "$N.tar.zst" "$N" && rm -rf "./$N" && ls -la)
+          (cd tmp/artifact && tar --sort=name --zstd -cf "$N.tar.zst" "$N" && rm -rf "./$N" && ls -la && zstd -tq "$N.tar.zst")
           echo "artifact_name=$N" >> $GITHUB_ENV
       - name: ${{ format('Upload artifact {0}', env.artifact_name) }}
         uses: actions/upload-artifact@v4
@@ -283,7 +284,7 @@ jobs:
           (cd build && rsync -R -a */*/*/upx "../tmp/artifact/$N/")
           hardlink="$HOMEBREW_PREFIX/opt/util-linux/bin/hardlink"
           if test -f "$hardlink"; then (cd "tmp/artifact/$N" && "$hardlink" .) fi
-          (cd tmp/artifact && gtar --sort=name --zstd -cf "$N.tar.zst" "$N" && rm -rf "./$N" && ls -la)
+          (cd tmp/artifact && gtar --sort=name --zstd -cf "$N.tar.zst" "$N" && rm -rf "./$N" && ls -la && zstd -tq "$N.tar.zst")
           echo "artifact_name=$N" >> $GITHUB_ENV
       - name: ${{ format('Upload artifact {0}', env.artifact_name) }}
         uses: actions/upload-artifact@v4
@@ -360,7 +361,7 @@ jobs:
           cmake --install build/debug   --config Debug   --prefix "$PWD/tmp/artifact/$N/InstallWithCMake/InstallWithPrefixAndStrip/debug"   --strip
           cmake --install build/release --config Release --prefix "$PWD/tmp/artifact/$N/InstallWithCMake/InstallWithPrefixAndStrip/release" --strip
           (cd build && cp -ai --parents */*/upx.exe "../tmp/artifact/$N")
-          (cd tmp/artifact && tar --sort=name --zstd -cf "$N.tar.zst" "$N" && rm -rf "./$N" && ls -la)
+          (cd tmp/artifact && tar --sort=name --zstd -cf "$N.tar.zst" "$N" && rm -rf "./$N" && ls -la && zstd -tq "$N.tar.zst")
           echo "artifact_name=$N" >> $GITHUB_ENV
       - name: ${{ format('Upload artifact {0}', env.artifact_name) }}
         uses: actions/upload-artifact@v4
@@ -455,7 +456,7 @@ jobs:
           N=$(echo "upx-${GITHUB_REF_NAME}-${GITHUB_SHA:0:7}-windows-${{ matrix.name }}" | sed 's/[^0-9a-zA-Z_.-]/-/g')
           mkdir -p "tmp/artifact/$N/$B"
           cp -ai build/$C/$B/upx/upx*.exe "tmp/artifact/$N/$B"
-          (cd tmp/artifact && tar --sort=name --zstd -cf "$N.tar.zst" "$N" && rm -rf "./$N" && ls -la)
+          (cd tmp/artifact && tar --sort=name --zstd -cf "$N.tar.zst" "$N" && rm -rf "./$N" && ls -la && zstd -tq "$N.tar.zst")
           echo "artifact_name=$N" >> $GITHUB_ENV
       - name: ${{ format('Upload artifact {0}', env.artifact_name) }}
         uses: actions/upload-artifact@v4
@@ -488,19 +489,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # only build a few targets => more targets are tested in the Weekly CI
+          # only build a few selected targets => more targets are tested in the Weekly CI
           - { zig_target: aarch64-linux-musl, qemu: qemu-aarch64 }
-          # { zig_target: aarch64-linux-musl, qemu: qemu-aarch64, zig_pic: -fPIE }
-          # { zig_target: aarch64-macos-none }
           - { zig_target: aarch64-macos.11.0-none }
-          # { zig_target: aarch64-macos.12.0-none }
-          # { zig_target: aarch64-macos.13.0-none }
           - { zig_target: aarch64-windows-gnu }
           - { zig_target: arm-linux-musleabihf, zig_flags: -mcpu=cortex_a5, qemu: qemu-arm }
-          # { zig_target: arm-linux-musleabihf, zig_flags: -mcpu=cortex_a5, qemu: qemu-arm, zig_pic: -fPIE }
+          - { zig_target: armeb-linux-musleabihf, zig_flags: -mcpu=cortex_a5, qemu: qemu-armeb }
           - { zig_target: i386-linux-gnu.2.3.4, zig_flags: -march=i586 }
           - { zig_target: i386-linux-musl, zig_flags: -march=i586, qemu: qemu-i386 }
-          # { zig_target: i386-linux-musl, zig_flags: -march=i586, qemu: qemu-i386, zig_pic: -fPIE }
           - { zig_target: i386-windows-gnu }
           - { zig_target: mips-linux-musl, qemu: qemu-mips }
           - { zig_target: mips-linux-muslsf, zig_flags: -msoft-float, qemu: qemu-mips }
@@ -511,15 +507,11 @@ jobs:
           - { zig_target: powerpc64le-linux-musl, qemu: qemu-ppc64le }
           - { zig_target: x86_64-linux-gnu.2.3.4, qemu: qemu-x86_64 } # can use QEMU because of gcompat
           - { zig_target: x86_64-linux-musl, qemu: qemu-x86_64 }
-          # { zig_target: x86_64-linux-musl, qemu: qemu-x86_64, zig_pic: -fPIE }
-          # { zig_target: x86_64-macos-none }
           - { zig_target: x86_64-macos.11.0-none }
-          # { zig_target: x86_64-macos.12.0-none }
-          # { zig_target: x86_64-macos.13.0-none }
           - { zig_target: x86_64-windows-gnu }
     name: ${{ format('zigcc {0} {1}', matrix.zig_target, matrix.zig_pic) }}
     runs-on: ubuntu-latest
-    container: alpine:3.20
+    container: ${{ contains(matrix.zig_target, 'armeb-') && 'alpine:3.19' || 'alpine:3.20' }} # qemu-armeb bug
     env:
       # zig is currently missing winpthreads; see https://github.com/ziglang/zig/issues/10989
       UPX_CONFIG_EXPECT_THREADS: ${{ contains(matrix.zig_target, '-windows') && 'OFF' || 'ON' }}
@@ -611,7 +603,7 @@ jobs:
           fi
           (cd build && shopt -s nullglob && cp -ai --parents */upx{,.exe} */*/*/upx{,.exe} "../tmp/artifact/$N")
           if command -v hardlink >/dev/null; then (cd "tmp/artifact/$N" && hardlink .) fi
-          (cd tmp/artifact && tar --sort=name --zstd -cf "$N.tar.zst" "$N" && rm -rf "./$N" && ls -la)
+          (cd tmp/artifact && tar --sort=name --zstd -cf "$N.tar.zst" "$N" && rm -rf "./$N" && ls -la && zstd -tq "$N.tar.zst")
           echo "artifact_name=$N" >> $GITHUB_ENV
       - name: ${{ format('Upload artifact {0}', env.artifact_name) }}
         uses: actions/upload-artifact@v4

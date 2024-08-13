@@ -103,6 +103,7 @@ endmacro()
 macro(upx_check_working_build_rpath var_name)
     if(WIN32 OR MINGW OR CYGWIN)
         # always works; DLLs reside next to the executables
+        set(${var_name} ON)
         upx_cache_bool_vars(ON ${var_name})
     elseif(CMAKE_BUILD_WITH_INSTALL_RPATH OR CMAKE_SKIP_RPATH OR CMAKE_SKIP_BUILD_RPATH)
         # cannot work; BUILD_RPATH is disabled by global CMake settings
@@ -279,6 +280,14 @@ function(upx_platform_check_mismatch var_name_1 var_name_2)
             endif()
         endif()
     endif()
+endfunction()
+
+# check for incompatible C vs CXX settings
+function(upx_platform_check_c_cxx_mismatch)
+    upx_platform_check_mismatch(CMAKE_C_PLATFORM_ID CMAKE_CXX_PLATFORM_ID)
+    upx_platform_check_mismatch(CMAKE_C_SIMULATE_ID CMAKE_CXX_SIMULATE_ID)
+    upx_platform_check_mismatch(CMAKE_C_COMPILER_ABI CMAKE_CXX_COMPILER_ABI)
+    upx_platform_check_mismatch(CMAKE_C_COMPILER_FRONTEND_VARIANT CMAKE_CXX_COMPILER_FRONTEND_VARIANT)
 endfunction()
 
 #***********************************************************************

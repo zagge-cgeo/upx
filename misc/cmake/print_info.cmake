@@ -8,7 +8,7 @@
 # print some info about the build configuration
 #***********************************************************************
 
-function(upx_print_info) # ARGV
+function(upx_print_info)
     get_property(PROPERTY_GENERATOR_IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
     get_property(PROPERTY_TARGET_SUPPORTS_SHARED_LIBS GLOBAL PROPERTY TARGET_SUPPORTS_SHARED_LIBS)
 
@@ -50,7 +50,7 @@ function(upx_print_info) # ARGV
     endforeach()
 
     # misc
-    upx_print_var(CMAKE_BUILD_WITH_INSTALL_RPATH)
+    upx_print_var(CMAKE_BUILD_WITH_INSTALL_RPATH CMAKE_SKIP_RPATH CMAKE_SKIP_BUILD_RPATH CMAKE_SKIP_INSTALL_RPATH)
     upx_print_var(CMAKE_INTERPROCEDURAL_OPTIMIZATION CMAKE_POSITION_INDEPENDENT_CODE)
     upx_print_var(PROPERTY_TARGET_SUPPORTS_SHARED_LIBS)
     upx_print_var(UPX_CONFIG_SANITIZE_FLAGS_DEBUG UPX_CONFIG_SANITIZE_FLAGS_RELEASE)

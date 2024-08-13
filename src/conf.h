@@ -372,8 +372,8 @@ typedef long long upx_off_t;
 
 // for no-op debug output
 inline void NO_printf(const char *, ...) noexcept attribute_format(1, 2);
-inline void NO_fprintf(FILE *, const char *, ...) noexcept attribute_format(2, 3);
 inline void NO_printf(const char *, ...) noexcept {}
+inline void NO_fprintf(FILE *, const char *, ...) noexcept attribute_format(2, 3);
 inline void NO_fprintf(FILE *, const char *, ...) noexcept {}
 
 #if __has_builtin(__builtin_memcmp)

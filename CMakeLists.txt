@@ -44,7 +44,7 @@ if(NOT USE_STRICT_DEFAULTS)
     option(UPX_CONFIG_DISABLE_WSTRICT  "Do not compile with strict compiler warnings." ON)
 else()
     # strict config defaults for Git developer builds
-    message(STATUS "===== UPX info: strict config defaults enabled")
+    message(STATUS "===== UPX NOTE: strict developer config defaults enabled =====")
     option(UPX_CONFIG_DISABLE_GITREV   "Do not compile with Git version info."         OFF)
     option(UPX_CONFIG_DISABLE_SANITIZE "Do not compile with sanitize options."         OFF)
     option(UPX_CONFIG_DISABLE_WERROR   "Do not compile with -Werror option."           OFF)
@@ -521,10 +521,7 @@ endif()
 
 # extra sanity checks to detect incompatible C vs CXX settings
 if(NOT UPX_CONFIG_CMAKE_DISABLE_PLATFORM_CHECK)
-    upx_platform_check_mismatch(CMAKE_C_PLATFORM_ID CMAKE_CXX_PLATFORM_ID)
-    upx_platform_check_mismatch(CMAKE_C_SIMULATE_ID CMAKE_CXX_SIMULATE_ID)
-    upx_platform_check_mismatch(CMAKE_C_COMPILER_ABI CMAKE_CXX_COMPILER_ABI)
-    upx_platform_check_mismatch(CMAKE_C_COMPILER_FRONTEND_VARIANT CMAKE_CXX_COMPILER_FRONTEND_VARIANT)
+    upx_platform_check_c_cxx_mismatch()
 endif()
 
 upx_cmake_include_hook(9_finish)

@@ -45,23 +45,23 @@
 // libc++ hardenining
 #if defined(__cplusplus) && 0 // TODO later
 
-#if defined(__clang__) && defined(__clang_major__) && (__clang_major__ + 0 >= 18)
 #if !defined(_LIBCPP_HARDENING_MODE)
+#if defined(__clang__) && defined(__clang_major__) && (__clang_major__ + 0 >= 18)
 #if DEBUG
 #define _LIBCPP_HARDENING_MODE _LIBCPP_HARDENING_MODE_DEBUG
 #else
 #define _LIBCPP_HARDENING_MODE _LIBCPP_HARDENING_MODE_EXTENSIVE
 #endif
-#endif
 #endif // clang >= 18
+#endif // _LIBCPP_HARDENING_MODE
 
-#if defined(__clang__) && defined(__clang_major__) && (__clang_major__ + 0 < 18)
 #if !defined(_LIBCPP_ENABLE_ASSERTIONS)
+#if defined(__clang__) && defined(__clang_major__) && (__clang_major__ + 0 < 18)
 #if DEBUG
 #define _LIBCPP_ENABLE_ASSERTIONS 1
 #endif
-#endif
 #endif // clang < 18
+#endif // _LIBCPP_ENABLE_ASSERTIONS
 
 #endif // TODO later
 

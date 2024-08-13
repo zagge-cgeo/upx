@@ -133,7 +133,7 @@ public:
     CantPackException(const char *m = nullptr, bool w = false) noexcept : super(m, 0, w) {}
 };
 
-class UnknownExecutableFormatException : public CantPackException {
+class UnknownExecutableFormatException final : public CantPackException {
     typedef CantPackException super;
 public:
     UnknownExecutableFormatException(const char *m = nullptr, bool w = false) noexcept
