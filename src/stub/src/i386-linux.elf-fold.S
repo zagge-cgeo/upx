@@ -96,6 +96,7 @@ F_ELFA= 2*NBPW
 F_LENX= 1*NBPW
 F_ADRX= 0*NBPW
 
+ZERO= . - 3*NBPW
 PAGE_MASK=  . - 3*NBPW
 upxfn_path= . - 2*NBPW  // displacement to filename string
 mflg_data=  . - 1*NBPW  // QNZ vs Linux
@@ -103,7 +104,6 @@ mflg_data=  . - 1*NBPW  // QNZ vs Linux
 fold_begin:
         endbr32
 ////  int3  // DEBUG
-                endbr32
         pop ebx; push ebx  // F_ADRX: elfaddr + (O_BINFO | is_ptinterp | unmap_all_pages)
         jmp L10
 
@@ -115,7 +115,7 @@ get_page_mask: .globl get_page_mask
 get_upxfn_path: .globl get_upxfn_path
         call 0f; 0: pop %ecx
         mov %eax,[upxfn_path - 0b + %ecx]
-        test %eax,%eax; je 1f; add %eax,%ecx
+        test %eax,%eax; je 1f; lea %eax,[ZERO - 0b + %eax + %ecx]
 1:
         ret
 

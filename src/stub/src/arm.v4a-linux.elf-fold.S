@@ -68,6 +68,7 @@ PATH_MAX= 4096
 #define call bl
 #include "MAX_ELF_HDR.S"
 
+ZERO=       . - 3*NBPW
 PAGE_MASK=  . - 3*NBPW; .globl PAGE_MASK
 qflg_data = . - 2*NBPW  // QNX vs Linux: MAP_PRIVATE | MAP_ANONYMOUS
 upxfn_path= . - 1*NBPW  // displacement from "zero"
@@ -87,8 +88,8 @@ get_page_mask: .globl get_page_mask
         ret
 
 get_upxfn_path: .globl get_upxfn_path  // char * (*)(void)
-    adr r1,fold_begin-3*NBPW  // "zero"
-    ldr r0,[r1,#1*NBPW]  // offset(upxfn_path)
+    adr r1,ZERO
+    ldr r0,[r1,#upxfn_path - ZERO]  // offset(upxfn_path)
     cmp r0,#0; beq 1f  // nullptr
     add r0,r0,r1  // &path
 1:

@@ -175,8 +175,8 @@ u_len  .req r6
         add binfo,lr,#NBPW  // skip o_binfo for now
 unfold:
         ldr r_unc,[binfo,#sz_unc]
-        mov r0,    #(1+ NAME_MAX + 2*NBPW + D_FOLD + (1+ 11 + 13)) & ~0xff
-        add r0, r0,#(1+ NAME_MAX + 2*NBPW + D_FOLD + (1+ 11 + 13)) &  0xff
+        mov r0,    #~0xff & (1+ NAME_MAX + 2*NBPW + D_FOLD + (1+ 11 + 13))
+        add r0, r0,# 0xff & (1+ NAME_MAX + 2*NBPW + D_FOLD + (1+ 11 + 13))
         add u_len,r_unc,r0
         str u_len,[sp,#F_LENU]
 // alloca for generated pathname (necessary if memfd_create fails)
@@ -194,6 +194,7 @@ unfold:
         mov arg2,u_len
         mov arg1,#0  // kernel chooses addr
         call upx_mmap_and_fd  // (addr + (1+ fd)) = (ptr, len, pathname)
+        tst r0,#(1<<11); bpl 0f; bkpt; 0:  // fd "negative" ==> failure
         mov r1,r0,lsr #12
         mov r1,r1,lsl #12
         sub r0,r0,r1
@@ -202,7 +203,7 @@ unfold:
 
 // copy generated pathname (if any) from stack into mapped region
         add r2,r1,r_unc
-        add r2,r2,# 2*NBPW
+        add r2,r2,# 2*NBPW + D_FOLD
         and r2,r2,#-2*NBPW
 0:
         ldmia sp!,{r3}  // gradual de-alloca
@@ -365,6 +366,7 @@ mempcpy: .globl mempcpy  // (dst, src, n)
 // Because called from C, then r7 is live; cannot use do_sys7t.
 .globl memfd_create; memfd_create: do_sys2 __NR_memfd_create; ret
 .globl close;     close:     do_sys __NR_close; ret
+.globl exit;      exit:      do_sys __NR_exit; ret
 .globl fdatasync; fdatasync: do_sys __NR_fdatasync; ret
 .globl fsync;     fsync:     do_sys __NR_fsync; ret
 .globl ftruncate; ftruncate: do_sys __NR_ftruncate; ret

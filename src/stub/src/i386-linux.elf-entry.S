@@ -200,6 +200,7 @@ AT_PAGESZ= 6  // /usr/include/elf.h
         push u_len  // arg2
         push %ecx  // arg1  0==> any page
         call upx_mmap_and_fd; add $3*NBPW,%esp  // (ptr, len, pathname)
+        test $(1<<11),%eax; jz 0f; hlt; 0: // fd "negative" ==> failure
         pop %edx  // MATCH_33  restore &getbit
         mov %eax,%ecx
         shr $12,%eax; shl $12,%eax; mov %eax,F_ADRU(old_sp)

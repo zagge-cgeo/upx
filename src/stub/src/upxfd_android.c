@@ -164,6 +164,9 @@ static int dir_check(char const *path)
     if (-ENOENT == rv) {
         rv = mkdir(path, S_IRWXU);
     }
+    if (-ENOENT == rv) {
+        exit(-1);
+    }
     return rv;
 }
 
