@@ -237,7 +237,7 @@ p_memsz= 5*NBPW
         cmpwi a4,0; blt no_map_pse
         li a3,MAP_PRIVATE
         li a2,PROT_READ
-        neg a1,r_PMASK  // PAGE_SIZE
+        neg a1,r_PMASK  // page_size
         li a0,0  // kernel chooses where
         call mmap
 // close /proc/self/exe

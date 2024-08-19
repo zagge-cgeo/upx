@@ -59,9 +59,6 @@ MAP_FIXED=     0x10
 MAP_ANONYMOUS= 0x20
 MFD_EXEC= 0x10
 
-PAGE_SHIFT= 16  // 64KiB PAGE_SIZE
-PAGE_SIZE = -(~0<<PAGE_SHIFT)
-
 CACHELINE=32
 
 /* /usr/include/asm-ppc/unistd.h */
@@ -195,7 +192,7 @@ SYS_memfd_create= __NR_memfd_create
         lwz lsrc,sz_cpr  + LBINFO - LrFLD(r_FLD)
         la src,sz_b_info + LBINFO - LrFLD(r_FLD)  // folded code
         bctrl  // f_exp (decompress)
-        std r_PMASK,0(sp)  // forward the actual PAGE_MASK
+        std r_PMASK,0(sp)  // forward the actual page_mask
 
         mr a0,r_fd
         mr a1,sp
@@ -278,7 +275,7 @@ main:
         ld r0,a_type(a0); ld a1,a_val(a0); addi a0,a0,sz_auxv
         cmpdi cr7,r0,AT_PAGESZ; beq- cr7,2f
         cmpdi cr0,r0,AT_NULL;   bne+ cr0,1b
-        lis a1,PAGE_SIZE>>16  // not found; use default
+        lis a1,1  // not found; use default (1<<16)
 2:
         neg r_PMASK,a1  // save for folded code
 

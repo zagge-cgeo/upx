@@ -122,7 +122,7 @@ unmap_all_pages=   (1<<1)
 #define r_LENX   17  /* s1 */
 #define r_ADRX   16  /* s0 */
 
-PAGE_MASK: .word 0  # set by elf-entry.S
+page_mask: .word 0  # set by elf-entry.S
 upxfn_path: .word 0  # set by elf-entry.S
 
 // KNOWN OFFSET == 2*NBPW == 8
@@ -191,7 +191,7 @@ Lget_page_mask:
         bal 5f  // ra= 0f
           lw v0,(ra)
 0:
-        .word PAGE_MASK - 0b
+        .word page_mask - 0b
 5:
           nop
         addu v0,ra

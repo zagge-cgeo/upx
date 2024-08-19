@@ -106,9 +106,6 @@ MAP_PRIVATE=        2
 MAP_FIXED=       0x10
 MAP_ANONYMOUS=  0x800
 
-PAGE_SHIFT= 12  # default only
-PAGE_SIZE = -(~0<<PAGE_SHIFT)
-
 M_NRV2B_LE32=2  # ../conf.h
 M_NRV2D_LE32=5
 M_NRV2E_LE32=8
@@ -279,7 +276,7 @@ main:
         beq v1,t0,2f  # AT_PAGESZ
           lw v0,a_val - sz_auxv(a0)
         bnez v1,1b  # AT_NULL
-          li v0,PAGE_SIZE
+          li v0,1<<12
 2:
           nop  # delay slot if AT_PAGESZ found
         neg $r_PMASK,v0

@@ -72,10 +72,6 @@ __NR_mprotect= 125
 ENOSYS= 38  /* Invalid system call number */
 NAME_MAX=  255  // # chars in file name; linux/include/uapi/linux/limits.h
 
-PAGE_SHIFT= 12
-PAGE_SIZE= ( 1 << PAGE_SHIFT)
-PAGE_MASK= (~0 << PAGE_SHIFT)
-
 M_NRV2B_LE32= 2
 
 /*************************************************************************
@@ -156,10 +152,10 @@ AT_PAGESZ= 6  // /usr/include/elf.h
         mov     (%edi),%eax
         mov NBPW(%edi),%ecx; add $2*NBPW,%edi
         cmp $AT_PAGESZ,%eax; je 5f
-        mov $1<<12,%ecx  // default PAGE_SIZE
+        mov $1<<12,%ecx  // default page_size
         test %eax,%eax; jne 0b
 5:
-        neg %ecx  // PAGE_MASK
+        neg %ecx  // page_mask
 
         mov %esp,old_sp
         mov %ecx,F_PMASK(old_sp)
@@ -323,7 +319,7 @@ eof_n2b:
         mov $__NR_close,%al; call sys_check_al
 
         mov F_ADRU(%ebp),%eax
-        add $D_FOLD,%eax  // PAGE_MASK, upxfd_path, mflg_data
+        add $D_FOLD,%eax  // page_mask, upxfd_path, mflg_data
         /*notrack*/ jmp *%eax
 // %esp:
 //  MATCH_13  ptr unfolded_code; for escape hatch

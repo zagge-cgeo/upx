@@ -36,8 +36,6 @@ NBPW= 4
 # Memory operands use square brackets:  [displ + %reg]
 # Literal operands lack square brackets.
 
-PAGE_SIZE= ( 1<<12)
-PAGE_MASK= -PAGE_SIZE
 PATH_MAX= 4096
 
 ET_DYN= 3
@@ -97,7 +95,7 @@ F_LENX= 1*NBPW
 F_ADRX= 0*NBPW
 
 ZERO= . - 3*NBPW
-PAGE_MASK=  . - 3*NBPW
+page_mask=  . - 3*NBPW
 upxfn_path= . - 2*NBPW  // displacement to filename string
 mflg_data=  . - 1*NBPW  // QNZ vs Linux
 
@@ -108,8 +106,8 @@ fold_begin:
         jmp L10
 
 get_page_mask: .globl get_page_mask
-        call 0f; 0: pop %ecx
-        mov %eax,[PAGE_MASK - 0b + %ecx]
+        call 0f; 0: pop %eax
+        mov %eax,[page_mask - 0b + %eax]
         ret
 
 get_upxfn_path: .globl get_upxfn_path
@@ -258,7 +256,7 @@ no_env_pse:
         // edi has fd
         push MAP_PRIVATE; pop esi
         push PROT_READ; pop edx
-        mov ecx,PAGE_SIZE
+        call get_page_mask; xor ecx,ecx; sub ecx,eax  // page size
         sub ebx,ebx  // 0 ==> Linux chooses page frame
         mov al,__NR_newmmap; call sys_check_al
 
@@ -294,7 +292,7 @@ L60:
 Pprotect: .globl Pprotect
     xchg ebx,[1*NBPW + esp]  // save reg, %ebx= address
     mov ecx,ebx  // copy address
-    and ebx, ~0<<12  // page align
+    call get_page_mask; and ebx,eax  // round down to page
     sub ecx,%ebx  // extra length
     add ecx,[2*NBPW + esp]  // length
     mov edx,[3*NBPW + esp]  // bits

@@ -7,17 +7,17 @@ Name             Origin             Length             Attributes
 Linker script and memory map
 
 
-.text           0x0000000000000000      0xdbc
- .text          0x0000000000000000      0x18c tmp/i386-linux.elf-fold.o
+.text           0x0000000000000000      0xdf6
+ .text          0x0000000000000000      0x190 tmp/i386-linux.elf-fold.o
                 0x0000000000000008                get_page_mask
                 0x0000000000000015                get_upxfn_path
- .text          0x000000000000018c      0x46f tmp/i386-linux.elf-upxfd_android.o
-                0x00000000000003a3                upx_mmap_and_fd
- *fill*         0x00000000000005fb        0x1 00
- .text          0x00000000000005fc        0x0 tmp/i386-expand.o
- .text          0x00000000000005fc      0x7c0 tmp/i386-linux.elf-main2.o
-                0x0000000000000751                underlay
-                0x0000000000000c68                upx_main
+ .text          0x0000000000000190      0x46f tmp/i386-linux.elf-upxfd_android.o
+                0x00000000000003a7                upx_mmap_and_fd
+ *fill*         0x00000000000005ff        0x1 00
+ .text          0x0000000000000600        0x0 tmp/i386-expand.o
+ .text          0x0000000000000600      0x7f6 tmp/i386-linux.elf-main2.o
+                0x0000000000000755                underlay
+                0x0000000000000ca2                upx_main
 
 .data           0x0000000000000000        0x0
  .data          0x0000000000000000        0x0 tmp/i386-linux.elf-fold.o
@@ -40,15 +40,15 @@ OUTPUT(tmp/i386-linux.elf-fold.bin elf32-i386)
 
 SYSCALLS        0x0000000000000000       0xc0
  SYSCALLS       0x0000000000000000       0xc0 tmp/i386-linux.elf-fold.o
-                0x000000000000008f                memcpy
-                0x00000000000000a5                mempcpy
-                0x000000000000002a                mmap
-                0x000000000000005a                uname
-                0x000000000000007b                memset
-                0x00000000000000bb                my_bkpt
+                0x0000000000000090                memcpy
+                0x00000000000000a6                mempcpy
+                0x000000000000002b                mmap
+                0x000000000000005b                uname
+                0x000000000000007c                memset
+                0x00000000000000bc                my_bkpt
                 0x0000000000000000                Pprotect
-                0x0000000000000048                stat
-                0x0000000000000069                mkdir
+                0x0000000000000049                stat
+                0x000000000000006a                mkdir
 
 .note.GNU-stack
                 0x0000000000000000        0x0

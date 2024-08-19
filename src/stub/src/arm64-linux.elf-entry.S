@@ -185,7 +185,7 @@ L00:
         do_sys __NR_memfd_create
         tbz w0,#31,ok_memfd  // success
         cbz w1,no_memfd  // already failed twice
-        mov w1,wzr; b 0b  // try atain without MFD_EXEC
+        mov w1,wzr; b 0b  // try again without MFD_EXEC
 no_memfd:  // so try /dev/shm
 O_RDWR= 2
 O_DIRECTORY= 0200000  // 0x010000

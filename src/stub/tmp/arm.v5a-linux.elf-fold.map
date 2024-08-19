@@ -8,30 +8,30 @@ Linker script and memory map
 
 TARGET(elf32-littlearm)
 
-.text           0x0000000000000000     0x1078
+.text           0x0000000000000000     0x10d0
  *(.text)
- .text          0x0000000000000000      0x344 tmp/arm.v5a-linux.elf-fold.o
+ .text          0x0000000000000000      0x348 tmp/arm.v5a-linux.elf-fold.o
                 0x0000000000000004                get_page_mask
-                0x00000000000002e4                memcpy
-                0x0000000000000328                mempcpy
+                0x00000000000002e8                memcpy
+                0x000000000000032c                mempcpy
                 0x0000000000000060                mmap
                 0x0000000000000048                mmap_privanon
                 0x000000000000000c                get_upxfn_path
-                0x0000000000000308                memset
+                0x000000000000030c                memset
+                0x00000000fffffff4                page_mask
                 0x0000000000000024                Pprotect
-                0x00000000fffffff4                PAGE_MASK
                 0x0000000000000024                mprotect
- .text          0x0000000000000344      0x49c tmp/arm.v5a-linux.elf-upxfd_android.o
-                0x0000000000000594                upx_mmap_and_fd
- .text          0x00000000000007e0        0x0 tmp/arm.v5a-expand.o
- .text          0x00000000000007e0      0x898 tmp/arm.v5a-linux.elf-main2.o
-                0x0000000000001014                underlay
-                0x0000000000000ee4                upx_main
+ .text          0x0000000000000348      0x49c tmp/arm.v5a-linux.elf-upxfd_android.o
+                0x0000000000000598                upx_mmap_and_fd
+ .text          0x00000000000007e4        0x0 tmp/arm.v5a-expand.o
+ .text          0x00000000000007e4      0x8ec tmp/arm.v5a-linux.elf-main2.o
+                0x000000000000106c                underlay
+                0x0000000000000f3c                upx_main
  *(.data)
- .data          0x0000000000001078        0x0 tmp/arm.v5a-linux.elf-fold.o
- .data          0x0000000000001078        0x0 tmp/arm.v5a-linux.elf-upxfd_android.o
- .data          0x0000000000001078        0x0 tmp/arm.v5a-expand.o
- .data          0x0000000000001078        0x0 tmp/arm.v5a-linux.elf-main2.o
+ .data          0x00000000000010d0        0x0 tmp/arm.v5a-linux.elf-fold.o
+ .data          0x00000000000010d0        0x0 tmp/arm.v5a-linux.elf-upxfd_android.o
+ .data          0x00000000000010d0        0x0 tmp/arm.v5a-expand.o
+ .data          0x00000000000010d0        0x0 tmp/arm.v5a-linux.elf-main2.o
 
 SYSCALLS        0x0000000000000000      0x214
  SYSCALLS       0x0000000000000000      0x214 tmp/arm.v5a-linux.elf-fold.o

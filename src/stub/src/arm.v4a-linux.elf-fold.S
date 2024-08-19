@@ -53,8 +53,6 @@ PROT_READ=     0x1
 
 O_RDONLY=       0
 
-PAGE_SHIFT= 12
-PAGE_SIZE = -(~0<<PAGE_SHIFT)
 PATHMAX=  4096
 
 PATH_MAX= 4096
@@ -69,7 +67,7 @@ PATH_MAX= 4096
 #include "MAX_ELF_HDR.S"
 
 ZERO=       . - 3*NBPW
-PAGE_MASK=  . - 3*NBPW; .globl PAGE_MASK
+page_mask=  . - 3*NBPW; .globl page_mask
 qflg_data = . - 2*NBPW  // QNX vs Linux: MAP_PRIVATE | MAP_ANONYMOUS
 upxfn_path= . - 1*NBPW  // displacement from "zero"
 
@@ -81,10 +79,10 @@ arg5  .req r4
 arg6  .req r5
 
 fold_begin:  // enter here
-        b L05  // put PAGE_MASK and qflg_data within short-displacement of uses
+        b L05  // put page_mask and qflg_data within short-displacement of uses
 
 get_page_mask: .globl get_page_mask
-        ldr r0,PAGE_MASK
+        ldr r0,page_mask
         ret
 
 get_upxfn_path: .globl get_upxfn_path  // char * (*)(void)
@@ -98,7 +96,7 @@ get_upxfn_path: .globl get_upxfn_path  // char * (*)(void)
 // Sometimes Linux enforces page-aligned address
 Pprotect: .globl Pprotect
 mprotect: .globl mprotect
-        ldr r12,PAGE_MASK
+        ldr r12,page_mask
         bic r12,arg1,r12  // lo frag
         sub arg1,arg1,r12  // page align lo end
         add arg2,arg2,r12
@@ -120,7 +118,7 @@ mmap: .globl mmap
         ldr arg5,[sp,#3*NBPW]
         mov arg6,arg6,lsr #12  @ FIXME?  convert to page offset in file
 mmap_do: // sp: saved r4,r5,lr
-        ldr r12,PAGE_MASK
+        ldr r12,page_mask
         bic r12,arg1,r12  // lo frag
         sub arg1,arg1,r12  // page align lo end
         add arg2,arg2,r12
@@ -250,8 +248,9 @@ r_elfa .req r9
         stmdb sp!,{arg5,arg6}  @ arg5,arg6 C-lang calling convention
         mov arg4,#MAP_PRIVATE
         mov arg3,#PROT_READ
-        mov arg2,#PAGE_SIZE
+        ldr arg2,page_mask
         mov arg1,#0  @ any address
+        sub arg2,arg1,arg2  // page_size
         call mmap  @ no error check: cannot recover
         ldmia sp!,{arg1,r1}  @ fd, offset
         call close
