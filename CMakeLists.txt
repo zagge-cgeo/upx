@@ -78,13 +78,13 @@ upx_cache_bool_vars(ON
     CMAKE_C_STANDARD_REQUIRED CMAKE_CXX_STANDARD_REQUIRED
     CMAKE_EXPORT_COMPILE_COMMANDS CMAKE_REQUIRED_QUIET
 )
-# internal UPX settings; useful for CI jobs
+# internal UPX settings that default to OFF; useful for CI jobs
 upx_cache_bool_vars(OFF
     UPX_CONFIG_CMAKE_DISABLE_TEST UPX_CONFIG_CMAKE_DISABLE_INSTALL
     UPX_CONFIG_CMAKE_DISABLE_PRINT_INFO UPX_CONFIG_CMAKE_DISABLE_PLATFORM_CHECK
     UPX_CONFIG_DISABLE_C_STANDARD UPX_CONFIG_DISABLE_CXX_STANDARD
     UPX_CONFIG_DISABLE_RUN_UNPACKED_TEST UPX_CONFIG_DISABLE_RUN_PACKED_TEST
-    UPX_CONFIG_DISABLE_SHARED_LIBS UPX_CONFIG_REQUIRE_THREADS
+    UPX_CONFIG_DISABLE_SAVE_TEMPS UPX_CONFIG_DISABLE_SHARED_LIBS UPX_CONFIG_REQUIRE_THREADS
 )
 upx_cache_bool_vars(ON UPX_CONFIG_EXPECT_THREADS)
 upx_print_env_var(CC CXX)
@@ -283,7 +283,9 @@ if(Threads_FOUND)
         endif()
         if(NOT result)
             # failed; under MinGW be sure to use the posix-threads and NOT the win32-threads version
-            #message(STATUS "Threads FAILED ${f}: ${output}") # debug output from try_compile
+            if(UPX_CONFIG_REQUIRE_THREADS OR (UPX_CONFIG_EXPECT_THREADS AND NOT UPX_CONFIG_DISABLE_THREADS))
+                message(WARNING "Threads FAILED ${f}: ${output}") # output from try_compile
+            endif()
             set(Threads_FOUND OFF)
             break()
         endif()

@@ -19,8 +19,8 @@ env:
   UPX_DEBUG_TEST_FLOAT_DIVISION_BY_ZERO: 1
   UPX_DEBUG_TEST_LIBC_QSORT: 1
   ZSTD_CLEVEL: 9
-  # 2024-08-13
-  ZIG_DIST_VERSION: 0.14.0-dev.1033+25096ed89
+  # 2024-08-17
+  ZIG_DIST_VERSION: 0.14.0-dev.1166+bb7050106
 
 jobs:
   job-rebuild-and-verify-stubs:
@@ -511,7 +511,7 @@ jobs:
           - { zig_target: x86_64-windows-gnu }
     name: ${{ format('zigcc {0} {1}', matrix.zig_target, matrix.zig_pic) }}
     runs-on: ubuntu-latest
-    container: ${{ contains(matrix.zig_target, 'armeb-') && 'alpine:3.19' || 'alpine:3.20' }} # qemu-armeb bug
+    container: ${{ contains(matrix.qemu, 'qemu-armeb') && 'alpine:3.19' || 'alpine:3.20' }} # qemu-armeb bug
     env:
       # zig is currently missing winpthreads; see https://github.com/ziglang/zig/issues/10989
       UPX_CONFIG_EXPECT_THREADS: ${{ contains(matrix.zig_target, '-windows') && 'OFF' || 'ON' }}
