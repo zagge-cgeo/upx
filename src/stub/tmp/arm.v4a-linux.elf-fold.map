@@ -7,7 +7,7 @@ Name             Origin             Length             Attributes
 Linker script and memory map
 
 
-.text           0x0000000000000000     0x10cc
+.text           0x0000000000000000     0x1144
  .text          0x0000000000000000      0x348 tmp/arm.v4a-linux.elf-fold.o
                 0x0000000000000004                get_page_mask
                 0x00000000000002e8                memcpy
@@ -19,12 +19,12 @@ Linker script and memory map
                 0x00000000fffffff4                page_mask
                 0x0000000000000024                Pprotect
                 0x0000000000000024                mprotect
- .text          0x0000000000000348      0x498 tmp/arm.v4a-linux.elf-upxfd_android.o
-                0x0000000000000598                upx_mmap_and_fd
- .text          0x00000000000007e0        0x0 tmp/arm.v4a-expand.o
- .text          0x00000000000007e0      0x8ec tmp/arm.v4a-linux.elf-main2.o
-                0x0000000000001068                underlay
-                0x0000000000000f38                upx_main
+ .text          0x0000000000000348      0x510 tmp/arm.v4a-linux.elf-upxfd_android.o
+                0x000000000000060c                upx_mmap_and_fd
+ .text          0x0000000000000858        0x0 tmp/arm.v4a-expand.o
+ .text          0x0000000000000858      0x8ec tmp/arm.v4a-linux.elf-main2.o
+                0x00000000000010e0                underlay
+                0x0000000000000fb0                upx_main
 
 SYSCALLS        0x0000000000000000      0x214
  SYSCALLS       0x0000000000000000      0x214 tmp/arm.v4a-linux.elf-fold.o

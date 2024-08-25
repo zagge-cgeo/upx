@@ -138,6 +138,7 @@ class Dummy {
         SHT_PREINIT_ARRAY = 16,       /* Array of pre-constructors */
         SHT_GROUP = 17,               /* Section group */
         SHT_SYMTAB_SHNDX = 18,        /* Extended section indices */
+        SHT_RELR = 19,                /* RELR relative relocations */
         SHT_GNU_HASH = 0x6ffffff6,    /* GNU-style hash table.  */
         SHT_GNU_LIBLIST = 0x6ffffff7, /* Prelink library list */
         SHT_GNU_verdef = 0x6ffffffd,  /* Version definition section.  */

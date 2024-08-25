@@ -2,12 +2,12 @@ file format elf32-i386
 
 Sections:
 Idx Name          Size      VMA       LMA       File off  Algn  Flags
-  0 ELFMAINX      0667  0  0  034  2**2  CONTENTS
-  1 ELFMAINZ      0a  0  0  069b  2**0  CONTENTS
+  0 ELFMAINX      06da  0  0  034  2**2  CONTENTS
+  1 ELFMAINZ      0a  0  0  070e  2**0  CONTENTS
 SYMBOL TABLE:
 00000000 l    d  ELFMAINX 0 ELFMAINX
 00000000 l    d  ELFMAINZ 0 ELFMAINZ
-0000040f g     F ELFMAINX 0258 upx_mmap_and_fd
+00000482 g     F ELFMAINX 0258 upx_mmap_and_fd
 00000000         *UND* 0 O_BINFO
 000001d4 g       ELFMAINX 0 mempcpy
 0000017a g       ELFMAINX 0 mmap
@@ -25,11 +25,14 @@ OFFSET   TYPE              VALUE
 000000a5 R_386_PC32        upx_mmap_and_fd
 00000152 R_386_PC32        mmap
 0000020c R_386_PC32        memset
-00000343 R_386_PC32        mempcpy
-0000048d R_386_PC32        my_bkpt
-00000506 R_386_PC32        get_upxfn_path
-000005b7 R_386_PC32        memset
-0000063b R_386_PC32        mmap
+0000025b R_386_PC32        my_bkpt
+00000321 R_386_PC32        my_bkpt
+00000355 R_386_PC32        mempcpy
+000003b1 R_386_PC32        mempcpy
+00000500 R_386_PC32        my_bkpt
+00000579 R_386_PC32        get_upxfn_path
+0000062a R_386_PC32        memset
+000006ae R_386_PC32        mmap
 
 RELOCATION RECORDS FOR [ELFMAINZ]:
 OFFSET   TYPE              VALUE

@@ -34,7 +34,7 @@
 
 extern void my_bkpt(void const *arg1, ...);
 
-#define DEBUG 1
+#define DEBUG 0
 
 // Pprotect is mprotect, but page-aligned on the lo end (Linux requirement)
 unsigned Pprotect(void *, size_t, unsigned);
@@ -484,7 +484,6 @@ upx_so_main(  // returns &escape_hatch
     Elf32_Ehdr *elf_tmp  // scratch for Elf32_Ehdr and Elf32_Phdrs
 )
 {
-    my_bkpt((void *)0x1234, so_info, so_args, elf_tmp);
     unsigned long const page_mask = get_page_mask();
     char *const va_load = (char *)&so_info->off_reloc - so_info->off_reloc;
     So_info so_infc;  // So_info Copy

@@ -8,7 +8,7 @@ Linker script and memory map
 
 TARGET(elf32-littlearm)
 
-.text           0x0000000000000000     0x10d0
+.text           0x0000000000000000     0x1150
  *(.text)
  .text          0x0000000000000000      0x348 tmp/arm.v5a-linux.elf-fold.o
                 0x0000000000000004                get_page_mask
@@ -21,17 +21,17 @@ TARGET(elf32-littlearm)
                 0x00000000fffffff4                page_mask
                 0x0000000000000024                Pprotect
                 0x0000000000000024                mprotect
- .text          0x0000000000000348      0x49c tmp/arm.v5a-linux.elf-upxfd_android.o
-                0x0000000000000598                upx_mmap_and_fd
- .text          0x00000000000007e4        0x0 tmp/arm.v5a-expand.o
- .text          0x00000000000007e4      0x8ec tmp/arm.v5a-linux.elf-main2.o
-                0x000000000000106c                underlay
-                0x0000000000000f3c                upx_main
+ .text          0x0000000000000348      0x51c tmp/arm.v5a-linux.elf-upxfd_android.o
+                0x0000000000000614                upx_mmap_and_fd
+ .text          0x0000000000000864        0x0 tmp/arm.v5a-expand.o
+ .text          0x0000000000000864      0x8ec tmp/arm.v5a-linux.elf-main2.o
+                0x00000000000010ec                underlay
+                0x0000000000000fbc                upx_main
  *(.data)
- .data          0x00000000000010d0        0x0 tmp/arm.v5a-linux.elf-fold.o
- .data          0x00000000000010d0        0x0 tmp/arm.v5a-linux.elf-upxfd_android.o
- .data          0x00000000000010d0        0x0 tmp/arm.v5a-expand.o
- .data          0x00000000000010d0        0x0 tmp/arm.v5a-linux.elf-main2.o
+ .data          0x0000000000001150        0x0 tmp/arm.v5a-linux.elf-fold.o
+ .data          0x0000000000001150        0x0 tmp/arm.v5a-linux.elf-upxfd_android.o
+ .data          0x0000000000001150        0x0 tmp/arm.v5a-expand.o
+ .data          0x0000000000001150        0x0 tmp/arm.v5a-linux.elf-main2.o
 
 SYSCALLS        0x0000000000000000      0x214
  SYSCALLS       0x0000000000000000      0x214 tmp/arm.v5a-linux.elf-fold.o

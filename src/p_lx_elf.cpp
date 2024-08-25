@@ -5790,16 +5790,16 @@ unsigned PackLinuxElf32::forward_Shdrs(OutputFile *fo, Elf32_Ehdr *const eho)
         // Keep _Shdr for SHF_WRITE.
         // Discard _Shdr with (0==sh_addr), except _Shdr[0]
         // Keep ARM_ATTRIBUTES
-        unsigned const want_types_mask =
-              1u<<SHT_SYMTAB
-            | 1u<<SHT_RELA
-            | 1u<<SHT_PROGBITS  // see comment above
+        unsigned const want_types_mask = 0
+            | 1u<<SHT_PROGBITS  // see comment above, and special code below
             | 1u<<SHT_HASH
             | 1u<<SHT_DYNAMIC
             | 1u<<SHT_NOTE
             | 1u<<SHT_REL
-            | 1u<<SHT_DYNSYM
-            | 1u<<SHT_STRTAB  // .shstrtab and .dynstr
+            | 1u<<SHT_RELA
+            | 1u<<SHT_RELR
+            | 1u<<SHT_DYNSYM  // but not SHT_SYMTAB because compression confuses gdb
+            | 1u<<SHT_STRTAB  // .shstrtab and DYNSYM.sh_link; not SYMTAB.sh_link
             | 1u<<SHT_INIT_ARRAY
             | 1u<<SHT_FINI_ARRAY
             | 1u<<SHT_PREINIT_ARRAY
@@ -5809,7 +5809,7 @@ unsigned PackLinuxElf32::forward_Shdrs(OutputFile *fo, Elf32_Ehdr *const eho)
             | 1u<<(0x1f & SHT_GNU_HASH);
 
         u32_t xct_off_hi = 0;
-        Elf32_Phdr const *ptr = phdri, *ptr_end = &phdri[e_phnum];
+        Elf32_Phdr *ptr = phdri, *ptr_end = &phdri[e_phnum];
         for (; ptr < ptr_end; ++ptr) {
             if (PT_LOAD32 == get_te32(&ptr->p_type)) {
                 u32_t hi = get_te32(&ptr->p_filesz)
@@ -5829,6 +5829,13 @@ unsigned PackLinuxElf32::forward_Shdrs(OutputFile *fo, Elf32_Ehdr *const eho)
         Elf32_Shdr *sh_out0 = (Elf32_Shdr *)mb_shdro.getVoidPtr();
         Elf32_Shdr *sh_out = sh_out0;
         Elf32_Shdr *sh_in = shdri;
+        Elf32_Shdr *n_shstrsec = nullptr;
+
+        // Some binutils does tail merging on section names; we don't.
+        // ".plt" == (4+ ".rel.plt"); ".hash" == (4+ ".gnu.hash")
+        MemBuffer mb_shstrings(100 + 2*get_te32(&sh_in[e_shstrndx].sh_size));
+        char *ptr_shstrings = (char *)&mb_shstrings[0];
+        *ptr_shstrings++ = '\0';
 
         memset(sh_out, 0, sizeof(*sh_out));  // blank sh_out[0]
         ++sh_in; ++sh_out; unsigned n_sh_out = 1;
@@ -5840,6 +5847,8 @@ unsigned PackLinuxElf32::forward_Shdrs(OutputFile *fo, Elf32_Ehdr *const eho)
             unsigned sh_addr   = get_te32(&sh_in->sh_addr);
             unsigned sh_offset = get_te32(&sh_in->sh_offset);
             unsigned sh_size   = get_te32(&sh_in->sh_size);
+            unsigned sh_name   = get_te32(&sh_in->sh_name);
+            char const *name = &shstrtab[sh_name];
             if (ask_for[j]) { // Some previous _Shdr requested  me
                 // Tell them my new index
                 set_te32(&sh_out0[ask_for[j]].sh_info, n_sh_out);  // sh_info vs st_shndx
@@ -5853,7 +5862,7 @@ unsigned PackLinuxElf32::forward_Shdrs(OutputFile *fo, Elf32_Ehdr *const eho)
                 || (sec_arm_attr == sh_in)
                 || (want_types_mask & (1<<(0x1f & sh_type)))
             ) {
-                *sh_out = *sh_in;
+                *sh_out = *sh_in;  // *sh_in is a candidate for fowarding
                 if (sh_offset > xct_off) { // may slide down: earlier compression
                     if (sh_offset >= xct_off_hi) { // easy: so_slide down
                         if (sh_out->sh_addr) // change only if non-zero
@@ -5861,6 +5870,8 @@ unsigned PackLinuxElf32::forward_Shdrs(OutputFile *fo, Elf32_Ehdr *const eho)
                         set_te32(&sh_out->sh_offset, so_slide + sh_offset);
                     }
                     else { // somewhere in compressed; try proportional (aligned)
+                        // But note that PROGBITS without SHF_ALLOC
+                        // will be dropped below.
                         u32_t const slice = xct_off + (~0xFu & (unsigned)(
                              (sh_offset - xct_off) *
                             ((sh_offset - xct_off) / (float)(xct_off_hi - xct_off))));
@@ -5876,8 +5887,7 @@ unsigned PackLinuxElf32::forward_Shdrs(OutputFile *fo, Elf32_Ehdr *const eho)
                     set_te16(&eho->e_shstrndx, sh_out -
                         (Elf32_Shdr *)mb_shdro.getVoidPtr());
                 }
-                if (j == e_shstrndx
-                ||  sec_arm_attr == sh_in
+                if (sec_arm_attr == sh_in
                 ||  (SHT_NOTE == sh_type && xct_off < sh_offset)
                 ) { // append a copy
                     set_te32(&sh_out->sh_offset, total_out);
@@ -5887,26 +5897,70 @@ unsigned PackLinuxElf32::forward_Shdrs(OutputFile *fo, Elf32_Ehdr *const eho)
                     total_out +=    sh_size;
                 } else
                 if (SHT_PROGBITS == sh_type) {
+                    if (!(Elf32_Shdr::SHF_ALLOC & sh_flags)) {
+                        // .debug_*, .gnu_debuglink etc.  Typically compressed
+                        // but not in RAM, and gdb (BFD) gets confused.
+                        continue;  // OMIT the commit: do not forward
+                    } else
                     if (sh_offset <= xct_off
-                    &&  0 == strcmp(".text", shstrtab + get_te32(&sh_in->sh_name)) ) {
+                    &&  0 == strcmp(".text", name) ) {
                         // .text was compressed (but perhaps omitting some leading
                         // portion, if less than 4 PT_LOAD)
                         set_te32(&sh_out->sh_size, so_slide + sh_size);
+                        // FIXME: so_slide is negative; avoid negative result
+                    }
+                } else
+                if (SHT_STRTAB == sh_type) {
+                    if (j == e_shstrndx) {
+                        n_shstrsec = sh_out;
                     } else
-                    if (0 == sh_in->sh_addr) { // .gnu_debuglink etc
-                        set_te32(&sh_out->sh_offset, so_slide + sh_offset);
+                    if (strcmp(".dynstr",    name)) {
+                        continue;  // OMIT the commit of non-global symbol names
                     }
                 }
-                ++sh_out; ++n_sh_out;
+                set_te32(&sh_out->sh_name, ptr_shstrings - (char *)mb_shstrings.getVoidPtr());
+                ptr_shstrings = 1+ stpcpy(ptr_shstrings, name);  // past terminating '\0'
+                ++sh_out; ++n_sh_out;  // actually commit the fowarding
             }
         }
-        total_out = fpad4(fo, total_out);
+        unsigned len = ptr_shstrings - (char *)mb_shstrings.getVoidPtr();
+        set_te32(&n_shstrsec->sh_offset, total_out);
+        set_te32(&n_shstrsec->sh_size, len);
+        fo->write(mb_shstrings, len);
+        total_out += len;
+
+        total_out = fpad4(fo, total_out);  // align _Shdr[]
         set_te32(&eho->e_shoff, total_out);
-        unsigned len = (char *)sh_out - (char *)mb_shdro.getVoidPtr();
+        len = (char *)sh_out - (char *)mb_shdro.getVoidPtr();
         set_te16(&eho->e_shnum, len / sizeof(*sh_out));
         set_te16(&eho->e_shentsize, sizeof(Elf32_Shdr));
         fo->write(mb_shdro, len);
         total_out += len;
+
+        // Try to pacify gdb (before DT_INIT) by making it look like
+        // the compressed PT_LOAD extends all the way to the next PT_LOAD,
+        // with no gap in address space.  Thus gdb should not complain about
+        // "Loadable section "..." [Shdr] outside of ELF segments [PT_LOAD]".
+        // gdb still "warning: section ... not found in .gnu_debugdata"
+        // because .gdb_debugdata is not present (or gets removed),
+        // but that is separate and "just" a warning.
+        ptr = (Elf32_Phdr *)(1+ eho);
+        for (ptr_end = &ptr[e_phnum]; ptr < ptr_end; ++ptr) {
+            if (PT_LOAD32 == get_te32(&ptr->p_type)) {
+                Elf32_Phdr *ptr2 = 1+ ptr;
+                for (; ptr2 < ptr_end; ++ptr2) {
+                    if (PT_LOAD32 == get_te32(&ptr2->p_type)) {
+                        unsigned pmask = 0u - get_te32(&ptr2->p_align);
+                        set_te32(&ptr->p_memsz,
+                            (pmask & get_te32(&ptr2->p_vaddr)) -
+                            (pmask & get_te32(&ptr ->p_vaddr)) );
+                        ptr  = ptr_end;  // force end of outer loop
+                        ptr2 = ptr_end;  // force end of inner loop
+                    }
+                }
+            }
+        }
+
         fo->seek(0, SEEK_SET);
         fo->rewrite(eho, sizeof(*eho));
         fo->seek(0, SEEK_END);
@@ -5971,6 +6025,7 @@ unsigned PackLinuxElf64::forward_Shdrs(OutputFile *fo, Elf64_Ehdr *const eho)
             | 1u<<SHT_DYNAMIC
             | 1u<<SHT_NOTE
             | 1u<<SHT_REL
+            | 1u<<SHT_RELR
             | 1u<<SHT_DYNSYM
             | 1u<<SHT_STRTAB  // .shstrtab and .dynstr
             | 1u<<SHT_INIT_ARRAY

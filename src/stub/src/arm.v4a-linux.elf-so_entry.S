@@ -202,13 +202,13 @@ L70_ret:
           sub mfd,r0,arg3
           sub mfd,mfd,#1  // mfd
         mov arg1,r4  // src
-        call f_decompress
+        call f_decompress; cmp r0,#0; beq 0f; bkpt; 0:
 
         ldr arg3,[sp,#F_LENU]
         ldr arg2,[sp,#F_ADRU]
         mov arg1,mfd
         str rPMASK,[arg2,#0]  // forward the PAGE_MASK
-        call write
+        call write; cmp r0,arg3; beq 0f; bkpt; 0:
 
         mov arg6,#0  // beginning of file
         mov arg5,mfd
@@ -216,7 +216,7 @@ L70_ret:
         mov arg3,#PROT_READ|PROT_EXEC  // prot
         ldr arg2,[sp,#F_LENU]
         ldr arg1,[sp,#F_ADRU]  // addr
-        do_sys __NR_mmap2
+        do_sys __NR_mmap2; ldr arg3,[sp,#F_ADRU]; cmp r0,arg3; beq 0f; bkpt; 0:
 
         mov arg1,mfd
     .unreq mfd
@@ -290,6 +290,7 @@ mempcpy: .globl mempcpy  // (dst, src, n)
 // Because called from C, then r7 is live; cannot use do_sys7t.
 .globl memfd_create; memfd_create: do_sys2 __NR_memfd_create; ret
 .globl close;     close:     do_sys __NR_close; ret
+.globl exit;      exit:      do_sys __NR_exit; ret
 .globl fdatasync; fdatasync: do_sys __NR_fdatasync; ret
 .globl fsync;     fsync:     do_sys __NR_fsync; ret
 .globl ftruncate; ftruncate: do_sys __NR_ftruncate; ret

@@ -85,6 +85,7 @@ F_PMASK= 2 * NBPW  // extra copy?
   .globl upx_so_main  // in arm.v?a-linux.elf-so_main.c
 
   section SO_HEAD
+ZERO:
 PAGE_MASK: .word 0xfffff000  // default
 qflg_data: .word 0  // QNX vs Linux: MAP_PRIVATE | MAP_ANONYMOUS
 upxfn_path:.word 0  // displacement from "zero"
@@ -97,7 +98,7 @@ get_page_mask: .globl get_page_mask
         ret
 
 get_upxfn_path: .globl get_upxfn_path  // char * (*)(void)
-    adr r1,fold_begin-3*NBPW  // "zero"
+    adr r1,ZERO
     ldr r0,[r1,#1*NBPW]  // offset(upxfn_path)
     cmp r0,#0; beq 1f  // nullptr
     add r0,r0,r1  // &path

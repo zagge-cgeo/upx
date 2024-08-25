@@ -140,6 +140,7 @@ extern int fstatat(int dirfd, const char *restrict pathname,
     struct stat *restrict statbuf, int flags);
 
 #define ENOENT 2   /* no such name */
+#define EACCES 13  /* permission denied */
 #define EINVAL 22  /* invalid arguemnt */
 #define ENOSPC 28  /* no space left on device */
 #define ENOSYS 38  /* no such system call */
@@ -151,7 +152,7 @@ extern int stat(char const *path, struct stat *statbuf);
 extern int mkdir(char const *path, unsigned mode);
 
 __attribute__((__noinline__))
-static int dir_check(char const *path)
+static int dir_check(char const *path, int fatal)
 {
     struct stat sb;
     memset(&sb,0xff, sizeof(sb));  // DEBUG aid
@@ -164,8 +165,8 @@ static int dir_check(char const *path)
     if (-ENOENT == rv) {
         rv = mkdir(path, S_IRWXU);
     }
-    if (-ENOENT == rv) {
-        exit(-1);
+    if (rv < 0 && fatal) {
+        my_bkpt(path, rv);  // required path not available
     }
     return rv;
 }
@@ -206,14 +207,15 @@ static int create_upxfn_path(char *name, char *buf)
     // Construct path "/data/data/$APP_NAME/cache/upxAAA".
     // Note 'mempcpy' [with 'p' in the middle!] returns the end-of-string.
     char *p =  mempcpy(&name[0], addr_string("/data/data/"), 11);  // '/' sentinel at end
-    p[0] = '\0'; dir_check(name);
+    p[0] = '\0'; dir_check(name, 1);
 
     // Append the name of the app
-    int fd = open(addr_string("/proc/self/cmdline"), O_RDONLY, 0);
+    char const *q = addr_string("/proc/self/cmdline");
+    int fd = open(q, O_RDONLY, 0);
     int rlen = read(fd, p= buf, -1+ PATH_MAX);
     close(fd);
     if (rlen < 0) {
-        return rlen;  // failure
+        my_bkpt(q);
     }
     p[rlen] = '\0';  // insurance sentinel
     // Kernel-parsed arguments are separated by '\0'.
@@ -223,12 +225,19 @@ static int create_upxfn_path(char *name, char *buf)
         char *app_end = p;
         // Sentinel '/' at name[10] provides safety for backing up.
         while ('/' != *p) --p;  // find last component of argv[0]
+        q = p;
         p = mempcpy(&name[10], p, app_end - p);
-        p[0] = '\0'; dir_check(name);
+        p[0] = '\0';
+        if (-EACCES == dir_check(name, 0)) {
+            p = mempcpy(&name[11], addr_string("com.termux/files"), 16);
+            p = mempcpy(p, q, app_end - q);
+            p[0] = '\0';
+            dir_check(name, 1);
+        }
     }
 
     p = mempcpy(p, addr_string("/cache"), 6);
-    p[0] = '\0'; dir_check(name);
+    p[0] = '\0'; dir_check(name, 1);
     p = mempcpy(p, addr_string("/upx"), 4);
     pid_t pid = getpid();
     p[0] = sixbit(pid >> 0*6);
@@ -347,7 +356,7 @@ unsigned long upx_mmap_and_fd( // returns (mapped_addr | (1+ fd))
     }
     if (!not_android && -ENOSYS == fd && pathname) {
         if ('\0' == pathname[0]) { // first time; create the pathname and file
-            int rv = create_upxfn_path(pathname, u.buf);
+            int rv = create_upxfn_path(pathname, &u.buf[BUFLEN / 2]);
             if (rv < 0) {
                 return rv;
             }
