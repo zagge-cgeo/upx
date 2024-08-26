@@ -5919,7 +5919,9 @@ unsigned PackLinuxElf32::forward_Shdrs(OutputFile *fo, Elf32_Ehdr *const eho)
                     }
                 }
                 set_te32(&sh_out->sh_name, ptr_shstrings - (char *)mb_shstrings.getVoidPtr());
-                ptr_shstrings = 1+ stpcpy(ptr_shstrings, name);  // past terminating '\0'
+                do { // stupid MSVC lacks stpcpy()
+                    *ptr_shstrings++ = *name;
+                } while (*name++);
                 ++sh_out; ++n_sh_out;  // actually commit the fowarding
             }
         }
