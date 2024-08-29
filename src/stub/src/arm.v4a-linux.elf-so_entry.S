@@ -158,13 +158,9 @@ _=-1+_  // one less word on stack
 
         //.arch armv7-a
         //.syntax unified
-        .thumb
-        .thumb_func
         .type _start,%function
         .balign 4
-_start: .globl _start  // in Thumb mode  (via PackLinuxElf32::pack3)
-        bx pc; nop  // but switch to ARM until debugged
-        .arm
+_start: .globl _start
         nop
 #if 0|DEBUG  //{
         bkpt  // DEBUG

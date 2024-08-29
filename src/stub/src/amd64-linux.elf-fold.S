@@ -77,7 +77,7 @@ F_ADRX= 0*NBPW
 unmap_all_pages= (1<<1)
 is_ptinterp=     (1<<0)
 
-        .balign 4
+        .balign 8
 PAGE_MASK: .quad -1<<12  // default
 
 // IN: [ADRX,+LENX): compressed data; [ADRU,+LENU): expanded fold (w/ upx_main)
@@ -236,7 +236,7 @@ ok_memfd:
         ret
 
 Pmap: .globl Pmap  // page-align the lo end
-        mov PAGE_MASK(%rip),%rax; not %rax  // frag mask
+        mov PAGE_MASK(%rip),%rax; not %eax  // frag mask
         and %arg1l,%eax  // frag
         sub %rax,%arg1
         add %rax,%arg2

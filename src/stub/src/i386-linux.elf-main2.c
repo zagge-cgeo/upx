@@ -526,11 +526,12 @@ static ptrdiff_t // returns relocation constant
 #if defined(__i386__)  /*{*/
 __attribute__((regparm(3), stdcall))
 #endif  /*}*/
-xfind_pages(unsigned mflags, ElfW(Phdr) const *phdr, int phnum,
-    ElfW(Addr) *const p_brk
+xfind_pages(unsigned mflags, Elf32_Phdr const *phdr, int phnum,
+    Elf32_Addr *const p_brk
 )
 {
-    ElfW(Addr) lo= ~0, hi= 0, addr = 0, p_align = 0x1000;
+    size_t const page_mask = get_page_mask();
+    Elf32_Addr lo= ~0, hi= 0, addr = 0, p_align = 0x1000;
     DPRINTF("xfind_pages  %%x  %%p  %%d  %%p  %%p\\n", mflags, phdr, phnum, p_brk, page_mask);
     for (; --phnum>=0; ++phdr) if (PT_LOAD==phdr->p_type
 #if defined(__arm__)  /*{*/
@@ -556,7 +557,6 @@ xfind_pages(unsigned mflags, ElfW(Phdr) const *phdr, int phnum,
             p_align = phdr->p_align;
         }
     } // end scan of PT_LOADs
-    size_t const page_mask = get_page_mask();
     size_t page_size = 0u - page_mask;
     lo &= page_mask;  // round down to page boundary
     size_t len1 = page_mask & (hi - lo + page_size -1);  // desired length
@@ -567,7 +567,7 @@ xfind_pages(unsigned mflags, ElfW(Phdr) const *phdr, int phnum,
     while ((q * page_size) < p_align) q <<= 1;
     --q;  // number of extra pages
     unsigned len2 = len1 + (q * page_size);  // get enough space to align
-    addr = (ElfW(Addr))mmap_privanon((void *)lo, len2, PROT_NONE, mflags);
+    addr = (Elf32_Addr)mmap_privanon((void *)lo, len2, PROT_NONE, mflags);
     DPRINTF("  addr=%%p  lo=%%p  hi=%%p align=%%p  q=%%p  len1=%%p  len2=%%p\\n",
         addr, lo, hi, p_align, q, len1, len2, p_align);
     if (q) {
@@ -775,9 +775,7 @@ upx_main(  // returns entry address
     // ehdr = Uncompress Ehdr and Phdrs
     unpackExtent(&xi2, &xo);  // never filtered?
 
-#if defined(__i386__) || defined(__arm__) || defined(__powerpc__) || defined(__mips__)  //{
     ElfW(Addr) *const p_reloc = &elfaddr;
-#endif  //}
     ElfW(Addr) page_mask = get_page_mask(); (void)page_mask;
     DPRINTF("upx_main1  .e_entry=%%p  p_reloc=%%p  *p_reloc=%%p  page_mask=%%p\\n",
         ehdr->e_entry, p_reloc, *p_reloc, page_mask);

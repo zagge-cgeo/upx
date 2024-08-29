@@ -570,7 +570,7 @@ off_t PackLinuxElf32::pack3(OutputFile *fo, Filter &ft)
         set_te32(&elfout.ehdr.e_entry, abrk + get_te32(&elfout.ehdr.e_entry) - vbase);
     }
     if (0!=xct_off) { // shared library
-        unsigned const cpr_entry = (Elf32_Ehdr::EM_ARM==e_machine) + load_va + sz_pack2;  // Thumb mode
+        unsigned const cpr_entry = load_va + sz_pack2;
         set_te32(&file_image[user_init_off], cpr_entry);  // set the hook
 
         if (user_init_rp) { // decompressor needs hint for DT_INIT_ARRAY
@@ -760,7 +760,7 @@ off_t PackLinuxElf64::pack3(OutputFile *fo, Filter &ft)
         set_te64(&elfout.ehdr.e_entry, abrk + get_te64(&elfout.ehdr.e_entry) - vbase);
     }
     if (0!=xct_off) { // shared library
-        u64_t const cpr_entry = (Elf64_Ehdr::EM_ARM==e_machine) + load_va + sz_pack2;  // Thumb mode
+        u64_t const cpr_entry = load_va + sz_pack2;
         set_te64(&file_image[user_init_off], cpr_entry);  // set the hook
 
         if (user_init_rp) { // decompressor needs hint for DT_INIT_ARRAY
@@ -4683,8 +4683,8 @@ void PackLinuxElf32::asl_pack2_Shdrs(OutputFile *fo, unsigned pre_xct_top)
         }
 
         if (xct_off <= sh_offset && Elf32_Shdr::SHF_ALLOC & get_te32(&shdr->sh_flags)) {
-            upx_uint32_t addr = get_te32(&shdr->sh_addr);
-            set_te32(&shdr->sh_addr, asl_delta + addr);
+            //upx_uint32_t addr = get_te32(&shdr->sh_addr);
+            //set_te32(&shdr->sh_addr, asl_delta + addr);
             set_te32(&shdr->sh_offset, asl_delta + sh_offset);
         }
         switch (sh_type) {
@@ -4863,7 +4863,7 @@ void PackLinuxElf32::asl_pack2_Shdrs(OutputFile *fo, unsigned pre_xct_top)
                 // Anyway, some Android have multiple SHT_NOTE sections.
                 if (xct_off <= sh_offset) {
                     upx_uint32_t pos = xct_off + e_shnum * sizeof(Elf32_Shdr);
-                    set_te32(&shdr->sh_addr,   pos);
+                    //set_te32(&shdr->sh_addr,   pos);
                     set_te32(&shdr->sh_offset, pos);
                 }
             }
@@ -5844,7 +5844,7 @@ unsigned PackLinuxElf32::forward_Shdrs(OutputFile *fo, Elf32_Ehdr *const eho)
             unsigned sh_type   = get_te32(&sh_in->sh_type);
             unsigned sh_info   = get_te32(&sh_in->sh_info);
             unsigned sh_flags  = get_te32(&sh_in->sh_flags);
-            unsigned sh_addr   = get_te32(&sh_in->sh_addr);
+            //unsigned sh_addr   = get_te32(&sh_in->sh_addr);
             unsigned sh_offset = get_te32(&sh_in->sh_offset);
             unsigned sh_size   = get_te32(&sh_in->sh_size);
             unsigned sh_name   = get_te32(&sh_in->sh_name);
@@ -5866,7 +5866,7 @@ unsigned PackLinuxElf32::forward_Shdrs(OutputFile *fo, Elf32_Ehdr *const eho)
                 if (sh_offset > xct_off) { // may slide down: earlier compression
                     if (sh_offset >= xct_off_hi) { // easy: so_slide down
                         if (sh_out->sh_addr) // change only if non-zero
-                        set_te32(&sh_out->sh_addr,   so_slide + sh_addr);
+                        //set_te32(&sh_out->sh_addr,   so_slide + sh_addr);
                         set_te32(&sh_out->sh_offset, so_slide + sh_offset);
                     }
                     else { // somewhere in compressed; try proportional (aligned)
@@ -5875,7 +5875,7 @@ unsigned PackLinuxElf32::forward_Shdrs(OutputFile *fo, Elf32_Ehdr *const eho)
                         u32_t const slice = xct_off + (~0xFu & (unsigned)(
                              (sh_offset - xct_off) *
                             ((sh_offset - xct_off) / (float)(xct_off_hi - xct_off))));
-                        set_te32(&sh_out->sh_addr,   slice);
+                        //set_te32(&sh_out->sh_addr,   slice);
                         set_te32(&sh_out->sh_offset, slice);
                     }
                     u32_t const max_sz = total_out - get_te32(&sh_out->sh_offset);

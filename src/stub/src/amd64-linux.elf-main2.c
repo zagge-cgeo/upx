@@ -438,42 +438,49 @@ unsigned PF_TO_PROT(unsigned flags)
 // and mmap that much, to be sure that a kernel using exec-shield-randomize
 // won't place the first piece in a way that leaves no room for the rest.
 static ElfW(Addr) // returns relocation constant
-xfind_pages(unsigned mflags, ElfW(Phdr) const *phdr, int phnum,
-    ElfW(Addr) *const p_brk
-    , ElfW(Addr) const elfaddr
-)
+xfind_pages(unsigned mflags, ElfW(Phdr) const *phdr, int phnum, ElfW(Addr) *const p_brk)
 {
-    ElfW(Addr) lo= ~0, hi= 0, addr= 0;
-    mflags += MAP_PRIVATE | MAP_ANONYMOUS;  // '+' can optimize better than '|'
-    DPRINTF("xfind_pages  %%x  %%p  %%d  %%p  %%p\\n", mflags, phdr, phnum, elfaddr, p_brk);
-    for (; --phnum>=0; ++phdr) if (PT_LOAD==phdr->p_type) {
-        DPRINTF(" p_vaddr=%%p  p_memsz=%%p\\n", phdr->p_vaddr, phdr->p_memsz);
+    ElfW(Addr) lo= ~0, hi= 0, addr = 0, p_align = 0x1000;
+    DPRINTF("xfind_pages  %%x  %%p  %%d  %%p  %%p\\n", mflags, phdr, phnum, p_brk, page_mask);
+    for (; --phnum>=0; ++phdr) if (PT_LOAD==phdr->p_type && phdr->p_memsz) {
         if (phdr->p_vaddr < lo) {
             lo = phdr->p_vaddr;
         }
         if (hi < (phdr->p_memsz + phdr->p_vaddr)) {
             hi =  phdr->p_memsz + phdr->p_vaddr;
         }
-    }
-    size_t PMASK = get_page_mask();
-    lo -= ~PMASK & lo;  // round down to page boundary
-    hi  =  PMASK & (hi - lo - PMASK -1);  // page length
-    if (MAP_FIXED & mflags) {
-        addr = lo;
-    }
-    else if (0==lo) { // -pie ET_DYN
-        addr = elfaddr;
-        if (addr) {
-            mflags |= MAP_FIXED;
+        if (p_align < phdr->p_align) {
+            p_align = phdr->p_align;
+        }
+    } // end scan of PT_LOADs
+    ElfW(Addr) page_mask = get_page_mask();
+    size_t page_size = 0u - page_mask;
+    lo &= page_mask;  // round down to page boundary
+    size_t len1 = page_mask & (hi - lo + page_size -1);  // desired length
+
+    // Linux lacks mmap_aligned(), so allocate a larger space, then trim the ends.
+    // Avoid division (p_align / page_size); both are powers of 2
+    unsigned q = 1;
+    while ((q * page_size) < p_align) q <<= 1;
+    --q;  // number of extra pages
+    unsigned len2 = len1 + (q * page_size);  // get enough space to align
+    addr = (ElfW(Addr))mmap_privanon((void *)lo, len2, PROT_NONE, mflags);
+    DPRINTF("  addr=%%p  lo=%%p  hi=%%p align=%%p  q=%%p  len1=%%p  len2=%%p  align=%%p\\n",
+        addr, lo, hi, p_align, q, len1, len2, p_align);
+    if (q) {
+        size_t len3 = (-1 + p_align) & -addr;  // up to p_align boundary
+        if (len3) {
+            munmap((void *)addr, len3);  // trim the low end
+            addr += len3;
+            len2 -= len3;
+        }
+        if (len2 -= len1) {
+            munmap((void *)(addr + len1), len2); // trim the high end
         }
     }
-    DPRINTF("  addr=%%p  lo=%%p  hi=%%p\\n", addr, lo, hi);
-    // PROT_WRITE allows testing of 64k pages on 4k Linux
-    addr = (ElfW(Addr))mmap((void *)addr, hi, (DEBUG ? PROT_WRITE : PROT_NONE),  // FIXME XXX EVIL
-        mflags, -1, 0);
     DPRINTF("  addr=%%p\\n", addr);
-    *p_brk = hi + addr;  // the logical value of brk(0)
-    return (ElfW(Addr))(addr - lo);
+    *p_brk = len1 + addr;  // the logical value of brk(0)
+    return (ptrdiff_t)addr - lo;
 }
 
 static ElfW(Addr)  // entry address
@@ -507,8 +514,7 @@ do_xmap(
     else { // PT_INTERP
         DPRINTF("INTERP\\n", 0);
         reloc = xfind_pages(
-            ((ET_DYN!=ehdr->e_type) ? MAP_FIXED : 0), phdr, ehdr->e_phnum, &v_brk, *p_reloc
-        );
+            ((ET_DYN!=ehdr->e_type) ? MAP_FIXED : 0), phdr, ehdr->e_phnum, &v_brk);
     }
     DPRINTF("do_xmap  ehdr=%%p  xi=%%p(%%x %%p)  fdi=%%x\\n"
           "  av=%%p  reloc=%%p  p_reloc=%%p/%%p\\n",

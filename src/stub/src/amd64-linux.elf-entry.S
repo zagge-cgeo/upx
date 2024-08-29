@@ -92,6 +92,7 @@ _start: .globl _start
         pop %rcx  // argc
         push %rsp; pop %rdi  // argv
         push %rcx  // argc
+        push %rdx  // param for atexit()
 
 #define old_sp %rbp
 F_FRAME= 7*NBPW
@@ -106,18 +107,24 @@ F_ADRX= 0*NBPW
 D_FOLD=  1*NBPW  // .data space at start of unfold
 D_PMASK= 0*NBPW
 
-AT_PAGESZ= 6  // /usr/include/elf.h
-        call zfind  // skip argv
-        call zfind  // skip env
-0: // find AT_PAGESZ in auxv
-        mov     (%rdi),%rax
-        mov NBPW(%rdi),%rcx; add $2*NBPW,%rdi
-        cmp $AT_PAGESZ,%rax; je 5f
-        mov $1<<12,%rcx  // default PAGE_SIZE
-        test %rax,%rax; jne 0b
-5:
-        neg %rcx; push %rcx  // F_PMASK
-        push %rdx  // F_RDX
+// find auxv
+        xor %eax,%eax  // 0
+0:      scasq; jne 0b;  // skip argv
+0:      scasq; jne 0b;  // skip env
+
+// find AT_PAGESZ in auxv
+        push %rdi; mov $0x1000,%edx  // default PAGE_SIZE
+        pop %rsi
+1:
+        lodsq; test %eax,%eax; je 2f
+        cmp $AT_PAGESZ,%eax; lodsq; jne 1b
+        xchg %eax,%edx
+2:
+        pop %rax  // atexit
+        neg %rdx  // PAGE_MASK
+        push %rdx  // F_PMASK
+        push %rax  // atexit,pmask,argc
+
 
 #define arg2l esi
 #define arg3l edx
@@ -255,7 +262,7 @@ eof_n2b:
         //FIXME: check dst, too
 
 // Write de-compressed 'fold' to file
-        mov F_PMASK(old_sp),%rax; mov %rax,(%rsp)  // propagate PAGE_MASK
+        mov F_PMASK(old_sp),%rax; mov %rax,/*D_PMASK*/(%rsp)  // propagate PAGE_MASK
         mov F_LENU(old_sp),%arg3  // LENU
         sub $INSURANCE,%arg3  // memcheck limit
         push %rsp; pop %arg2  // buffer
@@ -286,11 +293,6 @@ eof_n2b:
         pop %rax  // MATCH_12  ADRU
         add $D_FOLD,%rax  // beyond .data
         jmp *%rax  // goto unfolded stub
-
-zfind:
-        mov (%rdi),%rax; add $NBPW,%rdi
-        test %rax,%rax; jne zfind
-        ret
 
 sys_check:
         push %rax  // save __NR_ for debug
