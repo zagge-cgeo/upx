@@ -441,6 +441,7 @@ static ElfW(Addr) // returns relocation constant
 xfind_pages(unsigned mflags, ElfW(Phdr) const *phdr, int phnum, ElfW(Addr) *const p_brk)
 {
     ElfW(Addr) lo= ~0, hi= 0, addr = 0, p_align = 0x1000;
+    ElfW(Addr) page_mask = get_page_mask();
     DPRINTF("xfind_pages  %%x  %%p  %%d  %%p  %%p\\n", mflags, phdr, phnum, p_brk, page_mask);
     for (; --phnum>=0; ++phdr) if (PT_LOAD==phdr->p_type && phdr->p_memsz) {
         if (phdr->p_vaddr < lo) {
@@ -453,7 +454,6 @@ xfind_pages(unsigned mflags, ElfW(Phdr) const *phdr, int phnum, ElfW(Addr) *cons
             p_align = phdr->p_align;
         }
     } // end scan of PT_LOADs
-    ElfW(Addr) page_mask = get_page_mask();
     size_t page_size = 0u - page_mask;
     lo &= page_mask;  // round down to page boundary
     size_t len1 = page_mask & (hi - lo + page_size -1);  // desired length

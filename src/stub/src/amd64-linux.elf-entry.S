@@ -141,7 +141,7 @@ no_memfd:  // so try /dev/shm
 O_RDWR= 2
 O_DIRECTORY= 0200000  // 0x010000
 O_TMPFILE= 020000000  // 0x400000
-        call 0f; .int 0700, O_RDWR|O_DIRECTORY|O_TMPFILE; .asciz "/dev/shm"; 0: pop %rsi
+        lea shm_param(%rip),%rsi
         lodsl;            xchg %eax,%arg3l
         lodsl; push %rsi; xchg %eax,%arg2l
                pop %arg1
@@ -301,10 +301,8 @@ sys_check:
         cmp $-1<<12,%rax; jb 0f; hlt; 0:
         ret
 
-here:  // OUT: %rdi= (2+ retaddrj) without disturbing shadow stack
-        mov (%rsp),%rdi
-        scasw  // over jmp.s
-        ret
+shm_param:
+        .int 0700, O_RDWR|O_DIRECTORY|O_TMPFILE; .asciz "/dev/shm"
 
 getbit:
         .byte 0xf3,0x0f,0x1e,0xfa  // endbr64 // from "call *%rdx"

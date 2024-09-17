@@ -361,7 +361,6 @@ sysgo:
         pop %edx  // return address for sysenter
         .byte 0x0f,0x34  // sysenter
 
-#define DEBUG 1
 #if DEBUG  /*{*/
 TRACE_BUFLEN=0x78
 FD_STDERR=2

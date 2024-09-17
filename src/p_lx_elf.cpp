@@ -7509,8 +7509,12 @@ void PackLinuxElf64::unpack(OutputFile *fo)
             if (PT_LOAD64==get_te32(&phdr->p_type)) {
                 unsigned const filesz = get_te64(&phdr->p_filesz);
                 unsigned const offset = get_te64(&phdr->p_offset);
-                if (fo)
+                if (fo) {
                     fo->seek(offset, SEEK_SET);
+                    if (total_out < offset) {
+                        total_out = offset;  // FIXME: can it be re-write?
+                    }
+                }
                 if (Elf64_Phdr::PF_X & get_te32(&phdr->p_flags)) {
                     unpackExtent(filesz, fo,
                         c_adler, u_adler, first_PF_X);
@@ -7659,8 +7663,7 @@ void PackLinuxElf64::unpack(OutputFile *fo)
             }
             unpackExtent(size, fo,
                 c_adler, u_adler, false,
-                is_shlib && ((phdr[j].p_offset != hi_offset)));
-                // FIXME: should not depend on is_shlib ?
+                (hi_offset != get_te64(&phdr[j].p_offset)));
         }
     }
 
@@ -8677,8 +8680,12 @@ void PackLinuxElf32::unpack(OutputFile *fo)
             if (PT_LOAD32==get_te32(&phdr->p_type)) {
                 unsigned const filesz = get_te32(&phdr->p_filesz);
                 unsigned const offset = get_te32(&phdr->p_offset);
-                if (fo)
+                if (fo) {
                     fo->seek(offset, SEEK_SET);
+                    if (total_out < offset) {
+                        total_out = offset;  // FIXME: can it be re-write?
+                    }
+                }
                 if (Elf32_Phdr::PF_X & get_te32(&phdr->p_flags)) {
                     unpackExtent(filesz, fo,
                         c_adler, u_adler, first_PF_X);
@@ -8827,8 +8834,7 @@ void PackLinuxElf32::unpack(OutputFile *fo)
             }
             unpackExtent(size, fo,
                 c_adler, u_adler, false,
-                is_shlib && ((phdr[j].p_offset != hi_offset)));
-                // FIXME: should not depend on is_shlib ?
+                (hi_offset != get_te32(&phdr[j].p_offset)));
         }
     }
 

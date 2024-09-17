@@ -8,17 +8,17 @@ Linker script and memory map
 
 TARGET(elf64-powerpc)
 
-.text           0x0000000000000000      0xe64
+.text           0x0000000000000000      0xe6c
  *(.text)
- .text          0x0000000000000000      0xe64 tmp/powerpc64-linux.elf-fold.o
+ .text          0x0000000000000000      0xe6c tmp/powerpc64-linux.elf-fold.o
                 0x0000000000000014                get_page_mask
                 0x000000000000002c                Pprotect
                 0x0000000000000050                Pmap
                 0x0000000000000074                Punmap
-                0x0000000000000c40                underlay
-                0x0000000000000ccc                upx_main
+                0x0000000000000c48                underlay
+                0x0000000000000cd4                upx_main
  *(.data)
- .data          0x0000000000000e64        0x0 tmp/powerpc64-linux.elf-fold.o
+ .data          0x0000000000000e6c        0x0 tmp/powerpc64-linux.elf-fold.o
 
 .data
 LOAD tmp/powerpc64-linux.elf-fold.o
