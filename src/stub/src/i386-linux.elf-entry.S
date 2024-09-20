@@ -107,6 +107,7 @@ L70ret:
 
 #define bits %ebx
 getbit:
+        endbr32
         addl bits,bits; jz refill  // Carry= next bit
         rep; ret  // rep: stop instruction pipeline (spend 1 byte for speed)
 refill:

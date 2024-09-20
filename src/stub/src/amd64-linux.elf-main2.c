@@ -62,7 +62,7 @@ extern void my_bkpt(void *, ...);
 #elif defined(__x86_64) //}{
 #define addr_string(string) ({ \
     char const *str; \
-    asm("call 0f; .asciz \"" string "\"; 0: pop %0" \
+    asm("lea 9f(%%rip),%0; .section STRCON; 9:.asciz \"" string "\"; .previous" \
 /*out*/ : "=r"(str) ); \
     str; \
 })

@@ -107,6 +107,7 @@ L70ret:
 #define getnextb(reg) GETBIT; adcl reg,reg
 
 getbit:
+        .byte 0xf3,0x0f,0x1e,0xfb  // endbr32
         addl bits,bits; jz refill  // Carry= next bit
         rep; ret  // rep: stop instruction pipeline (spend 1 byte for speed)
 refill:

@@ -1645,6 +1645,9 @@ PackLinuxElf64::buildLinuxLoader(
                 "LZMA_DAISY,LZMA_ELF00,LZMA_DEC20,LZMA_DEC30");
         }
         len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "EXP_TAIL,SO_TAIL,SO_MAIN");
+        if (hasLoaderSection("STRCON")) {
+            len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "STRCON");
+        }
         (void)len;
         NO_printf("\n%s\n", sec);
         addLoader(sec, nullptr);
@@ -1680,6 +1683,9 @@ PackLinuxElf64::buildLinuxLoader(
                 "LZMA_DAISY,LZMA_ELF00,LZMA_DEC20,LZMA_DEC30");
         }
         len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "EXP_TAIL,SYSCALLS");
+        if (hasLoaderSection("STRCON")) {
+            len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "STRCON");
+        }
         (void)len;
         NO_printf("\n%s\n", sec);
         addLoader(sec, nullptr);

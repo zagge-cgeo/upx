@@ -156,6 +156,7 @@ ra_setup:
 
 
 getbit:
+        endbr64
         addl bits,bits; jz refill  // Carry= next bit
         rep; ret
 refill:

@@ -108,6 +108,7 @@ _start:
 #define getnextb(reg) GETBIT; adcl reg,reg
 
 getbit:
+        endbr64
         addl bits,bits; jz refill  // Carry= next bit
         rep; ret  // rep: stop instruction pipeline (spend 1 byte for speed)
 refill:

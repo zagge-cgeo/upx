@@ -305,7 +305,7 @@ shm_param:
         .int 0700, O_RDWR|O_DIRECTORY|O_TMPFILE; .asciz "/dev/shm"
 
 getbit:
-        .byte 0xf3,0x0f,0x1e,0xfa  // endbr64 // from "call *%rdx"
+        endbr64  // from "call *%rdx"
         addl bits,bits; jz refill  // Carry= next bit
         rep; ret
 refill:
