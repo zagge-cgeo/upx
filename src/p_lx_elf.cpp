@@ -1537,9 +1537,11 @@ PackLinuxElf32::buildLinuxLoader(
     }
     else { // main program with ELF1 de-compressor
         cprElfHdr1 const *const hf = (cprElfHdr1 const *)fold;
-        unsigned fold_hdrlen = upx::umax(0x80u, usizeof(hf->ehdr) +
-            get_te16(&hf->ehdr.e_phentsize) * get_te16(&hf->ehdr.e_phnum) +
-                usizeof(l_info) );
+        unsigned fold_hdrlen = usizeof(hf->ehdr) +
+            get_te16(&hf->ehdr.e_phentsize) * get_te16(&hf->ehdr.e_phnum);
+        if (this->e_machine==Elf32_Ehdr::EM_MIPS) {
+            fold_hdrlen = upx::umax(fold_hdrlen, (unsigned)0x80);
+        }
         uncLoader = fold_hdrlen + fold;
         sz_unc = ((szfold < fold_hdrlen) ? 0 : (szfold - fold_hdrlen));
         method = ph.method;
@@ -1699,9 +1701,8 @@ PackLinuxElf64::buildLinuxLoader(
     }
     else { // not shlib: main program with ELF1 de-compressor
         cprElfHdr1 const *const hf = (cprElfHdr1 const *)fold;
-        unsigned fold_hdrlen = upx::umax(0x80u, usizeof(hf->ehdr) +
-            get_te16(&hf->ehdr.e_phentsize) * get_te16(&hf->ehdr.e_phnum) +
-                usizeof(l_info) );
+        unsigned fold_hdrlen = usizeof(hf->ehdr) +
+            get_te16(&hf->ehdr.e_phentsize) * get_te16(&hf->ehdr.e_phnum));
         uncLoader = fold_hdrlen + fold;
         sz_unc = ((szfold < fold_hdrlen) ? 0 : (szfold - fold_hdrlen));
         method = ph.method;
@@ -2820,6 +2821,150 @@ bad:
     return xct_va;
 }
 
+upx_uint64_t PackLinuxElf64::canPack_Shdr(Elf64_Phdr const *pload_x0)
+{
+    Elf64_Shdr const *shdr_xva = nullptr;
+    Elf64_Shdr const *shdr = shdri;
+  for (int j= e_shnum; --j>=0; ++shdr) {
+    unsigned const sh_type = get_te32(&shdr->sh_type);
+    if (Elf64_Shdr::SHF_EXECINSTR & get_te64(&shdr->sh_flags)) {
+        xct_va = umin(xct_va, get_te64(&shdr->sh_addr));
+    }
+    // Hook the first slot of DT_PREINIT_ARRAY or DT_INIT_ARRAY.
+    if (!user_init_rp && (
+           (     Elf64_Dyn::DT_PREINIT_ARRAY==upx_dt_init
+           &&  Elf64_Shdr::SHT_PREINIT_ARRAY==sh_type)
+        || (     Elf64_Dyn::DT_INIT_ARRAY   ==upx_dt_init
+           &&  Elf64_Shdr::SHT_INIT_ARRAY   ==sh_type) )) {
+        unsigned user_init_ava = get_te64(&shdr->sh_addr);
+        user_init_off = get_te64(&shdr->sh_offset);
+        if ((u64_t)file_size <= user_init_off) {
+            char msg[70]; snprintf(msg, sizeof(msg),
+                "bad Elf64_Shdr[%d].sh_offset %#x",
+                -1+ e_shnum - j, user_init_off);
+            throwCantPack(msg);
+        }
+        // Check that &file_image[user_init_off] has
+        // *_RELATIVE or *_ABS* relocation, and fetch user_init_va.
+        // If Elf_Rela then the actual value is in Rela.r_addend.
+        int z_rel = dt_table[Elf64_Dyn::DT_RELA];
+        int z_rsz = dt_table[Elf64_Dyn::DT_RELASZ];
+        if (z_rel && z_rsz) {
+            upx_uint64_t rel_off = get_te64(&dynseg[-1+ z_rel].d_val);
+            if ((u64_t)file_size <= rel_off) {
+                char msg[70]; snprintf(msg, sizeof(msg),
+                     "bad Elf64_Dynamic[DT_RELA] %#llx\n",
+                     rel_off);
+                throwCantPack(msg);
+            }
+            Elf64_Rela *rp = (Elf64_Rela *)&file_image[rel_off];
+            upx_uint64_t relsz   = get_te64(&dynseg[-1+ z_rsz].d_val);
+            if ((u64_t)file_size <= relsz) {
+                char msg[70]; snprintf(msg, sizeof(msg),
+                     "bad Elf64_Dynamic[DT_RELASZ] %#llx\n",
+                     relsz);
+                throwCantPack(msg);
+            }
+            Elf64_Rela *last = (Elf64_Rela *)(relsz + (char *)rp);
+            for (; rp < last; ++rp) {
+                upx_uint64_t r_va = get_te64(&rp->r_offset);
+                if (r_va == user_init_ava) { // found the Elf64_Rela
+                    user_init_rp = rp;
+                    upx_uint64_t r_info = get_te64(&rp->r_info);
+                    unsigned r_type = ELF64_R_TYPE(r_info);
+                    set_te32(&dynsym[0].st_name, r_va);  // for decompressor
+                    set_te64(&dynsym[0].st_value, r_info);
+                    set_te64(&dynsym[0].st_size, get_te64(&rp->r_addend));
+                    if (Elf64_Ehdr::EM_AARCH64 == e_machine) {
+                        if (R_AARCH64_RELATIVE == r_type) {
+                            user_init_va = get_te64(&rp->r_addend);
+                        }
+                        else if (R_AARCH64_ABS64 == r_type) {
+                            user_init_va = get_te64(&dynsym[ELF64_R_SYM(r_info)].st_value);
+                        }
+                        else {
+                            char msg[50]; snprintf(msg, sizeof(msg),
+                                "bad relocation %#llx DT_INIT_ARRAY[0]",
+                                r_info);
+                            throwCantPack(msg);
+                        }
+                    }
+                    else if (Elf64_Ehdr::EM_X86_64 == e_machine) {
+                        if (R_X86_64_RELATIVE == r_type) {
+                            user_init_va = get_te64(&rp->r_addend);
+                        }
+                        else if (R_X86_64_64 == r_type) {
+                            user_init_va = get_te64(&dynsym[ELF64_R_SYM(r_info)].st_value);
+                        }
+                        else {
+                            char msg[50]; snprintf(msg, sizeof(msg),
+                                "bad relocation %#llx DT_INIT_ARRAY[0]",
+                                r_info);
+                            throwCantPack(msg);
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+        unsigned const p_filesz = get_te64(&pload_x0->p_filesz);
+        if (!((user_init_va - xct_va) < p_filesz)) {
+            // Not in executable portion of first executable PT_LOAD.
+            if (0==user_init_va && opt->o_unix.android_shlib) {
+                // Android allows (0 ==> skip) ?
+                upx_dt_init = 0;  // force steal of 'extra' DT_NULL
+                // XXX: FIXME: depends on SHT_DYNAMIC coming later
+            }
+            else {
+                char msg[70]; snprintf(msg, sizeof(msg),
+                    "bad init address %#x in Elf64_Shdr[%d].%#x\n",
+                    (unsigned)user_init_va, -1+ e_shnum - j, user_init_off);
+                throwCantPack(msg);
+            }
+        }
+    }
+    // By default /usr/bin/ld leaves 4 extra DT_NULL to support pre-linking.
+    // Take one as a last resort.
+    if ((Elf64_Dyn::DT_INIT==upx_dt_init || !upx_dt_init)
+    &&  Elf64_Shdr::SHT_DYNAMIC == sh_type) {
+        upx_uint64_t sh_offset = get_te64(&shdr->sh_offset);
+        upx_uint64_t sh_size = get_te64(&shdr->sh_size);
+        if ((upx_uint64_t)file_size < sh_size
+        ||  (upx_uint64_t)file_size < sh_offset
+        || ((upx_uint64_t)file_size - sh_offset) < sh_size) {
+            throwCantPack("bad SHT_DYNAMIC");
+        }
+        unsigned const n = sh_size / sizeof(Elf64_Dyn);
+        Elf64_Dyn *dynp = (Elf64_Dyn *)&file_image[sh_offset];
+        for (; Elf64_Dyn::DT_NULL != dynp->d_tag; ++dynp) {
+            if (upx_dt_init == get_te64(&dynp->d_tag)) {
+                break;  // re-found DT_INIT
+            }
+        }
+        if ((1+ dynp) < (n+ dynseg)) { // not the terminator, so take it
+            user_init_va = get_te64(&dynp->d_val);  // 0 if (0==upx_dt_init)
+            set_te64(&dynp->d_tag, upx_dt_init = Elf64_Dyn::DT_INIT);
+            user_init_off = (char const *)&dynp->d_val - (char const *)&file_image[0];
+        }
+    }
+  }
+    // If shdr_xva->sh_size is too small, then probably it won't compress.
+    // So look for a Shdr that has PROGBITS and not SHF_WRITE, which is
+    // much larger, and use that for the compressibility decision.
+    if (shdr_xva->sh_size < 0x1000) {
+        shdr = shdr_xva;
+        while (SHT_PROGBITS == get_te32(&shdr[-1].sh_type))  --shdr;  // backup
+        for (; SHT_PROGBITS == get_te32(&shdr->sh_type)
+               && !(SHF_WRITE & get_te64(&shdr->sh_flags)); ++shdr) {
+            if (0x4000 <= get_te64(&shdr->sh_size)) {
+                xct_va = get_te64(&shdr->sh_addr);  // hopefully more compressible
+                break;
+            }
+        }
+    }
+    return xct_va;
+}
+
 tribool PackLinuxElf32::canPack()
 {
     union {
@@ -3345,132 +3490,9 @@ tribool PackLinuxElf64::canPack()
             if (Elf64_Ehdr::EM_PPC64 == get_te16(&ehdr->e_machine)) {
                 throwCantPack("This test UPX cannot pack .so for PowerPC64; coming soon.");
             }
-            Elf64_Shdr const *shdr = shdri;
             xct_va = ~0ull;
             if (e_shnum) {
-                for (int j= e_shnum; --j>=0; ++shdr) {
-                    unsigned const sh_type = get_te32(&shdr->sh_type);
-                    if (Elf64_Shdr::SHF_EXECINSTR & get_te64(&shdr->sh_flags)) {
-                        xct_va = umin(xct_va, get_te64(&shdr->sh_addr));
-                    }
-                    // Hook the first slot of DT_PREINIT_ARRAY or DT_INIT_ARRAY.
-                    if (!user_init_rp && (
-                           (     Elf64_Dyn::DT_PREINIT_ARRAY==upx_dt_init
-                           &&  Elf64_Shdr::SHT_PREINIT_ARRAY==sh_type)
-                        || (     Elf64_Dyn::DT_INIT_ARRAY   ==upx_dt_init
-                           &&  Elf64_Shdr::SHT_INIT_ARRAY   ==sh_type) )) {
-                        unsigned user_init_ava = get_te64(&shdr->sh_addr);
-                        user_init_off = get_te64(&shdr->sh_offset);
-                        if ((u64_t)file_size <= user_init_off) {
-                            char msg[70]; snprintf(msg, sizeof(msg),
-                                "bad Elf64_Shdr[%d].sh_offset %#x",
-                                -1+ e_shnum - j, user_init_off);
-                            throwCantPack(msg);
-                        }
-                        // Check that &file_image[user_init_off] has
-                        // *_RELATIVE or *_ABS* relocation, and fetch user_init_va.
-                        // If Elf_Rela then the actual value is in Rela.r_addend.
-                        int z_rel = dt_table[Elf64_Dyn::DT_RELA];
-                        int z_rsz = dt_table[Elf64_Dyn::DT_RELASZ];
-                        if (z_rel && z_rsz) {
-                            upx_uint64_t rel_off = get_te64(&dynseg[-1+ z_rel].d_val);
-                            if ((u64_t)file_size <= rel_off) {
-                                char msg[70]; snprintf(msg, sizeof(msg),
-                                     "bad Elf64_Dynamic[DT_RELA] %#llx\n",
-                                     rel_off);
-                                throwCantPack(msg);
-                            }
-                            Elf64_Rela *rp = (Elf64_Rela *)&file_image[rel_off];
-                            upx_uint64_t relsz   = get_te64(&dynseg[-1+ z_rsz].d_val);
-                            if ((u64_t)file_size <= relsz) {
-                                char msg[70]; snprintf(msg, sizeof(msg),
-                                     "bad Elf64_Dynamic[DT_RELASZ] %#llx\n",
-                                     relsz);
-                                throwCantPack(msg);
-                            }
-                            Elf64_Rela *last = (Elf64_Rela *)(relsz + (char *)rp);
-                            for (; rp < last; ++rp) {
-                                upx_uint64_t r_va = get_te64(&rp->r_offset);
-                                if (r_va == user_init_ava) { // found the Elf64_Rela
-                                    user_init_rp = rp;
-                                    upx_uint64_t r_info = get_te64(&rp->r_info);
-                                    unsigned r_type = ELF64_R_TYPE(r_info);
-                                    set_te32(&dynsym[0].st_name, r_va);  // for decompressor
-                                    set_te64(&dynsym[0].st_value, r_info);
-                                    set_te64(&dynsym[0].st_size, get_te64(&rp->r_addend));
-                                    if (Elf64_Ehdr::EM_AARCH64 == e_machine) {
-                                        if (R_AARCH64_RELATIVE == r_type) {
-                                            user_init_va = get_te64(&rp->r_addend);
-                                        }
-                                        else if (R_AARCH64_ABS64 == r_type) {
-                                            user_init_va = get_te64(&dynsym[ELF64_R_SYM(r_info)].st_value);
-                                        }
-                                        else {
-                                            char msg[50]; snprintf(msg, sizeof(msg),
-                                                "bad relocation %#llx DT_INIT_ARRAY[0]",
-                                                r_info);
-                                            throwCantPack(msg);
-                                        }
-                                    }
-                                    else if (Elf64_Ehdr::EM_X86_64 == e_machine) {
-                                        if (R_X86_64_RELATIVE == r_type) {
-                                            user_init_va = get_te64(&rp->r_addend);
-                                        }
-                                        else if (R_X86_64_64 == r_type) {
-                                            user_init_va = get_te64(&dynsym[ELF64_R_SYM(r_info)].st_value);
-                                        }
-                                        else {
-                                            char msg[50]; snprintf(msg, sizeof(msg),
-                                                "bad relocation %#llx DT_INIT_ARRAY[0]",
-                                                r_info);
-                                            throwCantPack(msg);
-                                        }
-                                    }
-                                    break;
-                                }
-                            }
-                        }
-                        unsigned const p_filesz = get_te64(&pload_x0->p_filesz);
-                        if (!((user_init_va - xct_va) < p_filesz)) {
-                            // Not in executable portion of first executable PT_LOAD.
-                            if (0==user_init_va && opt->o_unix.android_shlib) {
-                                // Android allows (0 ==> skip) ?
-                                upx_dt_init = 0;  // force steal of 'extra' DT_NULL
-                                // XXX: FIXME: depends on SHT_DYNAMIC coming later
-                            }
-                            else {
-                                char msg[70]; snprintf(msg, sizeof(msg),
-                                    "bad init address %#x in Elf64_Shdr[%d].%#x\n",
-                                    (unsigned)user_init_va, -1+ e_shnum - j, user_init_off);
-                                throwCantPack(msg);
-                            }
-                        }
-                    }
-                    // By default /usr/bin/ld leaves 4 extra DT_NULL to support pre-linking.
-                    // Take one as a last resort.
-                    if ((Elf64_Dyn::DT_INIT==upx_dt_init || !upx_dt_init)
-                    &&  Elf64_Shdr::SHT_DYNAMIC == sh_type) {
-                        upx_uint64_t sh_offset = get_te64(&shdr->sh_offset);
-                        upx_uint64_t sh_size = get_te64(&shdr->sh_size);
-                        if ((upx_uint64_t)file_size < sh_size
-                        ||  (upx_uint64_t)file_size < sh_offset
-                        || ((upx_uint64_t)file_size - sh_offset) < sh_size) {
-                            throwCantPack("bad SHT_DYNAMIC");
-                        }
-                        unsigned const n = sh_size / sizeof(Elf64_Dyn);
-                        Elf64_Dyn *dynp = (Elf64_Dyn *)&file_image[sh_offset];
-                        for (; Elf64_Dyn::DT_NULL != dynp->d_tag; ++dynp) {
-                            if (upx_dt_init == get_te64(&dynp->d_tag)) {
-                                break;  // re-found DT_INIT
-                            }
-                        }
-                        if ((1+ dynp) < (n+ dynseg)) { // not the terminator, so take it
-                            user_init_va = get_te64(&dynp->d_val);  // 0 if (0==upx_dt_init)
-                            set_te64(&dynp->d_tag, upx_dt_init = Elf64_Dyn::DT_INIT);
-                            user_init_off = (char const *)&dynp->d_val - (char const *)&file_image[0];
-                        }
-                    }
-                }
+                xct_va = canPack_Shdr(pload_x0);
             }
             else { // no Sections; use heuristics
                 upx_uint64_t const strsz  = elf_unsigned_dynamic(Elf64_Dyn::DT_STRSZ);

@@ -319,6 +319,7 @@ protected:
     virtual tribool canPack() override;
     virtual tribool canUnpack() override; // bool, except -1: format known, but not packed
 
+    virtual upx_uint64_t canPack_Shdr(Elf64_Phdr const *pload_x0);
     virtual void pack1(OutputFile *, Filter &) override;  // generate executable header
     virtual void asl_pack2_Shdrs(OutputFile *, unsigned pre_xct_top);  // AndroidSharedLibrary processes Shdrs
     virtual int  pack2(OutputFile *, Filter &) override;  // append compressed data
