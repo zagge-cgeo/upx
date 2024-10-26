@@ -1459,7 +1459,7 @@ i386-win32.pe.h : tc_list = arch-i386 default
 i386-win32.pe.h : tc_bfdname = elf32-i386
 
 i386-win32.pe.h : $(srcdir)/src/$$T.S
-	$(call tc,gcc) -c -x assembler-with-cpp $< -o tmp/$T.bin
+	$(call tc,gcc) -c -x assembler-with-cpp -DWINDOWS_BACK=1 $< -o tmp/$T.bin
 	$(call tc,f-embed_objinfo,tmp/$T.bin)
 	$(call tc,bin2h-c) tmp/$T.bin $@
 
