@@ -12,6 +12,12 @@
 extern void *alloca(unsigned long size);
 #include "include/linux.h"  // syscalls; i386 inlines via "int 0x80"
 
+unsigned long upx_mmap_and_fd( // returns (mapped_addr | (1+ fd))
+    void *ptr  // desired address
+    , unsigned datlen  // mapped length
+    , char *pathname  // 0 ==> get_upxfn_path()
+)
+
 // 1. Try memfd_create
 // 2. If Android or emulator, try /data/data/$APP_NAME/cache/upxAAA
 //    where APP_NAME is discovered as basename($(< /proc/self/cmdline))
@@ -20,14 +26,13 @@ extern void *alloca(unsigned long size);
 //  If not Android then ftruncate() to desired length.
 //  Return (mapped_addr | (1+ fd))
 //
-extern int upxfd_android(int len);
-
 void *upxfd_create(void *addr, unsigned len)
 {
     char str_upx[] = "upx";
     int fd = memfd_create(str_upx, 0);
 #if defined(__arm__) || defined(__i386__) //{ workaround: android & emulators
     if (fd < 0) {
+        extern int upxfd_android(int len);
         fd = upxfd_android(len);  // also emulates ftruncate(fd, len)
     }
 #else  //}{
