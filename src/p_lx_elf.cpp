@@ -1521,7 +1521,10 @@ PackLinuxElf32::buildLinuxLoader(
             len += snprintf(&sec[len], sizeof(sec) - len, ",%s",
                 "LZMA_DAISY,LZMA_ELF00,LZMA_DEC20,LZMA_DEC30");
         }
-        len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "EXP_TAIL,SYSCALLS");
+        len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "EXP_TAIL");
+        if (hasLoaderSection("SYSCALLS")) {
+            len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "SYSCALLS");
+        }
         (void)len;
         NO_printf("%s\n", sec);
         addLoader(sec, nullptr);
@@ -1572,7 +1575,7 @@ PackLinuxElf32::buildLinuxLoader(
     NO_printf("FOLDEXEC unc=%#x  cpr=%#x\n", sz_unc, sz_cpr);
     linker->addSection("FOLDEXEC", mb_cprLoader, sizeof(b_info) + sz_cpr, 0);
     if (xct_off  // shlib
-       && (0
+       && (this->e_machine==Elf32_Ehdr::EM_NONE
           || this->e_machine==Elf32_Ehdr::EM_386
           || this->e_machine==Elf32_Ehdr::EM_ARM
           || this->e_machine==Elf32_Ehdr::EM_PPC
@@ -1581,7 +1584,7 @@ PackLinuxElf32::buildLinuxLoader(
     ) { // shlib with ELF2 de-compressor
         addLoader("ELFMAINX,ELFMAINZ,FOLDEXEC,IDENTSTR");
     }
-    else if (0
+    else if (this->e_machine==Elf32_Ehdr::EM_NONE
           || this->e_machine==Elf32_Ehdr::EM_386
           || this->e_machine==Elf32_Ehdr::EM_ARM
           || this->e_machine==Elf32_Ehdr::EM_PPC
@@ -1661,7 +1664,7 @@ PackLinuxElf64::buildLinuxLoader(
         }
         method = M_NRV2B_LE32;  // requires unaligned fetch
     }
-    else if (0
+    else if (this->e_machine==Elf32_Ehdr::EM_NONE
          ||  this->e_machine==Elf64_Ehdr::EM_X86_64
          ||  this->e_machine==Elf64_Ehdr::EM_AARCH64
          ||  this->e_machine==Elf64_Ehdr::EM_PPC64
@@ -1684,7 +1687,10 @@ PackLinuxElf64::buildLinuxLoader(
             len += snprintf(&sec[len], sizeof(sec) - len, ",%s",
                 "LZMA_DAISY,LZMA_ELF00,LZMA_DEC20,LZMA_DEC30");
         }
-        len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "EXP_TAIL,SYSCALLS");
+        len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "EXP_TAIL");
+        if (hasLoaderSection("SYSCALLS")) {
+            len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "SYSCALLS");
+        }
         if (hasLoaderSection("STRCON")) {
             len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "STRCON");
         }
@@ -1700,11 +1706,26 @@ PackLinuxElf64::buildLinuxLoader(
         method = M_NRV2B_LE32;  // requires unaligned fetch
     }
     else { // not shlib: main program with ELF1 de-compressor
-        cprElfHdr1 const *const hf = (cprElfHdr1 const *)fold;
-        unsigned fold_hdrlen = usizeof(hf->ehdr) +
-            get_te16(&hf->ehdr.e_phentsize) * get_te16(&hf->ehdr.e_phnum));
-        uncLoader = fold_hdrlen + fold;
-        sz_unc = ((szfold < fold_hdrlen) ? 0 : (szfold - fold_hdrlen));
+        cprElfHdr1 const *hf = (cprElfHdr1 const *)fold;
+        e_type = get_te16(&hf->ehdr.e_type);
+        if (ET_REL == e_type) {
+            initLoader(fold, szfold);
+            addLoader(".text", nullptr);
+            relocateLoader();
+            int sz_unc_int(0);
+            uncLoader = linker->getLoader(&sz_unc_int);
+            sz_unc = sz_unc_int;
+        }
+        else if (ET_EXEC == e_type) {
+            hf = (cprElfHdr1 const *)fold;
+            unsigned fold_hdrlen = usizeof(hf->ehdr) +
+                get_te16(&hf->ehdr.e_phentsize) * get_te16(&hf->ehdr.e_phnum);
+            if (this->e_machine==Elf64_Ehdr::EM_X86_64) {
+                fold_hdrlen = get_te64(&hf->ehdr.e_entry);
+            }
+            uncLoader = &fold[fold_hdrlen];
+            sz_unc = ((szfold < fold_hdrlen) ? 0 : (szfold - fold_hdrlen));
+        }
         method = ph.method;
     }
 
@@ -1741,7 +1762,7 @@ PackLinuxElf64::buildLinuxLoader(
     ) {
         addLoader("ELFMAINX,ELFMAINZ,FOLDEXEC,IDENTSTR");
     } // shlib
-    else if (0
+    else if (this->e_machine==Elf32_Ehdr::EM_NONE
          ||  this->e_machine==Elf64_Ehdr::EM_X86_64
          ||  this->e_machine==Elf64_Ehdr::EM_AARCH64
          ||  this->e_machine==Elf64_Ehdr::EM_PPC64
@@ -2828,6 +2849,7 @@ upx_uint64_t PackLinuxElf64::canPack_Shdr(Elf64_Phdr const *pload_x0)
   for (int j= e_shnum; --j>=0; ++shdr) {
     unsigned const sh_type = get_te32(&shdr->sh_type);
     if (Elf64_Shdr::SHF_EXECINSTR & get_te64(&shdr->sh_flags)) {
+        shdr_xva = shdr;
         xct_va = umin(xct_va, get_te64(&shdr->sh_addr));
     }
     // Hook the first slot of DT_PREINIT_ARRAY or DT_INIT_ARRAY.
@@ -3490,7 +3512,7 @@ tribool PackLinuxElf64::canPack()
             if (Elf64_Ehdr::EM_PPC64 == get_te16(&ehdr->e_machine)) {
                 throwCantPack("This test UPX cannot pack .so for PowerPC64; coming soon.");
             }
-            xct_va = ~0ull;
+            xct_va = ~(upx_uint64_t)0;
             if (e_shnum) {
                 xct_va = canPack_Shdr(pload_x0);
             }
@@ -3627,20 +3649,35 @@ PackLinuxElf32::generateElfHdr(
     cprElfHdr2 *const h2 = (cprElfHdr2 *)(void *)&elfout;
     cprElfHdr3 *const h3 = (cprElfHdr3 *)(void *)&elfout;
     h3->ehdr =         ((cprElfHdr3 const *)proto)->ehdr;
-    if (Elf32_Ehdr::ET_REL == get_te16(&h3->ehdr.e_type)) {
+    e_type = get_te16(&h3->ehdr.e_type);
+    if (!memcmp("\x7f\x45\x4c\x46", proto, 4) && Elf32_Ehdr::ET_EXEC == e_type
+    &&  2 <= get_te16(&h3->ehdr.e_phnum)) {
+        h3->phdr[C_BASE] = ((cprElfHdr3 const *)proto)->phdr[1];  // .data; .p_align
+        h3->phdr[C_TEXT] = ((cprElfHdr3 const *)proto)->phdr[0];  // .text
+    }
+    else  {
+        memcpy(&h3->ehdr.e_ident[0], "\x7f\x45\x4c\x46", 4);
+        h3->ehdr.e_ident[EI_CLASS] = ei_class;
+        h3->ehdr.e_ident[EI_DATA] = ei_data;
+        h3->ehdr.e_ident[EI_VERSION] = EV_CURRENT;
+        h3->ehdr.e_ident[EI_OSABI] = ei_osabi;
+        h3->ehdr.e_ident[EI_ABIVERSION] = 1;  // ei_abiversion;
         set_te32(&h3->ehdr.e_phoff, sizeof(Elf32_Ehdr));
         set_te16(&h3->ehdr.e_ehsize,sizeof(Elf32_Ehdr));
         set_te16(&h3->ehdr.e_phentsize, sizeof(Elf32_Phdr));
         set_te16(&h3->ehdr.e_phnum, 2);
+        set_te16(&h3->ehdr.e_machine, e_machine);
+        set_te16(&h3->ehdr.e_shstrndx, 0);
         memset(&h3->phdr[C_BASE], 0, sizeof(h3->phdr[C_BASE]));
         memset(&h3->phdr[C_TEXT], 0, sizeof(h3->phdr[C_TEXT]));
         memset(&h3->phdr[2     ], 0, sizeof(h3->phdr[2     ]));
         set_te32(&h3->phdr[C_BASE].p_flags, 0);
         set_te32(&h3->phdr[C_TEXT].p_flags, Elf32_Phdr::PF_X| Elf32_Phdr::PF_R);
-    }
-    else {
-        h3->phdr[C_BASE] = ((cprElfHdr3 const *)proto)->phdr[1];  // .data; .p_align
-        h3->phdr[C_TEXT] = ((cprElfHdr3 const *)proto)->phdr[0];  // .text
+        if (!memcmp("\x7f\x45\x4c\x46", proto, 4) && Elf32_Ehdr::ET_REL == e_type) {
+        }
+        else {
+            throwCantPack("unknown e_type %#x", e_type);
+        }
     }
     h3->ehdr.e_type = ehdri.e_type;  // ET_EXEC vs ET_DYN (gcc -pie -fPIC)
     memset(&h3->linfo, 0, sizeof(h3->linfo));
