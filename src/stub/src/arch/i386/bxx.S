@@ -52,8 +52,7 @@ ckloop4:
         cmpl %ecx,%esi; jae ckend
         push %esi  # tail merge
 ckloop3:
-        pop %esi; movzbl (%esi),%eax  # next main opcode
-        lea 1(%esi),%esi  # avoid lodsb because Read-Modify-Write of %eax
+        pop %esi; lodsb  # next main opcode
         cmpb $0x49,%dh; jne ckloop2  # do not consider 6-byte conditional jxx
         cmpb $0x80,%al; jb ckloop2  # lo of 6-byte Jcc
         cmpb $0x8F,%al; ja ckloop2  # hi of 6-byte Jcc
@@ -72,9 +71,7 @@ ckmark:
         stosl
 ckstart:
         cmpl %ecx,%esi; jae ckend
-        movzbl (%esi),%eax
-        lea 1(%esi),%esi
-        jmp ckloop2  # 0x0F prefix would overlap previous displacement
+        lodsb; jmp ckloop2  # 0x0F prefix would overlap previous displacement
 ckend:
         pop %edi
         pop %esi
