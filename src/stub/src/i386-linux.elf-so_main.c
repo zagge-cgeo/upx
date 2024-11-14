@@ -34,7 +34,7 @@
 
 extern void my_bkpt(void const *arg1, ...);
 
-#define DEBUG 0
+#define DEBUG 1
 
 // Pprotect is mprotect, but page-aligned on the lo end (Linux requirement)
 unsigned Pprotect(void *, size_t, unsigned);
@@ -275,7 +275,7 @@ extern unsigned long upx_mmap_and_fd(  // x86_64 Android emulator of i386 is not
 // Create (or find) an escape hatch to use when munmapping ourselves the stub.
 // Called by do_xmap to create it; remembered in AT_NULL.d_val
 static char *
-make_hatch_i386(
+make_hatch(
     Elf32_Phdr const *const phdr,
     char *next_unc,
     unsigned frag_mask
@@ -307,7 +307,7 @@ extern int upxfd_create(void);  // early 32-bit Android lacks memfd_create
 #define SEEK_SET 0
 
 static void *
-make_hatch_arm32(
+make_hatch(
     Elf32_Phdr const *const phdr,
     char *next_unc,
     unsigned frag_mask
@@ -343,7 +343,7 @@ make_hatch_arm32(
 }
 #elif defined(__mips__)  /*}{*/
 static void *
-make_hatch_mips(
+make_hatch(
     Elf32_Phdr const *const phdr,
     ptrdiff_t reloc,
     unsigned const frag_mask)
@@ -378,7 +378,7 @@ make_hatch_mips(
 }
 #elif defined(__powerpc__)  /*}{*/
 static void *
-make_hatch_ppc32(
+make_hatch(
     Elf32_Phdr const *const phdr,
     ptrdiff_t reloc,
     unsigned const frag_mask)
@@ -538,6 +538,7 @@ upx_so_main(  // returns &escape_hatch
     struct b_info al_bi;  // for aligned data from binfo
     void *hatch = nullptr;
     Elf32_Addr base = 0;
+    int n_load = 0;
 
     for (; phdr < phdrN; ++phdr)
     if ( phdr->p_type == PT_LOAD && !(phdr->p_flags & PF_W)) {
@@ -548,8 +549,29 @@ upx_so_main(  // returns &escape_hatch
             DPRINTF("base=%%p\\n", base);
         }
 
+        int mfd = 0;
+        char *mfd_addr = 0;
         if ((phdr->p_filesz + phdr->p_offset) <= so_infc.off_xct_off) {
-            continue;  // below compressed region
+            // Below compressed region, but might be the only PF_X segment
+            my_bkpt((void *)0x1244, phdr);
+            if (!hatch && phdr->p_flags & PF_X) {
+                my_bkpt((void *)0x1245, phdr);
+                char *haddr = base + (char *)(phdr->p_filesz + phdr->p_offset);
+                unsigned frag_mask = ~page_mask;
+                unsigned      frag = frag_mask & (unsigned)haddr;
+                unsigned long val = upx_mmap_and_fd(haddr - frag, frag, nullptr);
+                mfd = 0xfff & val;
+                val -= mfd; if ((char *)val != (haddr - frag)) my_bkpt((void *)0x1243, val);
+                --mfd;
+
+                Pwrite(mfd, haddr - frag, frag);  // original contents
+                mfd_addr = Pmap(haddr - frag, frag, PROT_READ|PROT_WRITE, MAP_FIXED|MAP_SHARED, mfd, 0);
+                DPRINTF("mfd_addr= %%p\\n", mfd_addr);
+                hatch = make_hatch(phdr, haddr, frag_mask);
+                Punmap(haddr - frag, -page_mask);
+                Pmap(haddr - frag, -page_mask, PROT_READ|PROT_EXEC, MAP_PRIVATE, mfd, 0);
+                close(mfd);
+            }
         }
         Elf32_Addr const pfx = (so_infc.off_xct_off < phdr->p_offset)
             ? 0  // entire PT_LOAD is compressed
@@ -557,21 +579,28 @@ upx_so_main(  // returns &escape_hatch
         x0.size = sizeof(struct b_info);
         xread(&x0, (char *)&al_bi, x0.size);  // aligned binfo
         x0.buf -= sizeof(al_bi);  // back up (the xread() was a peek)
+        my_bkpt((void *)0x1248, &x0);
         DPRINTF("next1 pfx=%%x binfo@%%p (%%p %%p %%p)\\n", pfx, x0.buf,
             al_bi.sz_unc, al_bi.sz_cpr, *(unsigned *)(void *)&al_bi.b_method);
+        my_bkpt((void *)0x1246, phdr);
 
         // Using .p_memsz implicitly handles .bss via MAP_ANONYMOUS.
         // Omit any non-tcompressed prefix (below xct_off)
         x1.buf =  (char *)(pfx + phdr->p_vaddr + base);
-        x1.size = phdr->p_memsz - pfx;
+        x1.size = phdr->p_memsz;
+        if (phdr->p_memsz > pfx) {
+            x1.size -= pfx;
+        }
+        else if (!n_load) {
+            ++n_load;  // 0 --> 1
+            continue;
+        }
 
         unsigned const frag = (phdr->p_vaddr + pfx) & ~page_mask;  // lo fragment on page
         x1.buf  -= frag;
         x1.size += frag;
         DPRINTF("phdr(%%p %%p) xct_off=%%x frag=%%x\\n", x1.buf, x1.size, xct_off, frag);
 
-        int mfd = 0;
-        char *mfd_addr = 0;
         if (phdr->p_flags & PF_X) { // SELinux
             // Cannot set PROT_EXEC except via mmap() into a region (Linux "vma")
             // that has never had PROT_WRITE.  So use a Linux-only "memory file"
@@ -599,14 +628,7 @@ upx_so_main(  // returns &escape_hatch
         DPRINTF(" after unpack x0=(%%p %%p  x1=(%%p %%p)\\n", x0.size, x0.buf, x1.size, x1.buf);
 
         if (!hatch && phdr->p_flags & PF_X) {
-#if defined(__i386__)  //{
-            hatch = make_hatch_i386(phdr, x1.buf, ~page_mask);
-#elif defined(__arm__)  //}{
-            hatch = make_hatch_arm32(phdr, x1.buf, ~page_mask);
-
-#elif defined(__powerpc32__)  //}{
-            hatch = make_hatch_ppc32(phdr, x1.buf, ~page_mask);
-#endif  //}
+            hatch = make_hatch(phdr, x1.buf, ~page_mask);
         }
 
         if (phdr->p_flags & PF_X) { // SELinux
@@ -620,6 +642,7 @@ upx_so_main(  // returns &escape_hatch
         else { // easy
             Pprotect( (char *)(phdr->p_vaddr + base), phdr->p_memsz, PF_to_PROT(phdr));
         }
+        ++n_load;
     }
 
     DPRINTF("Punmap sideaddr=%%p  cpr_len=%%p\\n", sideaddr, cpr_len);
