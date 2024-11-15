@@ -183,6 +183,10 @@ eof:  // non-lzma decompressors jump here when done
         sub %esi,%eax  // src -= eof;  // return 0: good; else: bad
         ret  // back into f_expand, with sane %ebp
 
+        .balign 4
+upx_mmap_and_fd: .globl upx_mmap_and_fd
+    // UMF_ANDROID or UMF_LINUX must be loaded after EXP_TAIL
+
 #define M_NRV2B_LE32    2
 #define M_NRV2D_LE32    5
 #define M_NRV2E_LE32    8
