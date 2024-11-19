@@ -405,8 +405,10 @@ void PackUnix::packExtent(
             unsigned hdr_c_len = 0;
             MemBuffer hdr_obuf;
             hdr_obuf.allocForCompression(hdr_u_len);
-            int r = upx_compress(hdr_ibuf, hdr_u_len, hdr_obuf, &hdr_c_len, nullptr,
-                ph_forced_method(ph.method), 10, nullptr, nullptr);
+            int r = upx_compress(hdr_ibuf, hdr_u_len, hdr_obuf, &hdr_c_len,
+                /* &progress callback */ nullptr,
+                ph_forced_method(ph.method), 10,
+                /* &config_t */ nullptr, /* &result_t */ nullptr);
             if (r != UPX_E_OK)
                 throwInternalError("header compression failed");
             if (hdr_c_len >= hdr_u_len)
