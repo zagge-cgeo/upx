@@ -311,7 +311,7 @@ eof_n2b:
         push $0  // arg6
         push mfd  // arg5
         push $MAP_FIXED|MAP_PRIVATE  // arg4
-        push $PROT_READ|PROT_EXEC  // arg3
+        push $PROT_READ|PROT_EXEC  // arg3  PROT_WRITE: DEBUG ONLY
         push F_LENU(%ebp)  // arg2
         push F_ADRU(%ebp)  // arg1
         call mmap; add $6*NBPW,%esp
@@ -409,7 +409,9 @@ my_bkpt: .globl my_bkpt
         int3  // my_bkpt
         ret
 
-// IDENTSTR goes here
+        .balign 4
+upx_mmap_and_fd:
+// section UMF_LINUX or UMF_ANDROID goes here
 
   section ELFMAINZ
 L70:

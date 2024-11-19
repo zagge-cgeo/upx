@@ -48,15 +48,17 @@ MAP_PRIVATE= 2
 MAP_FIXED=     0x10
 MAP_ANONYMOUS= 0x20
 
-__NR_memfd_create= 0x164 // 356
-__NR_mprotect=125
-__NR_munmap=   91
-__NR_oldmmap=   90  // old mmap: %ebx -> args[6]
-__NR_read=  3
-
 __NR_close= 6
 __NR_exit=  1
-__NR_write= 4
+__NR_memfd_create= 0x164 // 356
+__NR_mkdir=    39
+__NR_mprotect=125
+__NR_munmap=   91
+__NR_oldmmap=  90  // old mmap: %ebx -> args[6]
+__NR_read=    3
+__NR_stat=  106
+__NR_uname= 122
+__NR_write=   4
 
 PAGE_SHIFT= 12
 PAGE_MASK= (~0<<PAGE_SHIFT)
@@ -137,8 +139,8 @@ LEN_PATH= 1+ 11 + NAME_MAX + 13  // "/data/data/$APP_NAME/cache/upxAAA"
         push %edi  // arg3  pathname; pathname[0] = '\0'
         push %ecx  // arg2  F_LENU
         push $0    // arg1  any page address
-        call upx_mmap_and_fd  // %eax= page_addr | (1+fd)
-        add $3*NBPW,%esp
+        call upx_mmap_and_fd; add $3*NBPW,%esp  // %eax= page_addr | (1+fd)
+        test $(1<<11),%eax; jz 0f; hlt; 0: // fd "negative" ==> failure
 #define mfd    %edx
         mov %eax,mfd
         shrl $12,%eax
@@ -282,11 +284,37 @@ old_mmap:  // oldmmap: ebx -> 6 arguments; remove arguments on return
         cmp $PAGE_MASK,%eax; jb 0f; hlt; 0:
         ret $6*4
 
+        .balign 4
+upx_mmap_and_fd:  
+// section UMF_LINUX or UMF_ANDROID goes here
+
 // IDENTSTR goes here
 
   section ELFMAINZ
 get_upxfn_path: .globl get_upxfn_path  // char * (*)(void)
         xor %eax,%eax  // persistence not desired
+        ret
+
+stat: .globl stat
+        xchg %ebx,NBPW(%esp)
+        mov 2*NBPW(%esp),%ecx
+        movb $__NR_stat,%al; call sys_check_al
+        mov NBPW(%esp),%ebx
+        ret
+
+uname: .globl uname
+        push %ebp; mov %esp,%ebp; push %ebx
+        mov 2*NBPW(%ebp),%ebx
+        movb $__NR_uname,%al; call sys_check_al
+        pop %ebx; pop %ebp
+        ret 
+
+mkdir: .globl mkdir
+        push %ebp; mov %esp,%ebp; push %ebx
+        mov 2*NBPW(%ebp),%ebx
+        mov 3*NBPW(%ebp),%ecx
+        movb $__NR_mkdir,%al; call sys_check_al
+        pop %ebx; pop %ebp
         ret
 
 memset: .globl memset  // (dst, val, n)
@@ -320,7 +348,7 @@ my_bkpt:
 mmap: .globl mmap  // oldmmap: ebx -> 6 arguments
         push %ebx  // save register
         lea 2*NBPW(%esp),%ebx
-        mov $__NR_oldmmap,%al; call sys_check_al
+        movb $__NR_oldmmap,%al; call sys_check_al
         pop %ebx  // restore register
         ret
 

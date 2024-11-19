@@ -304,11 +304,17 @@ Pprotect: .globl Pprotect
     // FIXME: page-shift the file offset (last parameter) ??
 // C-callable, so do NOT remove arguments as part of return
 mmap: .globl mmap  // oldmmap: ebx -> 6 arguments
-        push ebx  // save register
-        lea ebx,[2*NBPW + esp]
-        mov al,__NR_oldmmap; call sys_check_al
-        pop ebx  // restore register
-        ret
+    push ebx  // save register
+    lea ebx,[2*NBPW + esp]
+    mov al,__NR_oldmmap; call sys_check_al
+        mov ecx,[0*NBPW + ebx]  // requested addr
+        test ecx,ecx; je 0f  // kernel chose
+        testb [3*NBPW + ebx],MAP_FIXED; je 0f
+        cmp ecx,eax; je 0f  // addr was preserved
+        hlt
+0:
+    pop ebx  // restore register
+    ret
 
 sys_check_al:
         movzbl eax,al
@@ -320,21 +326,17 @@ sys_check:
         hlt
 
 stat: .globl stat
-        push %ebp
-        mov  %ebp,%esp
-        push %ebx
+        push %ebp; mov  %ebp,%esp; push %ebx
         mov %ebx,[2*NBPW + %ebp]
         mov %ecx,[3*NBPW + %ebp]
-        push __NR_stat; pop %eax; int 0x80
+        mov al,__NR_stat; call sys_check_al
         pop %ebx; pop %ebp
         ret
 
 uname: .globl uname
-        push %ebp
-        mov  %ebp,%esp
-        push %ebx
+        push %ebp; mov  %ebp,%esp; push %ebx
         mov  %ebx, [2*NBPW + %ebp]
-        push __NR_uname; pop %eax; int 0x80
+        mov al,__NR_uname; call sys_check_al
         pop %ebx; pop %ebp
         ret
 
@@ -344,9 +346,8 @@ mkdir: .globl mkdir
         push %ebx
         mov %ebx,[2*NBPW + %ebp]
         mov %ecx,[3*NBPW + %ebp]
-        push __NR_mkdir; pop %eax; int 0x80
-        pop %ebx
-        pop %ebp
+        mov al,__NR_mkdir; call sys_check_al
+        pop %ebx; pop %ebp
         ret
 
 memset: .globl memset  // (dst, val, n)

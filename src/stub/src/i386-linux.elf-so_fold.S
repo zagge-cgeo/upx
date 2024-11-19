@@ -2,6 +2,7 @@
 
 #define section .section
 NBPW= 4
+MAP_FIXED=     0x10
 
 #ifndef DEBUG  //{
 #define DEBUG 0
@@ -40,7 +41,6 @@ get_upxfn_path: .globl get_upxfn_path  // char * (*)(void)
     ret
 
 L05:  // %esp/ &so_info,PMASK,F_ADRU,F_LENU,8regs,ret_addr,argc
-  int3
     pop %ecx  // &so_info
     lea (3+8+1)*NBPW(%esp),%eax  // &{argc,argv,envp}
     sub $MAX_ELF_HDR_32,%esp; push %esp  // &elf_tmp
@@ -153,11 +153,16 @@ mmap: .globl mmap  // oldmmap: %ebx -> 6 word parameters
     push %ebx  // save C-lang register
     lea 2*NBPW(%esp),%ebx
     mov (%ebx),%eax  // arg1
-    and $0xfff,%eax  // lo fragment
+    and $0xfff,%eax  // lo fragment  PAGE_SIZE
     sub %eax,    (%ebx)  // page align lo end
     add %eax,NBPW(%ebx)
-    push $ __NR_mmap; pop %eax
-    int $0x80; cmp $-0x1000,%eax; jna 0f; hlt; 0:
+    movb $ __NR_mmap,%al; call sys_check_al
+        mov 0*NBPW(%ebx),%ecx  // requested addr
+        test %ecx,%ecx; je 0f  // kernel chose
+        testb $MAP_FIXED,3*NBPW(%ebx); je 0f
+        cmp %ecx,%eax; je 0f  // addr was preserved
+        hlt
+0:
     pop %ebx  // restore
     ret
 
@@ -187,12 +192,11 @@ mmap: .globl mmap  // oldmmap: %ebx -> 6 word parameters
 Pprotect: .globl Pprotect  // from C
     xchg %ebx,1*NBPW(%esp)  // save reg, %ebx= address
     mov %ebx,%ecx  // copy address
-    and $~0<<12,%ebx  // page align
+    and $~0<<12,%ebx  // page align  PAGE_MASK
     sub %ebx,%ecx  // extra length
     add 2*NBPW(%esp),%ecx  // length
     mov 3*NBPW(%esp),%edx  // bits
-    push $__NR_mprotect; pop %eax; int $0x80
-    cmp $-0x1000,%eax; jna 0f; hlt; 0:
+    movb $__NR_mprotect,%al; call sys_check_al
     mov 1*NBPW(%esp),%ebx  // restore reg
     ret
 
@@ -200,34 +204,38 @@ Punmap: .globl Punmap  // from C
     push %ebp; mov %esp,%ebp
     push %ebx
     mov (0+2)*NBPW(%ebp),%ebx  // addr
-    mov %ebx,%eax; and $-1+ (1<<12),%eax
+    mov %ebx,%eax; and $-1+ (1<<12),%eax  // PAGE_MASK
     sub %eax,%ebx
     mov (1+2)*NBPW(%ebp),%ecx  // len
     add %eax,%ecx
-    push $__NR_munmap; pop %eax; int $0x80
-    cmp $-0x1000,%eax; jna 0f; hlt; 0:
+    movb $__NR_munmap,%al; call sys_check_al
     pop %ebx; pop %ebp
     ret
 
 memfd_create: .globl memfd_create
-        push $__NR_memfd_create; 5: jmp 5f
-mprotect: .globl mprotect
-        mov %ebx,%eax; and $-1+ (1<<12),%eax
+        mov $__NR_memfd_create,%eax; jmp sys_check
+mprotect: .globl mprotect  // also Pprotect
+        mov %ebx,%eax; and $-1+ (1<<12),%eax  // PAGE_MASK
         sub %eax,%ebx
         add %eax,%ecx
-        push $ __NR_mprotect; 5: jmp 5f
+        movb $ __NR_mprotect,%al; 5: jmp 5f
 exit: .globl exit
-        push $ __NR_exit; 5: jmp 5f
+        movb $ __NR_exit,%al; 5: jmp 5f
 close: .globl close
-        push $__NR_close; 5: jmp 5f
+        movb $__NR_close,%al; 5: jmp 5f
 munmap: .globl munmap
-        push $ __NR_munmap; 5: jmp 5f
+        movb $ __NR_munmap,%al; 5: jmp 5f
 Pwrite: .globl Pwrite
+        int3
 write: .globl write
-        push $__NR_write; 5:
-        pop %eax
+        movb $__NR_write,%al; 5:
+sys_check_al:
+        movzbl %al,%eax
+sys_check:
+        push %eax  // save __NR_ for debug
         int $0x80
-        ret
-
+        pop %edx  // recover __NR_ for debug
+        cmp $-1<<12,%eax; jae 0f; ret; 0:
+        hlt
 
 // section SO_MAIN inserted here
