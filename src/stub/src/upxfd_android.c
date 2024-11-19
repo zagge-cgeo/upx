@@ -145,150 +145,6 @@ extern int fstatat(int dirfd, const char *restrict pathname,
 #define ENOSPC 28  /* no space left on device */
 #define ENOSYS 38  /* no such system call */
 
-#if ANDROID_FRIEND  //{
-
-extern void *memset(void *dst, int val, size_t n);
-extern int stat(char const *path, struct stat *statbuf);
-extern int mkdir(char const *path, unsigned mode);
-
-__attribute__((__noinline__))
-static int dir_check(char const *path, int fatal)
-{
-    struct stat sb;
-    memset(&sb,0xff, sizeof(sb));  // DEBUG aid
-    int rv = stat(path, &sb);
-    if (0 <= rv) {
-        if (S_IFDIR == (sb.st_mode & S_IFMT)) {
-            return 0;
-        }
-    }
-    if (-ENOENT == rv) {
-        rv = mkdir(path, S_IRWXU);
-    }
-    if (rv < 0 && fatal) {
-        my_bkpt(path, rv);  // required path not available
-    }
-    return rv;
-}
-
-//#define S_IRWXU 00700  /* rwx------ User Read-Write-eXecute */
-extern void *alloca(unsigned size);
-//#include <string.h>  // we use "typedef unsigned size_t;"
-//#include <sys/utsname.h>
-
-extern unsigned getpid(void);
-extern void *mempcpy(void *dst, void const *src, unsigned len);
-
-// Upper half of ASCII (chars 0100-0177) are all legal in a Linux filename.
-// So the shortest code is " return 0100 + (077 & x); "
-// But the 5 chars which follow 'Z' ("[\\]^_") or 'z' ("{|}~\x7F")
-// look ugly, so substitute digits.
-__attribute__((__noinline__))
-static unsigned sixbit(unsigned x)
-{
-    unsigned y = 037 & x;  // "upper case"
-    x &= 077;
-    if (033 <= y) { // last 5 chars in each 32 are ugly
-        if (040 & x)  // "lower case"
-            x += '4' - 'z';  // "56789" follows 'z';
-        else
-            x += '/' - 'Z';  // "01234" follows 'Z';
-    }
-    x += 0100;  // upper half ASCII: "@ABC"...
-    return x;
-}
-
-#define PATH_MAX 4096  /* linux/include/uapi/linux/limits.h */
-
-// Where to put temp file when memfd_create() fails on early 32-bit Android
-__attribute__((__noinline__))
-static int create_upxfn_path(char *name, char *buf)
-{
-    // Construct path "/data/data/$APP_NAME/cache/upxAAA".
-    // Note 'mempcpy' [with 'p' in the middle!] returns the end-of-string.
-    char *p =  mempcpy(&name[0], addr_string("/data/data/"), 11);  // '/' sentinel at end
-    p[0] = '\0'; dir_check(name, 1);
-
-    // Append the name of the app
-    char const *q = addr_string("/proc/self/cmdline");
-    int fd = open(q, O_RDONLY, 0);
-    int rlen = read(fd, p= buf, -1+ PATH_MAX);
-    close(fd);
-    if (rlen < 0) {
-        my_bkpt(q);
-    }
-    p[rlen] = '\0';  // insurance sentinel
-    // Kernel-parsed arguments are separated by '\0'.
-    while (*p) ++p;  // advance to end of argv[0]
-
-    {
-        char *app_end = p;
-        // Sentinel '/' at name[10] provides safety for backing up.
-        while ('/' != *p) --p;  // find last component of argv[0]
-        q = p;
-        p = mempcpy(&name[10], p, app_end - p);
-        p[0] = '\0';
-        if (-EACCES == dir_check(name, 0)) {
-            p = mempcpy(&name[11], addr_string("com.termux/files"), 16);
-            p = mempcpy(p, q, app_end - q);
-            p[0] = '\0';
-            dir_check(name, 1);
-        }
-    }
-
-    p = mempcpy(p, addr_string("/cache"), 6);
-    p[0] = '\0'; dir_check(name, 1);
-    p = mempcpy(p, addr_string("/upx"), 4);
-    pid_t pid = getpid();
-    p[0] = sixbit(pid >> 0*6);
-    p[1] = sixbit(pid >> 1*6);
-    p[2] = sixbit(pid >> 2*6);
-    p[3]='\0';
-    return 0;  // success
-}
-
-// memfd_create() gets ENOSYS on early Android.  There are 32-bit x86 Android
-// such as Zenfone 2 (discontinued 2018?), x86 Chromebooks (2019 and later),
-// FydeOS, Windows subsystem for Android.  But the main use is for developing,
-// to make Android emulator running on x86_64 (Linux or Windows) run faster
-// by emulating x86 instead of ARM.
-//
-// Try /data/data/$APP_NAME/cache/upxAAA
-// where APP_NAME is discovered as basename(argv[0])
-// and argv[0] is guessed from /proc/self/cmdline.
-// Also 32-bit Android has inconsistent __NR_ftruncate,
-// so use direct write()
-//
-struct utsname {
-    char sysname[65];
-    char nodename[65];
-    char release[65];
-    char version[65];
-    char machine[65];
-    char domainname[65];
-
-};
-extern int uname(struct utsname *);
-extern char * get_upxfn_path(void);
-
-// To work around bug in "i386-linux-gcc-3.4.6 -m32 -march=i386" .
-// gcc optimized out this code:
-//      uname((struct utsname *)buf);
-//      int const is_android = ( (('r'<<3*8)|('d'<<2*8)|('n'<<1*8)|('a'<<0*8))
-//          == (0x20202020 | *(int *)buf) );
-// Specialized: does NOT consider early termination of either string, etc.
-__attribute__((__noinline__))
-static int strncmplc(char const *s1, char const *s2, unsigned n)
-{
-    while (n--) {
-        int rv = (0x20 | *s1++) - (0x20 | *s2++);
-        if (rv) return rv;
-    }
-    return 0;
-}
-
-#endif  //}  ANDROID_FRIEND
-
 // ANDROID_TEST: Set to 1 for testing Android implmentation using Linux on
 // Raspberry Pi (arm32, perhaps running on actual arm64); else set to 0.
 #define ANDROID_TEST 0
@@ -298,11 +154,36 @@ static int strncmplc(char const *s1, char const *s2, unsigned n)
 #define O_DIRECTORY 0200000  /* 0x010000 */
 #define O_TMPFILE 020000000  /* 0x400000 */
 
+#define PATH_MAX 4096  /* linux/include/uapi/linux/limits.h */
+
 extern int memfd_create(char const *name, unsigned flags);
 extern int ftruncate(int fd, size_t length);
 extern ssize_t write(int fd, void const *buf, size_t length);
 
-unsigned long upx_mmap_and_fd( // returns (mapped_addr | (1+ fd))
+// upx_mmap_and_fd_android() must be first in the .o when compiled,
+// so prototype 'static' functions but put their definitions later.
+#if ANDROID_FRIEND  //{
+static int strncmplc(char const *s1, char const *s2, unsigned n);
+static int create_upxfn_path(char *name, char *buf);
+static unsigned sixbit(unsigned x);
+static int dir_check(char const *path, int fatal);
+#endif  //}
+
+struct utsname {
+    char sysname[65];
+    char nodename[65];
+    char release[65];
+    char version[65];
+    char machine[65];
+    char domainname[65];
+};
+extern void *memset(void *dst, int val, size_t n);
+extern int stat(char const *path, struct stat *statbuf);
+extern int mkdir(char const *path, unsigned mode);
+extern int uname(struct utsname *);
+extern char * get_upxfn_path(void);
+
+unsigned long upx_mmap_and_fd_android( // returns (mapped_addr | (1+ fd))
     void *ptr  // desired address
     , unsigned datlen  // mapped length
     , char *pathname  // 0 ==> get_upxfn_path()
@@ -374,7 +255,7 @@ unsigned long upx_mmap_and_fd( // returns (mapped_addr | (1+ fd))
 #endif  //}
 
     // Set the file length
-    unsigned const frag = frag_mask & (unsigned)ptr;
+    unsigned const frag = frag_mask & (unsigned)(long)ptr;
     ptr -= frag;  // page-aligned
     datlen += frag;
     if (datlen) {
@@ -410,6 +291,132 @@ unsigned long upx_mmap_and_fd( // returns (mapped_addr | (1+ fd))
     return addr | (1+ fd);
 }
 
+#if ANDROID_FRIEND  //{
+
+__attribute__((__noinline__))
+static int dir_check(char const *path, int fatal)
+{
+    struct stat sb;
+    memset(&sb,0xff, sizeof(sb));  // DEBUG aid
+    int rv = stat(path, &sb);
+    if (0 <= rv) {
+        if (S_IFDIR == (sb.st_mode & S_IFMT)) {
+            return 0;
+        }
+    }
+    if (-ENOENT == rv) {
+        rv = mkdir(path, S_IRWXU);
+    }
+    if (rv < 0 && fatal) {
+        my_bkpt(path, rv);  // required path not available
+    }
+    return rv;
+}
+
+//#define S_IRWXU 00700  /* rwx------ User Read-Write-eXecute */
+extern void *alloca(unsigned size);
+//#include <string.h>  // we use "typedef unsigned size_t;"
+//#include <sys/utsname.h>
+
+extern unsigned getpid(void);
+extern void *mempcpy(void *dst, void const *src, unsigned len);
+
+// Upper half of ASCII (chars 0100-0177) are all legal in a Linux filename.
+// So the shortest code is " return 0100 + (077 & x); "
+// But the 5 chars which follow 'Z' ("[\\]^_") or 'z' ("{|}~\x7F")
+// look ugly, so substitute digits.
+__attribute__((__noinline__))
+static unsigned sixbit(unsigned x)
+{
+    unsigned y = 037 & x;  // "upper case"
+    x &= 077;
+    if (033 <= y) { // last 5 chars in each 32 are ugly
+        if (040 & x)  // "lower case"
+            x += '4' - 'z';  // "56789" follows 'z';
+        else
+            x += '/' - 'Z';  // "01234" follows 'Z';
+    }
+    x += 0100;  // upper half ASCII: "@ABC"...
+    return x;
+}
+
+// Where to put temp file when memfd_create() fails on early 32-bit Android
+__attribute__((__noinline__))
+static int create_upxfn_path(char *name, char *buf)
+{
+    // Construct path "/data/data/$APP_NAME/cache/upxAAA".
+    // Note 'mempcpy' [with 'p' in the middle!] returns the end-of-string.
+    char *p =  mempcpy(&name[0], addr_string("/data/data/"), 11);  // '/' sentinel at end
+    p[0] = '\0'; dir_check(name, 1);
+
+    // Append the name of the app
+    char const *q = addr_string("/proc/self/cmdline");
+    int fd = open(q, O_RDONLY, 0);
+    int rlen = read(fd, p= buf, -1+ PATH_MAX);
+    close(fd);
+    if (rlen < 0) {
+        my_bkpt(q);
+    }
+    p[rlen] = '\0';  // insurance sentinel
+    // Kernel-parsed arguments are separated by '\0'.
+    while (*p) ++p;  // advance to end of argv[0]
+
+    {
+        char *app_end = p;
+        // Sentinel '/' at name[10] provides safety for backing up.
+        while ('/' != *p) --p;  // find last component of argv[0]
+        q = p;
+        p = mempcpy(&name[10], p, app_end - p);
+        p[0] = '\0';
+        if (-EACCES == dir_check(name, 0)) {
+            p = mempcpy(&name[11], addr_string("com.termux/files"), 16);
+            p = mempcpy(p, q, app_end - q);
+            p[0] = '\0';
+            dir_check(name, 1);
+        }
+    }
+
+    p = mempcpy(p, addr_string("/cache"), 6);
+    p[0] = '\0'; dir_check(name, 1);
+    p = mempcpy(p, addr_string("/upx"), 4);
+    pid_t pid = getpid();
+    p[0] = sixbit(pid >> 0*6);
+    p[1] = sixbit(pid >> 1*6);
+    p[2] = sixbit(pid >> 2*6);
+    p[3]='\0';
+    return 0;  // success
+}
+
+// memfd_create() gets ENOSYS on early Android.  There are 32-bit x86 Android
+// such as Zenfone 2 (discontinued 2018?), x86 Chromebooks (2019 and later),
+// FydeOS, Windows subsystem for Android.  But the main use is for developing,
+// to make Android emulator running on x86_64 (Linux or Windows) run faster
+// by emulating x86 instead of ARM.
+//
+// Try /data/data/$APP_NAME/cache/upxAAA
+// where APP_NAME is discovered as basename(argv[0])
+// and argv[0] is guessed from /proc/self/cmdline.
+// Also 32-bit Android has inconsistent __NR_ftruncate,
+// so use direct write()
+//
+// To work around bug in "i386-linux-gcc-3.4.6 -m32 -march=i386" .
+// gcc optimized out this code:
+//      uname((struct utsname *)buf);
+//      int const is_android = ( (('r'<<3*8)|('d'<<2*8)|('n'<<1*8)|('a'<<0*8))
+//          == (0x20202020 | *(int *)buf) );
+// Specialized: does NOT consider early termination of either string, etc.
+__attribute__((__noinline__))
+static int strncmplc(char const *s1, char const *s2, unsigned n)
+{
+    while (n--) {
+        int rv = (0x20 | *s1++) - (0x20 | *s2++);
+        if (rv) return rv;
+    }
+    return 0;
+}
+
+#endif  //}  ANDROID_FRIEND
+
 #if 0  //{ test
 char name[1000];
 
@@ -437,3 +444,4 @@ void *memset(void *adst, unsigned val, unsigned len)
     return adst;
 }
 #endif  //}
+
