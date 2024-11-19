@@ -154,6 +154,10 @@ eof_n2b: .globl eof_n2b
 go_decompr:
 //  sections NRV2B, etc, inserted here by addLoader() from ::buildLinuxLoader()
 
+        .balign 4
+upx_mmap_and_fd: .globl upx_mmap_and_fd
+    // UMF_ANDROID or UMF_LINUX must be loaded after EXP_TAIL
+
   section EXP_TAIL
 #define M_NRV2B_LE32    2
 #define M_NRV2B_8    3

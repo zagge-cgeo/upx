@@ -268,6 +268,10 @@ sz_auxv= 2*NBPW
         bctr  // goto escape hatch
 
   section SYSCALLS
+
+upx_mmap_and_fd: .globl upx_mmap_and_fd
+        b upx_mmap_and_fd_linux
+
 SYS_exit=  1
 SYS_fork=  2
 SYS_read=  3

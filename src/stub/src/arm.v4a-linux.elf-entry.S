@@ -270,6 +270,10 @@ f_expand:
 #define NO_METHOD_CHECK 1
 #include "arch/arm/v4a/nrv2b_d8.S"
 
+        .balign 4
+upx_mmap_and_fd:
+// section UMF_LINUX or UMF_ANDROID goes here
+
   section ELFMAINY
 end_decompress: .globl end_decompress
         /* IDENTSTR goes here */

@@ -184,6 +184,11 @@ eof_n2b:
         jr ra
           addiu sp,4
 
+        .balign 4
+upx_mmap_and_fd:
+// section UMF_LINUX or UMF_ANDROID goes here
+
+  section ELFMAINZ
   section ELFMAINZ; .set noreorder
 L72:
         li a0,2  # fd stderr

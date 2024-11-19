@@ -591,12 +591,13 @@ arm.v4a-linux.elf-so_entry.h : src/arm.v4a-linux.elf-so_entry.lds \
 
 tmp/arm.v4a-linux.elf-upxfd_android.o : $(srcdir)/src/upxfd_android.c
 	$(call tc,gcc) -c -O $< -o $@
+	$(call tc,objcopy) --rename-section .text=UMF_ANDROID -R .comment -R .data -R .bss -R .note.GNU-stack $@
 	$(call tc,objcopy) -R .comment $@
 	$(call tc,objdump) -Dr $(tc_objdump_disasm_options) $@ | $(RTRIM) > $@.disasm
 
 tmp/arm.v4a-linux.elf-upxfd_linux.o : $(srcdir)/src/upxfd_linux.c
 	$(call tc,gcc) -c -O $< -o $@
-	$(call tc,objcopy) -R .comment $@
+	$(call tc,objcopy) --rename-section .text=UMF_LINUX -R .comment -R .data -R .bss -R .note.GNU-stack $@
 	$(call tc,objdump) -Dr $(tc_objdump_disasm_options) $@ | $(RTRIM) > $@.disasm
 
 arm.v4a-linux.elf-fold.h : $(srcdir)/src/$$T.lds \
@@ -707,12 +708,12 @@ arm.v5a-linux.elf-so_entry.h : src/arm.v5a-linux.elf-so_entry.lds \
 
 tmp/arm.v5a-linux.elf-upxfd_android.o : $(srcdir)/src/upxfd_android.c
 	$(call tc,gcc) -c -O $< -o $@
-	$(call tc,objcopy) -R .comment $@
+	$(call tc,objcopy) --rename-section .text=UMF_ANDROID -R .comment -R .data -R .bss -R .note.GNU-stack $@
 	$(call tc,objdump) -Dr $(tc_objdump_disasm_options) $@ | $(RTRIM) > $@.disasm
 
 tmp/arm.v5a-linux.elf-upxfd_linux.o : $(srcdir)/src/upxfd_linux.c
 	$(call tc,gcc) -c -O $< -o $@
-	$(call tc,objcopy) -R .comment $@
+	$(call tc,objcopy) --rename-section .text=UMF_LINUX -R .comment -R .data -R .bss -R .note.GNU-stack $@
 	$(call tc,objdump) -Dr $(tc_objdump_disasm_options) $@ | $(RTRIM) > $@.disasm
 
 arm.v5a-linux.elf-fold.h : $(srcdir)/src/$$T.lds \
@@ -940,12 +941,12 @@ armeb.v4a-linux.elf-fold.h : $(srcdir)/src/$$T.lds \
 
 tmp/armeb.v4a-linux.elf-upxfd_android.o : $(srcdir)/src/upxfd_android.c
 	$(call tc,gcc) -c -O $< -o $@
-	$(call tc,objcopy) -R .comment $@
+	$(call tc,objcopy) --rename-section .text=UMF_ANDROID -R .comment -R .data -R .bss -R .note.GNU-stack $@
 	$(call tc,objdump) -Dr $(tc_objdump_disasm_options) $@ | $(RTRIM) > $@.disasm
 
 tmp/armeb.v4a-linux.elf-upxfd_linux.o : $(srcdir)/src/upxfd_linux.c
 	$(call tc,gcc) -c -O $< -o $@
-	$(call tc,objcopy) -R .comment $@
+	$(call tc,objcopy) --rename-section .text=UMF_LINUX -R .comment -R .data -R .bss -R .note.GNU-stack $@
 	$(call tc,objdump) -Dr $(tc_objdump_disasm_options) $@ | $(RTRIM) > $@.disasm
 
 tmp/armeb.v4a-expand.o: $(srcdir)/src/$$T.S
@@ -1553,19 +1554,27 @@ mips.r3000-linux.elf-entry.h : $(srcdir)/src/mips.r3000-linux.elf-entry.lds \
 tmp/mips.r3000-linux.elf-upxfd_android.o : $(srcdir)/src/upxfd_android.c
 	@echo; echo TARGET: $@; echo
 	$(call tc,gcc) -c -O $< -o $@
-	$(call tc,objcopy) -R .comment $@
+	$(call tc,objcopy) --rename-section .text=UMF_ANDROID -R .comment -R .data -R .bss -R .note.GNU-stack $@
+	$(call tc,objdump) -Dr $(tc_objdump_disasm_options) $@ | $(RTRIM) > $@.disasm
+
+tmp/mips.r3000-linux.elf-upxfd_linux.o : $(srcdir)/src/upxfd_linux.c
+	@echo; echo TARGET: $@; echo
+	$(call tc,gcc) -c -O $< -o $@
+	$(call tc,objcopy) --rename-section .text=UMF_LINUX -R .comment -R .data -R .bss -R .note.GNU-stack $@
 	$(call tc,objdump) -Dr $(tc_objdump_disasm_options) $@ | $(RTRIM) > $@.disasm
 
 mips.r3000-linux.elf-fold.h : $(srcdir)/src/$$T.lds \
 	    $(srcdir)/src/$$T.S \
 	    tmp/mips.r3000-linux.elf-main2.s \
 	    tmp/mips.r3000-linux.upxfd_android.s \
+	    tmp/mips.r3000-linux.upxfd_linux.s \
 	    src/mips.r3000-expand.S
 	@echo; echo TARGET: $@; echo
 	cat > tmp/mips.r3000-linux.elf-fold-2.S \
 	    src/mips.r3000-linux.elf-fold.S \
 	    tmp/mips.r3000-linux.elf-main2.s \
 	    tmp/mips.r3000-linux.upxfd_android.s \
+	    tmp/mips.r3000-linux.upxfd_linux.s \
 	    src/mips.r3000-expand.S
 	(cd tmp; ln -sf ../src/arch arch)
 	$(call tc,gcc) -E \
@@ -1583,6 +1592,17 @@ mips.r3000-linux.elf-fold.h : $(srcdir)/src/$$T.lds \
 	$(call tc,bin2h) tmp/$T.bin $@
 
 tmp/mips.r3000-linux.upxfd_android.s: $(srcdir)/src/upxfd_android.c
+	@echo; echo TARGET: $@; echo
+	$(call tc,gcc) -S -D__mips__ \
+	    -D_TARGET_LINUX_ -DNO_WANT_MMAP -O $< -o - \
+	    | sed -e '/^\t\.file\t/d' \
+	          -e 's/L[0-9]*/L8&/g' \
+	          -e $$(cat src/dollar-dollar.sed) \
+	          -e 's/	j[ 	][ 	]*$$L/	b $$L/' \
+	          -e 's/	jal[ 	][ 	]*\([^\$$]\)/	bal \1/' \
+		  >$@
+
+tmp/mips.r3000-linux.upxfd_linux.s: $(srcdir)/src/upxfd_linux.c
 	@echo; echo TARGET: $@; echo
 	$(call tc,gcc) -S -D__mips__ \
 	    -D_TARGET_LINUX_ -DNO_WANT_MMAP -O $< -o - \
@@ -1665,12 +1685,14 @@ mipsel.r3000-linux.elf-fold.h : $(srcdir)/src/$$T.lds \
 	    $(srcdir)/src/$$T.S \
 	    tmp/mipsel.r3000-linux.elf-main2.s \
 	    tmp/mipsel.r3000-linux.upxfd_android.s \
+	    tmp/mipsel.r3000-linux.upxfd_linux.s \
 	    src/mipsel.r3000-expand.S
 	@echo; echo TARGET: $@; echo
 	cat > tmp/mipsel.r3000-linux.elf-fold-2.S \
 	    src/mipsel.r3000-linux.elf-fold.S \
 	    tmp/mipsel.r3000-linux.elf-main2.s \
 	    tmp/mipsel.r3000-linux.upxfd_android.s \
+	    tmp/mipsel.r3000-linux.upxfd_linux.s \
 	    src/mipsel.r3000-expand.S
 	(cd tmp; ln -sf ../src/arch arch)
 	$(call tc,gcc) -E \
@@ -1688,6 +1710,17 @@ mipsel.r3000-linux.elf-fold.h : $(srcdir)/src/$$T.lds \
 	$(call tc,bin2h) tmp/$T.bin $@
 
 tmp/mipsel.r3000-linux.upxfd_android.s: $(srcdir)/src/upxfd_android.c
+	@echo; echo TARGET: $@; echo
+	$(call tc,gcc) -S -D__mipsel__ \
+	    -D_TARGET_LINUX_ -DNO_WANT_MMAP -O $< -o - \
+	    | sed -e '/^\t\.file\t/d' \
+	          -e 's/L[0-9]*/L8&/g' \
+	          -e $$(cat src/dollar-dollar.sed) \
+	          -e 's/	j[ 	][ 	]*$$L/	b $$L/' \
+	          -e 's/	jal[ 	][ 	]*\([^\$$]\)/	bal \1/' \
+		  >$@
+
+tmp/mipsel.r3000-linux.upxfd_linux.s: $(srcdir)/src/upxfd_linux.c
 	@echo; echo TARGET: $@; echo
 	$(call tc,gcc) -S -D__mipsel__ \
 	    -D_TARGET_LINUX_ -DNO_WANT_MMAP -O $< -o - \
@@ -1827,7 +1860,7 @@ powerpc-linux.elf-entry.h : $(srcdir)/src/$$T.S
 
 powerpc-linux.elf-fold.h : $(srcdir)/src/$$T.lds \
 	    tmp/$$T.o \
-	    tmp/powerpc-linux.elf-upxfd_android.o \
+	    tmp/powerpc-linux.elf-upxfd_linux.o \
 	    tmp/powerpc-expand.o \
 	    tmp/powerpc-linux.elf-main2.o
 	$(call tc,ld) -r -T $(srcdir)/src/$T.lds -Map tmp/$T.map $(filter %.o,$^) -o tmp/$T.bin
@@ -1842,9 +1875,9 @@ tmp/powerpc-linux.elf-main2.o : $(srcdir)/src/$$T.c
 	$(call tc,gcc) -c $< -o $@
 	$(call tc,f-objstrip,$@)
 
-tmp/powerpc-linux.elf-upxfd_android.o : $(srcdir)/src/upxfd_android.c
+tmp/powerpc-linux.elf-upxfd_linux.o : $(srcdir)/src/upxfd_linux.c
 	$(call tc,gcc) -c -O $< -o $@
-	$(call tc,objcopy) -R .comment $@
+	$(call tc,objcopy) -R .comment -R .data -R .bss -R .note.GNU-stack $@
 	$(call tc,objdump) -Dr $(tc_objdump_disasm_options) $@ | $(RTRIM) > $@.disasm
 
 tmp/powerpc-expand.o: $(srcdir)/src/$$T.S
