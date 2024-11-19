@@ -30,14 +30,15 @@
 
 OUTPUT_FORMAT("elf32-bigmips", "elf32-bigmips", "elf32-bigmips")
 OUTPUT_ARCH(mips)
-/*ENTRY(_start)*/
+
 PHDRS
 {
     text PT_LOAD FILEHDR PHDRS ;
-    data PT_LOAD ;
+    data PT_LOAD ;  /* for setting brk(0) */
 }
 SECTIONS
 {
+  . = SIZEOF_HEADERS;
   .text : {
     *(.text)
     *(.data)

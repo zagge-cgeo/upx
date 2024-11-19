@@ -3,5 +3,5 @@ OUTPUT_ARCH(aarch64)
 
 SECTIONS
 {
-  . = SIZEOF_HEADERS + 12;  /* 12==sizeof(l_info) */
+  . = SIZEOF_HEADERS;
 }
