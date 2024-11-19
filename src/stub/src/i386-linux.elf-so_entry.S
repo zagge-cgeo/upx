@@ -285,7 +285,7 @@ old_mmap:  // oldmmap: ebx -> 6 arguments; remove arguments on return
         ret $6*4
 
         .balign 4
-upx_mmap_and_fd:  
+upx_mmap_and_fd:
 // section UMF_LINUX or UMF_ANDROID goes here
 
 // IDENTSTR goes here
@@ -307,7 +307,7 @@ uname: .globl uname
         mov 2*NBPW(%ebp),%ebx
         movb $__NR_uname,%al; call sys_check_al
         pop %ebx; pop %ebp
-        ret 
+        ret
 
 mkdir: .globl mkdir
         push %ebp; mov %esp,%ebp; push %ebx

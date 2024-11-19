@@ -72,9 +72,9 @@ class Dummy {
         ET_DYN = 3,  /* Shared object file */
         ET_CORE = 4, /* Core file */
     };
-    enum {          // e_machine
+    enum {           // e_machine
         EM_NONE = 0, // No machine
-        EM_386 = 3, // i386
+        EM_386 = 3,  // i386
         EM_MIPS = 8,
         EM_MIPS_RS3_LE = 10, // MIPS R3000 little-endian
         EM_PPC = 20,

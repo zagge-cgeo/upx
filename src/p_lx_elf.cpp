@@ -5339,7 +5339,7 @@ unsigned PackLinuxElf32::pack2_shlib_overlay_compress(
 //         LOAD   0x001000 0x00001000 0x00001000 0x001d4 0x001d4 R E 0x1000  small code
 //         LOAD   0x002000 0x00002000 0x00002000 0x09d40 0x09d40 R   0x1000  large app consts
 //         LOAD   0x00bef0 0x0000cef0 0x0000cef0 0x00118 0x0011c RW  0x1000  writeable
-//        
+//
 //         xct_off will have been increased artifically to point to
 //         the large compressable PT_LOAD (0x9d40==MemSiz), in order to avoid
 //         NotCompressable because the earlier PT_LOADs were too short (< 4KiB).
@@ -5397,7 +5397,7 @@ int PackLinuxElf32::pack2_shlib(OutputFile *fo, Filter &ft, unsigned pre_xct_top
             pack2_shlib_overlay_init(fo); // set overlay_offset
             // Compressed ELF headers go first.
             pack2_shlib_overlay_write(fo, elf_buf, u_len, c_len);
-            
+
             // The (compressible) remainder above xct_off in first PT_LOAD
             if (         p_filesz >= (xct_off - p_offset)) {
                 Extent x;
