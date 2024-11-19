@@ -154,6 +154,12 @@ protected:
     virtual void asl_pack2_Shdrs(OutputFile *, unsigned pre_xct_top);  // AndroidSharedLibrary processes Shdrs
     virtual void asl_slide_Shdrs();  // by so_slide if above xct_off
     virtual int  pack2(OutputFile *, Filter &) override;  // append compressed data
+    virtual int  pack2_shlib(OutputFile *fo, Filter &ft, unsigned pre_xct_top);
+    virtual unsigned pack2_shlib_overlay_init(OutputFile *fo);
+    virtual unsigned pack2_shlib_overlay_compress(MemBuffer &obuf,
+        MemBuffer &ibuf, unsigned u_len);
+    virtual unsigned pack2_shlib_overlay_write(OutputFile *fo, MemBuffer &obuf,
+        unsigned hdr_u_len, unsigned hdr_c_len);
     virtual off_t pack3(OutputFile *, Filter &) override;  // append loader
     virtual void pack4(OutputFile *, Filter &) override;  // append pack header
     virtual unsigned forward_Shdrs(OutputFile *fo, Elf32_Ehdr *ehdro);

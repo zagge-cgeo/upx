@@ -100,7 +100,7 @@ protected:
     MemBuffer pt_dynamic;
     int sz_dynamic;
 
-    unsigned b_len;  // total length of b_info blocks
+    unsigned b_len;  // total length of b_info blocks  FIXME: unused
     unsigned methods_used;  // bitmask of compression methods
     unsigned szb_info;  // 3*4 (sizeof b_info); or 2*4 if ancient
     unsigned saved_opt_android_shlib;

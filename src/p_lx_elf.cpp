@@ -5413,8 +5413,8 @@ int PackLinuxElf32::pack2_shlib(OutputFile *fo, Filter &ft, unsigned pre_xct_top
             fi->seek(p_offset, SEEK_SET);
             fi->read(ibuf, p_filesz);  total_in  += p_filesz;
             MemBuffer buf2; buf2.allocForCompression(p_filesz);
-            c_len = pack2_shlib_overlay_compress(buf2, ibuf, u_len);
-            pack2_shlib_overlay_write(fo, buf2, u_len, c_len);
+            c_len = pack2_shlib_overlay_compress(buf2, ibuf, p_filesz);
+            pack2_shlib_overlay_write(fo, buf2, p_filesz, c_len);
             Elf32_Phdr *lo_phdr = k + (Elf32_Phdr *)(1+ (Elf32_Ehdr *)&lowmem[0]);
             set_te32(&lo_phdr->p_type, Elf32_Phdr::PT_NULL);
         }
