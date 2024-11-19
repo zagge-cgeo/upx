@@ -7,18 +7,19 @@ Name             Origin             Length             Attributes
 Linker script and memory map
 
 TARGET(elf64-powerpcle)
+                0x0000000000000040                . = SIZEOF_HEADERS
 
-.text           0x0000000000000000      0xe98
+.text           0x0000000000000040      0xe98
  *(.text)
- .text          0x0000000000000000      0xe98 tmp/powerpc64le-linux.elf-fold.o
-                0x0000000000000014                get_page_mask
-                0x000000000000002c                Pprotect
-                0x0000000000000050                Pmap
-                0x0000000000000074                Punmap
-                0x0000000000000c74                underlay
-                0x0000000000000d00                upx_main
+ .text          0x0000000000000040      0xe98 tmp/powerpc64le-linux.elf-fold.o
+                0x0000000000000054                get_page_mask
+                0x000000000000006c                Pprotect
+                0x0000000000000090                Pmap
+                0x00000000000000b4                Punmap
+                0x0000000000000cb4                underlay
+                0x0000000000000d40                upx_main
  *(.data)
- .data          0x0000000000000e98        0x0 tmp/powerpc64le-linux.elf-fold.o
+ .data          0x0000000000000ed8        0x0 tmp/powerpc64le-linux.elf-fold.o
 
 .data
 LOAD tmp/powerpc64le-linux.elf-fold.o

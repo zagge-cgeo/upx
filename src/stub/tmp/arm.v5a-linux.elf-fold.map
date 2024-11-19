@@ -6,10 +6,8 @@ Name             Origin             Length             Attributes
 
 Linker script and memory map
 
-TARGET(elf32-littlearm)
 
-.text           0x0000000000000000     0x1150
- *(.text)
+.text           0x0000000000000000      0xc34
  .text          0x0000000000000000      0x348 tmp/arm.v5a-linux.elf-fold.o
                 0x0000000000000004                get_page_mask
                 0x00000000000002e8                memcpy
@@ -21,17 +19,10 @@ TARGET(elf32-littlearm)
                 0x00000000fffffff4                page_mask
                 0x0000000000000024                Pprotect
                 0x0000000000000024                mprotect
- .text          0x0000000000000348      0x51c tmp/arm.v5a-linux.elf-upxfd_android.o
-                0x0000000000000614                upx_mmap_and_fd
- .text          0x0000000000000864        0x0 tmp/arm.v5a-expand.o
- .text          0x0000000000000864      0x8ec tmp/arm.v5a-linux.elf-main2.o
-                0x00000000000010ec                underlay
-                0x0000000000000fbc                upx_main
- *(.data)
- .data          0x0000000000001150        0x0 tmp/arm.v5a-linux.elf-fold.o
- .data          0x0000000000001150        0x0 tmp/arm.v5a-linux.elf-upxfd_android.o
- .data          0x0000000000001150        0x0 tmp/arm.v5a-expand.o
- .data          0x0000000000001150        0x0 tmp/arm.v5a-linux.elf-main2.o
+ .text          0x0000000000000348        0x0 tmp/arm.v5a-expand.o
+ .text          0x0000000000000348      0x8ec tmp/arm.v5a-linux.elf-main2.o
+                0x0000000000000bd0                underlay
+                0x0000000000000aa0                upx_main
 
 SYSCALLS        0x0000000000000000      0x214
  SYSCALLS       0x0000000000000000      0x214 tmp/arm.v5a-linux.elf-fold.o
@@ -60,12 +51,21 @@ SYSCALLS        0x0000000000000000      0x214
                 0x00000000000000d8                mkdir
                 0x000000000000001c                close
 
+UMF_ANDROID     0x0000000000000000      0x51c
+ UMF_ANDROID    0x0000000000000000      0x51c tmp/arm.v5a-linux.elf-upxfd_android.o
+                0x00000000000002cc                upx_mmap_and_fd_android
+
+UMF_LINUX       0x0000000000000000       0xcc
+ UMF_LINUX      0x0000000000000000       0xcc tmp/arm.v5a-linux.elf-upxfd_linux.o
+                0x0000000000000000                upx_mmap_and_fd_linux
+
 EXP_HEAD        0x0000000000000000       0xdc
  EXP_HEAD       0x0000000000000000       0xdc tmp/arm.v5a-expand.o
                 0x0000000000000074                f_expand
 
 EXP_TAIL        0x0000000000000000       0x24
  EXP_TAIL       0x0000000000000000       0x24 tmp/arm.v5a-expand.o
+                0x0000000000000024                upx_mmap_and_fd
                 0x0000000000000000                eof
 
 NRV2E           0x0000000000000000      0x11c
@@ -83,15 +83,20 @@ NRV2B           0x0000000000000000       0xcc
 LZMA_DAISY      0x0000000000000000        0x8
  LZMA_DAISY     0x0000000000000000        0x8 tmp/arm.v5a-expand.o
 
-.data
+.data           0x0000000000000000        0x0
+ .data          0x0000000000000000        0x0 tmp/arm.v5a-linux.elf-fold.o
+ .data          0x0000000000000000        0x0 tmp/arm.v5a-expand.o
+ .data          0x0000000000000000        0x0 tmp/arm.v5a-linux.elf-main2.o
 
 .bss            0x0000000000000000        0x0
  .bss           0x0000000000000000        0x0 tmp/arm.v5a-linux.elf-fold.o
- .bss           0x0000000000000000        0x0 tmp/arm.v5a-linux.elf-upxfd_android.o
  .bss           0x0000000000000000        0x0 tmp/arm.v5a-expand.o
  .bss           0x0000000000000000        0x0 tmp/arm.v5a-linux.elf-main2.o
+TARGET(elf32-littlearm)
+                0x0000000000000034                . = SIZEOF_HEADERS
 LOAD tmp/arm.v5a-linux.elf-fold.o
 LOAD tmp/arm.v5a-linux.elf-upxfd_android.o
+LOAD tmp/arm.v5a-linux.elf-upxfd_linux.o
 LOAD tmp/arm.v5a-expand.o
 LOAD tmp/arm.v5a-linux.elf-main2.o
 OUTPUT(tmp/arm.v5a-linux.elf-fold.bin elf32-littlearm)

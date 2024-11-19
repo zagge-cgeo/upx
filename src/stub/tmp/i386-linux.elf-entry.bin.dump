@@ -2,15 +2,20 @@ file format elf32-i386
 
 Sections:
 Idx Name          Size      VMA       LMA       File off  Algn  Flags
-  0 ELFMAINX      06de  0  0  034  2**2  CONTENTS
-  1 ELFMAINZ      0a  0  0  0712  2**0  CONTENTS
+  0 UMF_ANDROID   04e2  0  0  034  2**2  CONTENTS
+  1 UMF_LINUX     0ab  0  0  0518  2**2  CONTENTS
+  2 ELFMAINX      01fc  0  0  05c4  2**2  CONTENTS
+  3 ELFMAINZ      0a  0  0  07c0  2**0  CONTENTS
 SYMBOL TABLE:
 00000000 l    d  ELFMAINX 0 ELFMAINX
 00000000 l    d  ELFMAINZ 0 ELFMAINZ
-00000486 g     F ELFMAINX 0258 upx_mmap_and_fd
+00000000 l    d  UMF_ANDROID 0 UMF_ANDROID
+00000000 l    d  UMF_LINUX 0 UMF_LINUX
 00000000         *UND* 0 O_BINFO
 000001d8 g       ELFMAINX 0 mempcpy
+00000000 g     F UMF_ANDROID 0258 upx_mmap_and_fd_android
 0000017e g       ELFMAINX 0 mmap
+00000000 g     F UMF_LINUX 0ab upx_mmap_and_fd_linux
 000001a1 g       ELFMAINX 0 uname
 0000018c g       ELFMAINX 0 get_upxfn_path
 00000000 g       ELFMAINX 0 _start
@@ -19,20 +24,26 @@ SYMBOL TABLE:
 0000018f g       ELFMAINX 0 stat
 000001b0 g       ELFMAINX 0 mkdir
 
+RELOCATION RECORDS FOR [UMF_ANDROID]:
+OFFSET   TYPE              VALUE
+0000007e R_386_PC32        my_bkpt
+000000f7 R_386_PC32        get_upxfn_path
+000001a8 R_386_PC32        memset
+0000022c R_386_PC32        mmap
+0000026c R_386_PC32        memset
+000002bb R_386_PC32        my_bkpt
+00000381 R_386_PC32        my_bkpt
+000003b5 R_386_PC32        mempcpy
+00000411 R_386_PC32        mempcpy
+
+RELOCATION RECORDS FOR [UMF_LINUX]:
+OFFSET   TYPE              VALUE
+0000008d R_386_PC32        mmap
+
 RELOCATION RECORDS FOR [ELFMAINX]:
 OFFSET   TYPE              VALUE
 00000005 R_386_PC32        ELFMAINZ
-000000a9 R_386_PC32        upx_mmap_and_fd
 00000156 R_386_PC32        mmap
-00000210 R_386_PC32        memset
-0000025f R_386_PC32        my_bkpt
-00000325 R_386_PC32        my_bkpt
-00000359 R_386_PC32        mempcpy
-000003b5 R_386_PC32        mempcpy
-00000504 R_386_PC32        my_bkpt
-0000057d R_386_PC32        get_upxfn_path
-0000062e R_386_PC32        memset
-000006b2 R_386_PC32        mmap
 
 RELOCATION RECORDS FOR [ELFMAINZ]:
 OFFSET   TYPE              VALUE

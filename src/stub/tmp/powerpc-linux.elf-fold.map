@@ -7,61 +7,56 @@ Name             Origin             Length             Attributes
 Linker script and memory map
 
 TARGET(elf32-powerpc)
+                0x0000000000000034                . = SIZEOF_HEADERS
 
-.text           0x0000000000000000     0x1408
+.text           0x0000000000000034     0x13e0
  *(.text)
- .text          0x0000000000000000      0x294 tmp/powerpc-linux.elf-fold.o
-                0x0000000000000048                Pmap
-                0x000000000000000c                get_page_mask
-                0x0000000000000024                Pprotect
-                0x000000000000006c                Punmap
- .text          0x0000000000000294      0x130 tmp/powerpc-linux.elf-upxfd_android.o
-                0x0000000000000294                upx_mmap_and_fd
- .text          0x00000000000003c4        0x0 tmp/powerpc-expand.o
- .text          0x00000000000003c4     0x1044 tmp/powerpc-linux.elf-main2.o
-                0x00000000000008bc                underlay
-                0x00000000000011f4                upx_main
+ .text          0x0000000000000034      0x294 tmp/powerpc-linux.elf-fold.o
+                0x000000000000007c                Pmap
+                0x0000000000000040                get_page_mask
+                0x0000000000000058                Pprotect
+                0x00000000000000a0                Punmap
+ .text          0x00000000000002c8      0x108 tmp/powerpc-linux.elf-upxfd_linux.o
+                0x00000000000002c8                upx_mmap_and_fd_linux
+ .text          0x00000000000003d0        0x0 tmp/powerpc-expand.o
+ .text          0x00000000000003d0     0x1044 tmp/powerpc-linux.elf-main2.o
+                0x00000000000008c8                underlay
+                0x0000000000001200                upx_main
  *(.data)
- .data          0x0000000000001408        0x0 tmp/powerpc-linux.elf-fold.o
- .data          0x0000000000001408        0x0 tmp/powerpc-linux.elf-upxfd_android.o
- .data          0x0000000000001408        0x0 tmp/powerpc-expand.o
- .data          0x0000000000001408        0x0 tmp/powerpc-linux.elf-main2.o
+ .data          0x0000000000001414        0x0 tmp/powerpc-linux.elf-fold.o
+ .data          0x0000000000001414        0x0 tmp/powerpc-expand.o
+ .data          0x0000000000001414        0x0 tmp/powerpc-linux.elf-main2.o
 
 .data
 
 .bss            0x0000000000000000        0x0
  .bss           0x0000000000000000        0x0 tmp/powerpc-linux.elf-fold.o
- .bss           0x0000000000000000        0x0 tmp/powerpc-linux.elf-upxfd_android.o
  .bss           0x0000000000000000        0x0 tmp/powerpc-expand.o
  .bss           0x0000000000000000        0x0 tmp/powerpc-linux.elf-main2.o
 LOAD tmp/powerpc-linux.elf-fold.o
-LOAD tmp/powerpc-linux.elf-upxfd_android.o
+LOAD tmp/powerpc-linux.elf-upxfd_linux.o
 LOAD tmp/powerpc-expand.o
 LOAD tmp/powerpc-linux.elf-main2.o
 OUTPUT(tmp/powerpc-linux.elf-fold.bin elf32-powerpc)
 
-SYSCALLS        0x0000000000000000       0xb4
- SYSCALLS       0x0000000000000000       0xb4 tmp/powerpc-linux.elf-fold.o
-                0x0000000000000050                munmap
-                0x000000000000006c                memcpy
-                0x0000000000000010                readlink
-                0x0000000000000020                ftruncate
-                0x0000000000000058                mmap
-                0x0000000000000030                write
-                0x0000000000000018                memfd_create
-                0x0000000000000038                read
-                0x0000000000000090                memset
-                0x00000000000000ac                my_bkpt
-                0x0000000000000000                exit
-                0x0000000000000008                brk
-                0x0000000000000040                open
-                0x0000000000000048                mprotect
-                0x0000000000000028                close
-
-.note.GNU-stack
-                0x0000000000000000        0x0
- .note.GNU-stack
-                0x0000000000000000        0x0 tmp/powerpc-linux.elf-upxfd_android.o
+SYSCALLS        0x0000000000000000       0xb8
+ SYSCALLS       0x0000000000000000       0xb8 tmp/powerpc-linux.elf-fold.o
+                0x0000000000000054                munmap
+                0x0000000000000000                upx_mmap_and_fd
+                0x0000000000000070                memcpy
+                0x0000000000000014                readlink
+                0x0000000000000024                ftruncate
+                0x000000000000005c                mmap
+                0x0000000000000034                write
+                0x000000000000001c                memfd_create
+                0x000000000000003c                read
+                0x0000000000000094                memset
+                0x00000000000000b0                my_bkpt
+                0x0000000000000004                exit
+                0x000000000000000c                brk
+                0x0000000000000044                open
+                0x000000000000004c                mprotect
+                0x000000000000002c                close
 
 EXP_HEAD        0x0000000000000000       0xa8
  EXP_HEAD       0x0000000000000000       0xa8 tmp/powerpc-expand.o

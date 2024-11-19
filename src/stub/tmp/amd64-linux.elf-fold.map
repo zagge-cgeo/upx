@@ -6,7 +6,7 @@ Name             Origin             Length             Attributes
 
 Linker script and memory map
 
-                0x000000000010004c                . = ((0x100000 + SIZEOF_HEADERS) + 0xc)
+                0x0000000000000040                . = SIZEOF_HEADERS
 
 .text           0x0000000000000000      0x9a2
  .text          0x0000000000000000      0x164 tmp/amd64-linux.elf-fold.o
