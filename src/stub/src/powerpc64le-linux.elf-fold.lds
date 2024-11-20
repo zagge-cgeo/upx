@@ -31,18 +31,7 @@
 OUTPUT_FORMAT("elf64-powerpcle", "elf64-powerpcle", "elf64-powerpcle")
 OUTPUT_ARCH(powerpc:common64)
 
-PHDRS
-{
-    text PT_LOAD FILEHDR PHDRS ;
-    data PT_LOAD ;  /* for setting brk(0) */
-}
 SECTIONS
 {
   . = SIZEOF_HEADERS;
-  .text : {
-    *(.text)
-    *(.data)
-  } : text
-  .data : {
-  } : data
 }
