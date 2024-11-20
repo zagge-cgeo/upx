@@ -1533,6 +1533,9 @@ PackLinuxElf32::buildLinuxLoader(
             len += snprintf(&sec[len], sizeof(sec) - len, ",%s",
                 (opt->o_unix.android_old ? "UMF_ANDROID" : "UMF_LINUX"));
         }
+        else {
+            len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "UMF_LINUX");
+        }
         if (hasLoaderSection("SYSCALLS")) {
             len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "SYSCALLS");
         }

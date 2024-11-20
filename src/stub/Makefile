@@ -1596,7 +1596,7 @@ tmp/mips.r3000-linux.upxfd_android.s: $(srcdir)/src/upxfd_android.c
 	$(call tc,gcc) -S -D__mips__ \
 	    -D_TARGET_LINUX_ -DNO_WANT_MMAP -O $< -o - \
 	    | sed -e '/^\t\.file\t/d' \
-	          -e 's/L[0-9]*/L8&/g' \
+	          -e 's/L[0-9][0-9]*/L8&/g' \
 	          -e $$(cat src/dollar-dollar.sed) \
 	          -e 's/	j[ 	][ 	]*$$L/	b $$L/' \
 	          -e 's/	jal[ 	][ 	]*\([^\$$]\)/	bal \1/' \
@@ -1607,7 +1607,7 @@ tmp/mips.r3000-linux.upxfd_linux.s: $(srcdir)/src/upxfd_linux.c
 	$(call tc,gcc) -S -D__mips__ \
 	    -D_TARGET_LINUX_ -DNO_WANT_MMAP -O $< -o - \
 	    | sed -e '/^\t\.file\t/d' \
-	          -e 's/L[0-9]*/L8&/g' \
+	          -e 's/L[0-9][0-9]*/L9&/g' \
 	          -e $$(cat src/dollar-dollar.sed) \
 	          -e 's/	j[ 	][ 	]*$$L/	b $$L/' \
 	          -e 's/	jal[ 	][ 	]*\([^\$$]\)/	bal \1/' \
@@ -1617,7 +1617,7 @@ tmp/mips.r3000-linux.elf-main2.s: $(srcdir)/src/$$T.c $(srcdir)/src/i386-linux.e
 	@echo; echo TARGET: $@; echo
 	$(call tc,gcc) -S -D__mips__ -D_TARGET_LINUX_ -O $< -o - \
 	    | sed -e '/^\t\.file\t/d' \
-	          -e 's/L[0-9]*/L7&/g' \
+	          -e 's/L[0-9][0-9]*/L7&/g' \
 	          -e $$(cat src/dollar-dollar.sed) \
 	          -e 's/	j[ 	][ 	]*$$L/	b $$L/' \
 	          -e 's/	jal[ 	][ 	]*\([^\$$]\)/	bal \1/' \
@@ -1724,8 +1724,10 @@ tmp/mipsel.r3000-linux.upxfd_linux.s: $(srcdir)/src/upxfd_linux.c
 	@echo; echo TARGET: $@; echo
 	$(call tc,gcc) -S -D__mipsel__ \
 	    -D_TARGET_LINUX_ -DNO_WANT_MMAP -O $< -o - \
+	    | tee foo-mipsel.r3000-linux.upxfd_linux.s \
 	    | sed -e '/^\t\.file\t/d' \
-	          -e 's/L[0-9]*/L8&/g' \
+	          -e '/^\t*\.text/s//.section UMF_LINUX/' \
+	          -e 's/L[0-9][0-9]*/L9&/g' \
 	          -e $$(cat src/dollar-dollar.sed) \
 	          -e 's/	j[ 	][ 	]*$$L/	b $$L/' \
 	          -e 's/	jal[ 	][ 	]*\([^\$$]\)/	bal \1/' \

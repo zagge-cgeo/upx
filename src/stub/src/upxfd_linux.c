@@ -6,6 +6,8 @@
    All Rights Reserved.
  */
 
+extern void my_bkpt(void const *, ...);
+
 #if defined(__i386__) //}{
 #define ANDROID_FRIEND 1
 #define addr_string(string) ({ \
@@ -76,12 +78,22 @@
 #define ANDROID_FRIEND 0
 #error  addr_string
 #endif  //}
+
+#ifdef __mips__  //{
+#define NO_WANT_READ 1
+#define NO_WANT_CLOSE 1
+#define NO_WANT_MPROTECT 1
+#endif  //}
 #include "include/linux.h"  // syscall decls; i386 inlines via "int 0x80"
+
 #define MFD_EXEC 0x10
 //#define O_RDWR 2
 #define O_DIRECTORY 0200000  /* 0x010000 asm-generic/fcntl.h */
 #define O_TMPFILE 020000000  /* 0x400000 asm-generic/fcntl.h */
 #define EINVAL 22 /* asm-generic/errno-base.h */
+
+extern int memfd_create(char const *, unsigned);
+extern int ftruncate(int, size_t);
 // Implementation for Linux-native, where memfd_create
 // (or /dev/shm) works.  Saves space in contrast to
 // upxfd_android (or Android emulator), which must
