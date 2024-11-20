@@ -213,7 +213,7 @@ protected:
     unsigned elf_find_table_size(unsigned dt_type, unsigned sh_type);
     void sort_DT32_offsets(Elf32_Dyn const *const dynp0);
 
-    int is_LOAD32(Elf32_Phdr const *phdr) const;  // beware confusion with (1+ LO_PROC)
+    int is_LOAD(Elf32_Phdr const *phdr) const;  // beware confusion with (1+ LO_PROC)
     unsigned check_pt_load(Elf32_Phdr const *);
     unsigned check_pt_dynamic(Elf32_Phdr const *);
     void invert_pt_dynamic(Elf32_Dyn const *, unsigned dt_filesz);
@@ -379,7 +379,7 @@ protected:
     Elf64_Dyn        *elf_find_dynptr(unsigned) const;
     unsigned elf_find_table_size(unsigned dt_type, unsigned sh_type);
     void sort_DT64_offsets(Elf64_Dyn const *const dynp0);
-    int is_LOAD64(Elf64_Phdr const *phdr) const;  // beware confusion with (1+ LO_PROC)
+    int is_LOAD(Elf64_Phdr const *phdr) const;  // beware confusion with (1+ LO_PROC)
     upx_uint64_t check_pt_load(Elf64_Phdr const *);
     upx_uint64_t check_pt_dynamic(Elf64_Phdr const *);
     void invert_pt_dynamic(Elf64_Dyn const *, upx_uint64_t dt_filesz);
