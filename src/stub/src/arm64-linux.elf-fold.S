@@ -221,7 +221,7 @@ no_env_pse:
         mov x2,sp  // ehdr
         mov w1,wLENC  // total size of compressed data
         mov x0,xADRC  // &b_info
-        call upx_main
+        call upx_main2
           add sp,sp,#MAX_ELF_HDR_64 + OVERHEAD  // un-alloca
         mov xfexp,x0  // entry address
 

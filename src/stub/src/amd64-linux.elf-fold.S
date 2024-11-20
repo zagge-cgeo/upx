@@ -80,7 +80,7 @@ is_ptinterp=     (1<<0)
         .balign 8
 PAGE_MASK: .quad -1<<12  // default
 
-// IN: [ADRX,+LENX): compressed data; [ADRU,+LENU): expanded fold (w/ upx_main)
+// IN: [ADRX,+LENX): compressed data; [ADRU,+LENU): expanded fold (w/ upx_main2)
 // %rsp= %rbp= &F_ADRX; %r13= O_BINFO | is_ptinterp | unmap_all_pages
 
 // no 'section', thus '.text'; also loaded first in amd64-linux.elf-fold.bin.
@@ -161,8 +161,8 @@ no_env_pse:
         mov %arg5,%r13  # save ELFA
         subq $ OVERHEAD,%rsp
         movq %rsp,%arg3  # &ELf64_Ehdr temporary space
-        call upx_main  # Out: %rax= entry
-/* entry= upx_main(
+        call upx_main2  # Out: %rax= entry
+/* entry= upx_main2(
    b_info *arg1,       {%rdi}
    total_size arg2,    {%rsi}
    Elf64_Ehdr *arg3,   {%rdx}
@@ -200,7 +200,7 @@ p_memsz= 5*NBPW
         mov %ebx,%edi  # fd
         call close
 no_pse_map:
-        pop %arg1  # ADRU: unfolded upx_main etc.
+        pop %arg1  # ADRU: unfolded upx_main2 etc.
         pop %arg2  # LENU
         push $__NR_munmap; pop %rax
         /*notrack*/ jmp *(%r14)  # goto: syscall; pop %rdx; ret

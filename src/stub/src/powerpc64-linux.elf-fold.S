@@ -241,8 +241,8 @@ r_reloc= 32 - 1  # used slot in register save area
         mr a3,r_auxv  // &Elf64_auxv_t
         la a4,SZ_FRAME+OVERHEAD + SZ_FRAME+(r_reloc * NBPW)(sp)  // &p_reloc
         std r_elfa,0(a4)
-        call upx_main  // Out: a0= entry
-// entry= upx_main(b_info *a0, total_size a1, Elf64_Ehdr *a2, ELf32_auxv_t *a3,
+        call upx_main2  // Out: a0= entry
+// entry= upx_main2(b_info *a0, total_size a1, Elf64_Ehdr *a2, ELf32_auxv_t *a3,
 //      Elf64_Addr *p_reloc)
         la  sp,SZ_FRAME+OVERHEAD(sp)  // FR_01  deallocate this frame
 #if USE_TOC  //{
@@ -296,7 +296,7 @@ sz_auxv= 2*NBPW
         li r0,SYS_munmap
         mtlr r_exp  // entry address
 
-//    BIG_ENDIAN: r2 (TOC) already is live (set after return from upx_main)
+//    BIG_ENDIAN: r2 (TOC) already is live (set after return from upx_main2)
 // LITTLE_ENDIAN: r2 never is touched
 //      ld   2,SZ_FRAME + (-1+  2)*NBPW(sp)
 // r3,r4 are a0,a1 which are parameters to munmap()

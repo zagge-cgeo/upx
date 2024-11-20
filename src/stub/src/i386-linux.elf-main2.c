@@ -283,7 +283,7 @@ extern long upx_mmap_and_fd(  // x86_64 Android emulator of i386 is not faithful
 // Create (or find) an escape hatch to use when munmapping ourselves the stub.
 // Called by do_xmap to create it; remembered in AT_NULL.d_val
 static char *
-make_hatch_i386(
+make_hatch(
     ElfW(Phdr) const *const phdr,
     char *next_unc,
     unsigned frag_mask
@@ -321,7 +321,7 @@ extern unsigned get_sys_munmap(void);
 #define NBPI 4
 
 static void *
-make_hatch_arm32(
+make_hatch(
     ElfW(Phdr) const *const phdr,
     char *next_unc,
     unsigned frag_mask
@@ -358,7 +358,7 @@ make_hatch_arm32(
 }
 #elif defined(__mips__)  /*}{*/
 static void *
-make_hatch_mips(
+make_hatch(
     ElfW(Phdr) const *const phdr,
     char *next_unc,
     unsigned frag_mask)
@@ -398,7 +398,7 @@ make_hatch_mips(
 }
 #elif defined(__powerpc__)  /*}{*/
 static void *
-make_hatch_ppc32(
+make_hatch(
     ElfW(Phdr) const *const phdr,
     char *next_unc,
     unsigned frag_mask)
@@ -702,15 +702,7 @@ do_xmap(
         }
 
         if (xi && phdr->p_flags & PF_X) {
-#if defined(__i386__)  //{
-            void *const hatch = make_hatch_i386(phdr, xo.buf, ~page_mask);
-#elif defined(__powerpc__)  //}{
-            void *const hatch = make_hatch_ppc32(phdr, xo.buf, ~page_mask);
-#elif defined(__arm__)  //}{
-            void *const hatch = make_hatch_arm32(phdr, xo.buf, ~page_mask);
-#elif defined(__mips__)  //}{
-            void *const hatch = make_hatch_mips(phdr, xo.buf, ~page_mask);
-#endif  //}
+            char *hatch = make_hatch(phdr, xo.buf, ~page_mask);
             if (0!=hatch) {
                 // Always update AT_NULL, especially for compressed PT_INTERP.
                 // Clearing lo bit of av is for i386 only; else is superfluous.

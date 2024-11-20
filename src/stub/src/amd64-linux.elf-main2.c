@@ -652,13 +652,13 @@ ERR_LAB
 
 
 /*************************************************************************
-// upx_main - called by our entry code
+// upx_main2 - called by our entry code
 //
 // This function is optimized for size.
 **************************************************************************/
 
 void *
-upx_main(  // returns entry address
+upx_main2(  // returns entry address
 /*arg1*/    struct b_info const *const bi,  // 1st block header
 /*arg2*/    size_t const sz_compressed,  // total length
 /*arg3*/    ElfW(Ehdr) *const ehdr,  // temp char[sz_ehdr] for decompressing
@@ -672,7 +672,7 @@ upx_main(  // returns entry address
 #endif  //}
 )
 {
-    DPRINTF("upx_main  b_info=%%p  sz_compressed=%%p  ehdr=%%p  av=%%p\\n",
+    DPRINTF("upx_main2  b_info=%%p  sz_compressed=%%p  ehdr=%%p  av=%%p\\n",
         bi, sz_compressed, ehdr, av);
 #if defined(__powerpc64__)
     DPRINTF("   p_reloc=%%p\\n", p_reloc);
@@ -690,13 +690,13 @@ upx_main(  // returns entry address
     ElfW(Addr) *const p_reloc = &elfaddr;
 #endif  //}
     ElfW(Addr) page_mask = get_page_mask(); (void)page_mask;
-    DPRINTF("upx_main1  .e_entry=%%p  p_reloc=%%p  *p_reloc=%%p  page_mask=%%p\\n",
+    DPRINTF("upx_main21  .e_entry=%%p  p_reloc=%%p  *p_reloc=%%p  page_mask=%%p\\n",
         ehdr->e_entry, p_reloc, *p_reloc, page_mask);
     ElfW(Phdr) *phdr = (ElfW(Phdr) *)(1+ ehdr);
 
     // De-compress Ehdr again into actual position, then de-compress the rest.
     ElfW(Addr) entry = do_xmap(ehdr, &xi1, 0, av, p_reloc);
-    DPRINTF("upx_main2  entry=%%p  *p_reloc=%%p\\n", entry, *p_reloc);
+    DPRINTF("upx_main22  entry=%%p  *p_reloc=%%p\\n", entry, *p_reloc);
     auxv_up(av, AT_ENTRY , entry);
 
   { // Map PT_INTERP program interpreter
