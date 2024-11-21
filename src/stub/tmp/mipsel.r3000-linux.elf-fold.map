@@ -6,21 +6,16 @@ Name             Origin             Length             Attributes
 
 Linker script and memory map
 
-TARGET(elf32-littlemips)
-                0x0000000000000034                . = SIZEOF_HEADERS
 
-.text           0x0000000000000034      0xe40
- *(.text)
- .text          0x0000000000000034      0xe40 tmp/mipsel.r3000-linux.elf-fold.o
-                0x0000000000000104                get_page_mask
-                0x0000000000000d54                upx_mmap_and_fd_android
-                0x0000000000000124                get_upxfn_path
-                0x0000000000000ce8                underlay
-                0x0000000000000b50                upx_main
-                0x0000000000000044                get4unal
-                0x000000000000015c                close
- *(.data)
- .data          0x0000000000000e74        0x0 tmp/mipsel.r3000-linux.elf-fold.o
+.text           0x0000000000000000      0xe40
+ .text          0x0000000000000000      0xe40 tmp/mipsel.r3000-linux.elf-fold.o
+                0x00000000000000d0                get_page_mask
+                0x0000000000000d20                upx_mmap_and_fd_android
+                0x00000000000000f0                get_upxfn_path
+                0x0000000000000cb4                underlay
+                0x0000000000000b1c                upx_main
+                0x0000000000000010                get4unal
+                0x0000000000000128                close
 
 SYSCALLS        0x0000000000000000      0x178
  SYSCALLS       0x0000000000000000      0x178 tmp/mipsel.r3000-linux.elf-fold.o
@@ -53,13 +48,13 @@ EXP_HEAD        0x0000000000000000       0xfc
                 0x00000000000000b4                eof_n2e
                 0x0000000000000000                f_expand
                 0x00000000000000b4                eof_n2b
-                0x00000000000000fc                upx_mmap_and_fd
                 0x00000000000000b4                eof_nrv
                 0x00000000000000b4                eof_n2d
                 0x00000000000000ac                ret_decompr
 
 EXP_TAIL        0x0000000000000000        0x0
  EXP_TAIL       0x0000000000000000        0x0 tmp/mipsel.r3000-linux.elf-fold.o
+                0x0000000000000000                upx_mmap_and_fd
 
 NRV2E           0x0000000000000000      0x134
  NRV2E          0x0000000000000000      0x134 tmp/mipsel.r3000-linux.elf-fold.o
@@ -85,10 +80,13 @@ LZMA_DEC20      0x0000000000000000      0xad8
 LZMA_DEC30      0x0000000000000000        0x8
  LZMA_DEC30     0x0000000000000000        0x8 tmp/mipsel.r3000-linux.elf-fold.o
 
-.data
+.data           0x0000000000000000        0x0
+ .data          0x0000000000000000        0x0 tmp/mipsel.r3000-linux.elf-fold.o
 
 .bss            0x0000000000000000        0x0
  .bss           0x0000000000000000        0x0 tmp/mipsel.r3000-linux.elf-fold.o
+TARGET(elf32-littlemips)
+                0x0000000000000034                . = SIZEOF_HEADERS
 LOAD tmp/mipsel.r3000-linux.elf-fold.o
 OUTPUT(tmp/mipsel.r3000-linux.elf-fold.bin elf32-littlemips)
 
@@ -106,3 +104,7 @@ OUTPUT(tmp/mipsel.r3000-linux.elf-fold.bin elf32-littlemips)
 
 .comment        0x0000000000000000       0x34
  .comment       0x0000000000000000       0x34 tmp/mipsel.r3000-linux.elf-fold.o
+
+UMF_LINUX       0x0000000000000000      0x10c
+ UMF_LINUX      0x0000000000000000      0x10c tmp/mipsel.r3000-linux.elf-fold.o
+                0x0000000000000000                upx_mmap_and_fd_linux

@@ -13,8 +13,8 @@ Linker script and memory map
                 0x000000000000015c                get_page_mask
  .text          0x0000000000000164        0x0 tmp/amd64-expand.o
  .text          0x0000000000000164      0x83e tmp/amd64-linux.elf-main2.o
+                0x000000000000086d                upx_main2
                 0x00000000000002b9                underlay
-                0x000000000000086d                upx_main
 
 .data           0x0000000000000000        0x0
  .data          0x0000000000000000        0x0 tmp/amd64-linux.elf-fold.o

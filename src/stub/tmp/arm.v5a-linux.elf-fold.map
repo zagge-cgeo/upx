@@ -7,7 +7,7 @@ Name             Origin             Length             Attributes
 Linker script and memory map
 
 
-.text           0x0000000000000000      0xc34
+.text           0x0000000000000000      0xc38
  .text          0x0000000000000000      0x348 tmp/arm.v5a-linux.elf-fold.o
                 0x0000000000000004                get_page_mask
                 0x00000000000002e8                memcpy
@@ -20,9 +20,9 @@ Linker script and memory map
                 0x0000000000000024                Pprotect
                 0x0000000000000024                mprotect
  .text          0x0000000000000348        0x0 tmp/arm.v5a-expand.o
- .text          0x0000000000000348      0x8ec tmp/arm.v5a-linux.elf-main2.o
-                0x0000000000000bd0                underlay
-                0x0000000000000aa0                upx_main
+ .text          0x0000000000000348      0x8f0 tmp/arm.v5a-linux.elf-main2.o
+                0x0000000000000bd4                underlay
+                0x0000000000000aa4                upx_main
 
 SYSCALLS        0x0000000000000000      0x214
  SYSCALLS       0x0000000000000000      0x214 tmp/arm.v5a-linux.elf-fold.o
