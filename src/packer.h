@@ -309,6 +309,13 @@ protected:
         bele->set64(p, v);
     }
 #endif
+    template <class T, class = enable_if_te64<T> >
+    inline upx_uint64_t get_te64_32(const T *p) const {
+        upx_uint64_t val = get_te64(p);
+        if (val >> 32)
+            throwCantPack("64-bit value too big %#llx", val);
+        return (unsigned)val;
+    }
 
 protected:
     const N_BELE_RTP::AbstractPolicy *bele = nullptr; // TE - Target Endianness
