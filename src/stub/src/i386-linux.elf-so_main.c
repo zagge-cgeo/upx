@@ -261,6 +261,8 @@ ERR_LAB
        error;
 #endif  //}
 
+#define ElfW(sym) Elf32_ ## sym
+
 extern char *upx_mmap_and_fd(  // x86_64 Android emulator of i386 is not faithful
      void *ptr  // desired address
      , unsigned len  // also pre-allocate space in file
@@ -272,7 +274,7 @@ extern char *upx_mmap_and_fd(  // x86_64 Android emulator of i386 is not faithfu
 // Called by do_xmap to create it; remembered in AT_NULL.d_val
 static char *
 make_hatch(
-    Elf32_Phdr const *const phdr,
+    ElfW(Phdr) const *const phdr,
     char *next_unc,
     unsigned frag_mask
 )
@@ -304,7 +306,7 @@ extern int upxfd_create(void);  // early 32-bit Android lacks memfd_create
 
 static void *
 make_hatch(
-    Elf32_Phdr const *const phdr,
+    ElfW(Phdr) const *const phdr,
     char *next_unc,
     unsigned frag_mask
 )
@@ -340,8 +342,8 @@ make_hatch(
 #elif defined(__mips__)  /*}{*/
 static void *
 make_hatch(
-    Elf32_Phdr const *const phdr,
-    ptrdiff_t reloc,
+    ElfW(Phdr) const *const phdr,
+    char *next_unc,
     unsigned const frag_mask)
 {
     unsigned xprot = 0;
@@ -375,9 +377,9 @@ make_hatch(
 #elif defined(__powerpc__)  /*}{*/
 static void *
 make_hatch(
-    Elf32_Phdr const *const phdr,
-    ptrdiff_t reloc,
-    unsigned const frag_mask)
+    ElfW(Phdr) const *const phdr,
+    char *next_unc,
+    unsigned const frag_mask
 {
     unsigned xprot = 0;
     unsigned *hatch = 0;
@@ -388,8 +390,8 @@ make_hatch(
             ( (hatch = (void *)(phdr->p_memsz + phdr->p_vaddr + reloc)),
                 ( phdr->p_memsz==phdr->p_filesz  // don't pollute potential .bss
                 &&  (2*4)<=(frag_mask & -(int)hatch) ) ) // space left on page
-        // Try Elf32_Ehdr.e_ident[8..15] .  warning: 'const' cast away
-        ||   ( (hatch = (void *)(&((Elf32_Ehdr *)phdr->p_vaddr + reloc)->e_ident[8])),
+        // Try ElfW(Ehdr).e_ident[8..15] .  warning: 'const' cast away
+        ||   ( (hatch = (void *)(&((ElfW(Ehdr) *)phdr->p_vaddr + reloc)->e_ident[8])),
                 (phdr->p_offset==0) )
         // Allocate and use a new page.
         ||   (  xprot = 1, hatch = mmap(0, PAGE_SIZE, PROT_WRITE|PROT_READ,
@@ -457,7 +459,7 @@ extern int ftruncate(int fd, size_t length);
 
 // Exchange the bits with values 4 (PF_R, PROT_EXEC) and 1 (PF_X, PROT_READ)
 // Use table lookup into a PIC-string that pre-computes the result.
-unsigned PF_to_PROT(Elf32_Phdr const *phdr)
+unsigned PF_to_PROT(ElfW(Phdr) const *phdr)
 {
     return 7& addr_string("@\x04\x02\x06\x01\x05\x03\x07")
         [phdr->p_flags & (PF_R|PF_W|PF_X)];
@@ -467,9 +469,9 @@ unsigned
 fini_SELinux(
     unsigned size,
     char *ptr,
-    Elf32_Phdr const *phdr,
+    ElfW(Phdr) const *phdr,
     unsigned mfd,
-    Elf32_Addr base
+    ElfW(Addr) base
 )
 {
     if (phdr->p_flags & PF_X) {
@@ -505,7 +507,7 @@ typedef struct {
 } So_args;
 
 typedef struct {
-    unsigned off_reloc;  // distance back to &Elf32_Ehdr
+    unsigned off_reloc;  // distance back to &ElfW(Ehdr)
     unsigned off_user_DT_INIT;
     unsigned off_xct_off;  // where un-compressed bytes end
     unsigned off_info;  //  xct_off: {l_info; p_info; b_info; compressed data)
@@ -519,7 +521,7 @@ void *
 upx_so_main(  // returns &escape_hatch
     So_info *so_info,
     So_args *so_args,
-    Elf32_Ehdr *elf_tmp  // scratch for Elf32_Ehdr and Elf32_Phdrs
+    ElfW(Ehdr) *elf_tmp  // scratch for ElfW(Ehdr) and ElfW(Phdrs)
 )
 {
     unsigned long const page_mask = get_page_mask();
@@ -561,20 +563,20 @@ upx_so_main(  // returns &escape_hatch
     //   De-compress from remaining [sideaddr, +sidelen).
     //   Pprotect(,, PF_TO_PROT(.p_flags));
 
-    // Get the uncompressed Elf32_Ehdr and Elf32_Phdr
+    // Get the uncompressed ElfW(Ehdr) and ElfW(Phdr)
     // The first b_info is aligned, so direct access to fields is OK.
     Extent x1 = {binfo->sz_unc, (char *)elf_tmp};  // destination
     Extent x0 = {binfo->sz_cpr + sizeof(*binfo), (char *)binfo};  // source
     unpackExtent(&x0, &x1);  // de-compress _Ehdr and _Phdrs; x0.buf is updated
 
-    Elf32_Phdr const *phdr = (Elf32_Phdr *)(1+ elf_tmp);
-    Elf32_Phdr const *const phdrN = &phdr[elf_tmp->e_phnum];
+    ElfW(Phdr) const *phdr = (ElfW(Phdr) *)(1+ elf_tmp);
+    ElfW(Phdr) const *const phdrN = &phdr[elf_tmp->e_phnum];
 
     // Process each read-only PT_LOAD.
     // A read+write PT_LOAD might be relocated by rtld before de-compression,
     // so it cannot be compressed.
     void *hatch = nullptr;
-    Elf32_Addr base = 0;
+    ElfW(Addr) base = 0;
     int n_load = 0;
 
     for (; phdr < phdrN; ++phdr)
@@ -590,7 +592,7 @@ upx_so_main(  // returns &escape_hatch
         x0.size =                            al_bi.sz_cpr;
 
         if  (!base) {
-            base = (Elf32_Addr)va_load - phdr->p_vaddr;
+            base = (ElfW(Addr))va_load - phdr->p_vaddr;
             DPRINTF("base=%%p\\n", base);
         }
         DPRINTF("phdr@%%p  p_offset=%%p  p_vaddr=%%p  p_filesz=%%p  p_memsz=%%p\\n",
