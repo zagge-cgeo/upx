@@ -1601,6 +1601,9 @@ PackLinuxElf32::buildLinuxLoader(
         ||  this->e_machine==Elf32_Ehdr::EM_ARM) {
             addLoader((opt->o_unix.android_old ? "UMF_ANDROID" : "UMF_LINUX"));
         }
+        else {
+            addLoader("UMF_LINUX");
+        }
         addLoader("ELFMAINZ,FOLDEXEC,IDENTSTR");
     }
     else if (this->e_machine==Elf32_Ehdr::EM_NONE

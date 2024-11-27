@@ -410,8 +410,8 @@ my_bkpt: .globl my_bkpt
         ret
 
         .balign 4
-upx_mmap_and_fd:
-// section UMF_LINUX or UMF_ANDROID goes here
+upx_mmap_and_fd: .globl upx_mmap_and_fd
+        // section UMF_LINUX or UMF_ANDROID goes here
 
   section ELFMAINZ
 L70:

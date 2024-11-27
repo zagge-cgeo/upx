@@ -245,6 +245,8 @@ f_decompress:
 //  MATCH_01  argv
 //  MATCH_07  envp
 
+upx_mmap_and_fd: .globl upx_mmap_and_fd
+
 // IDENTSTR goes here
 
   section ELFMAINZ
