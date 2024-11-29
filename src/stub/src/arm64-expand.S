@@ -140,6 +140,9 @@ eof_lzma: .globl eof_lzma
         POP4(x2,x3, fp,lr)  // MATCH_94  x2= orig_dst; x3= plen_dst
         ret
 
+upx_mmap_and_fd: .globl upx_mmap_and_fd
+    // UMF_LINUX goes here
+
 #define M_NRV2B_LE32    2
 #define M_NRV2B_8    3
 #define M_NRV2D_LE32    5

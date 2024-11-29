@@ -1,4 +1,4 @@
-/* upxfd_create.c -- workaround for 32-bit Android
+/* upxfd_create.c -- simplify upx_mmap_and_fd_linux for non-Android
 
    This file is part of the UPX executable compressor.
 

@@ -58,6 +58,7 @@ __NR_mmap=      9  // 64-bit mode only!  /usr/include/asm/unistd_64.h
 __NR_mprotect= 10
 __NR_munmap=   11
 __NR_memfd_create= 0x13f  // 319
+  MFD_EXEC= 0x10
 
 __NR_write=  1
 __NR_close=  3
@@ -204,9 +205,20 @@ eof_n2b:
 
         pop %rbp  // MATCH_45
 
-        push $0; pop %arg2
-        call 0f; .asciz "upx"; 0: pop %arg1
-        push $__NR_memfd_create; call do_sys
+#define arg2l esi
+// Create anonymous temporary file on mfd; like upxfd_create
+        push $'u'|('p'<<8)|('X'<<16)|(0<<24)  // MATCH_22
+        push %rsp; pop %arg1  // "upX"
+        push $MFD_EXEC; pop %arg2
+0: // try memfd_create
+        movl $__NR_memfd_create,%eax; syscall
+        test %eax,%eax; jns ok_memfd  // success
+        test %arg2l,%arg2l; jz no_memfd  // memfd_create failed twice
+        xor %arg2l,%arg2l; jmp 0b  // try again without MFD_EXEC
+no_memfd:  // so try /dev/shm
+        hlt  // FIXME /dev/shm
+ok_memfd:
+        pop %rcx  // MATCH_22  discard "upx"
 
         push %rax; pop %arg1  // mfd
         push %rsp; pop %arg2  // buffer

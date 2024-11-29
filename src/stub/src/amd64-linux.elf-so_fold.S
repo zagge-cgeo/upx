@@ -98,6 +98,7 @@ __NR_read=  0
 __NR_write= 1
 //__NR_open=  2
 __NR_openat= 257
+  FD_CWD= -100
 __NR_close= 3
 
 __NR_mmap=      9
@@ -148,6 +149,13 @@ sysgo:  # NOTE: kernel demands 4th arg in %sys4, NOT %arg4
 #endif  //}
         syscall; cmp $-4096,%rax; jb 0f; int3; 0:
         ret
+
+open: .globl open
+        mov %arg3,%arg4
+        mov %arg2,%arg3
+        mov %arg1,%arg2
+        mov $FD_CWD,%arg1
+        jmp openat
 
 Punmap: .globl Punmap  // page-align the lo end
         mov %arg1,%rax; and $0xfff,%eax

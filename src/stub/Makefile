@@ -421,11 +421,13 @@ tc.amd64-linux.elf.gcc += -fno-exceptions -fno-asynchronous-unwind-tables
 tc.amd64-linux.elf.gcc += -Wall -W -Wcast-align -Wcast-qual -Wstrict-prototypes -Wwrite-strings -Werror
 
 amd64-linux.elf-entry.h: $(srcdir)/src/$$T.S
+	@echo; echo TARGET=$@  PATH=$(PATH); echo
 	$(call tc,gcc) -c -x assembler-with-cpp $< -o tmp/$T.bin
 	$(call tc,f-embed_objinfo,tmp/$T.bin)
 	$(call tc,bin2h) tmp/$T.bin $@
 
 amd64-linux.elf-so_entry.h: $(srcdir)/src/$$T.S
+	@echo; echo TARGET=$@  PATH=$(PATH); echo
 	$(call tc,gcc) -c -x assembler-with-cpp $< -o tmp/$T.bin
 	$(call tc,f-embed_objinfo,tmp/$T.bin)
 	$(call tc,bin2h) tmp/$T.bin $@
@@ -433,27 +435,37 @@ amd64-linux.elf-so_entry.h: $(srcdir)/src/$$T.S
 amd64-linux.elf-fold.h : $(srcdir)/src/$$T.lds \
 	    tmp/$$T.o \
 	    tmp/amd64-expand.o \
+	    tmp/amd64-linux.elf-upxfd_linux.o \
 	    tmp/amd64-linux.elf-main2.o
+	@echo; echo TARGET=$@  PATH=$(PATH); echo
 # FIXME: multiarch-ld-2.18 creates a huge file here, so use 2.17
 	multiarch-ld-2.17 -r -T $(srcdir)/src/$T.lds -Map tmp/$T.map $(filter %.o,$^) -o tmp/$T.bin
 	$(call tc,f-embed_objinfo_without_xstrip_keep_dot_text,tmp/$T.bin)
 	$(call tc,bin2h) tmp/$T.bin $@
 
-amd64-linux.elf-so_fold.h : tmp/$$T.o tmp/amd64-linux.elf-so_main.o $(srcdir)/src/$$T.lds tmp/amd64-expand.o
-	multiarch-ld-2.17 -r          -T $(srcdir)/src/$T.lds -Map tmp/$T.map $(filter %.o,$^) -o tmp/$T.bin
+amd64-linux.elf-so_fold.h : $(srcdir)/src/$$T.lds \
+	    tmp/$$T.o \
+	    tmp/amd64-expand.o \
+	    tmp/amd64-linux.elf-upxfd_linux.o \
+	    tmp/amd64-linux.elf-so_main.o
+	@echo; echo TARGET=$@  PATH=$(PATH); echo
+# FIXME: multiarch-ld-2.18 creates a huge file here, so use 2.17
+	$(call tc,ld)     -r -T $(srcdir)/src/$T.lds -Map tmp/$T.map $(filter %.o,$^) -o tmp/$T.bin
+#	multiarch-ld-2.17 -r -T $(srcdir)/src/$T.lds -Map tmp/$T.map $(filter %.o,$^) -o tmp/$T.bin
+	ls -l tmp/$T.bin
 	$(call tc,f-embed_objinfo_without_xstrip,tmp/$T.bin)
 	$(call tc,bin2h) tmp/$T.bin $@
+
+tmp/amd64-linux.elf-so_fold.o : $(srcdir)/src/$$T.S
+	$(call tc,gcc) -c $< -o tmp/$T.o
+	$(call tc,objcopy) -R .text $@
+	$(call tc,f-objstrip,$@)
 
 tmp/amd64-expand.o: $(srcdir)/src/$$T.S
 	$(call tc,gcc) -c $< -o $@
 
 tmp/amd64-linux.elf-fold.o : $(srcdir)/src/$$T.S
 	$(call tc,gcc) -c $< -o $@
-	$(call tc,f-objstrip,$@)
-
-tmp/amd64-linux.elf-so_fold.o : $(srcdir)/src/$$T.S
-	$(call tc,gcc) -c $< -o $@
-	$(call tc,objcopy) -R .text $@
 	$(call tc,f-objstrip,$@)
 
 tmp/amd64-linux.elf-main.o : $(srcdir)/src/$$T.c
@@ -833,6 +845,11 @@ tmp/arm64-linux.elf-so_fold.o : $(srcdir)/src/$$T.S
 tmp/arm64-expand.o: $(srcdir)/src/$$T.S
 	$(call tc,gcc) -c $< -o $@
 	arm64-linux-objdump-2.25 -Dr $(tc_objdump_disasm_options) tmp/$T.o | $(RTRIM) > tmp/$T.o.disasm
+
+tmp/amd64-linux.elf-upxfd_linux.o : $(srcdir)/src/upxfd_linux.c
+	$(call tc,gcc) -c -O $< -o $@
+	$(call tc,objcopy) --rename-section .text=UMF_LINUX -R .comment -R .data -R .bss -R .note.GNU-stack $@
+	$(call tc,objdump) -Dr $(tc_objdump_disasm_options) $@ | $(RTRIM) > $@.disasm
 
 tmp/arm64-linux.elf-main2.o : $(srcdir)/src/$$T.c $(srcdir)/src/amd64-linux.elf-main2.c
 	$(call tc,gcc) -c -Os $(srcdir)/src/arm64-linux.elf-main2.c -o $@

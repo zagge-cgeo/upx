@@ -229,3 +229,7 @@ eof_n2e:
         movl %edi,(%rcx)  // actual length used at dst  XXX: 4GB
         sub %rsi,%rax  // src -= eof;  // return 0: good; else: bad
         ret
+
+        .balign 4
+upx_mmap_and_fd: .globl upx_mmap_and_fd
+    // UMF_LINUX goes here

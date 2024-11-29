@@ -129,9 +129,9 @@ D_PMASK= 0*NBPW
 #define arg2l esi
 #define arg3l edx
 // Create anonymous temporary file on mfd; like upxfd_create
-        push $'u'|('p'<<8)|('x'<<16)|(0<<24)  // MATCH_22
-        push %rsp; pop %arg1  // "upx"
-        mov $MFD_EXEC,%arg2l
+        push $'u'|('p'<<8)|('X'<<16)|(0<<24)  // MATCH_22
+        push %rsp; pop %arg1  // "upX"
+        push $MFD_EXEC; pop %arg2
 0: // try memfd_create
         movl $__NR_memfd_create,%eax; syscall
         test %eax,%eax; jns ok_memfd  // success
