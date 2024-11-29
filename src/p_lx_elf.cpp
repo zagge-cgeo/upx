@@ -1469,6 +1469,7 @@ PackLinuxElf32::buildLinuxLoader(
         int len = 0;
         unsigned m_decompr = methods_used | (1u << ph_forced_method(ph.method));
         len += snprintf(sec, sizeof(sec), "%s", "SO_HEAD,ptr_NEXT,EXP_HEAD");
+
         // Start of dasiy-chain fall-through.
         if (((1u<<M_NRV2B_LE32)|(1u<<M_NRV2B_8)|(1u<<M_NRV2B_LE16)) & m_decompr) {
             len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "NRV2B");
@@ -1485,14 +1486,21 @@ PackLinuxElf32::buildLinuxLoader(
         }
         len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "EXP_TAIL");
         // End of daisy-chain fall-through.
+
         if (this->e_machine==Elf32_Ehdr::EM_386
         ||  this->e_machine==Elf32_Ehdr::EM_ARM) {
             len += snprintf(&sec[len], sizeof(sec) - len, ",%s",
                 (opt->o_unix.android_old ? "UMF_ANDROID" : "UMF_LINUX"));
         }
+        else {
+            len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "UMF_LINUX");
+        }
+        if (hasLoaderSection("STRCON")) {
+            len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "STRCON");
+        }
         len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "SO_TAIL,SO_MAIN");
         (void)len;  // Pacify the anal-retentive static analyzer which hates a good idiom.
-        NO_printf("%s\n", sec);
+        NO_printf("\n%s\n", sec);
         addLoader(sec, nullptr);
         relocateLoader();
         {
@@ -1510,7 +1518,7 @@ PackLinuxElf32::buildLinuxLoader(
          ||  this->e_machine==Elf32_Ehdr::EM_MIPS
          ) { // main program with ELF2 de-compressor (folded portion)
         initLoader(fold, szfold);
-        char sec[120];
+        char sec[120]; memset(sec, 0, sizeof(sec));  // debug convenience
         int len = 0;
         unsigned m_decompr = methods_used | (1u << ph_forced_method(ph.method));
         len += snprintf(sec, sizeof(sec), "%s", ".text,EXP_HEAD");
@@ -1539,8 +1547,8 @@ PackLinuxElf32::buildLinuxLoader(
         if (hasLoaderSection("SYSCALLS")) {
             len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "SYSCALLS");
         }
-        (void)len;
-        NO_printf("%s\n", sec);
+        (void)len;  // Pacify the anal-retentive static analyzer which hates a good idiom.
+        NO_printf("\n%s\n", sec);
         addLoader(sec, nullptr);
         relocateLoader();
         {
@@ -1583,7 +1591,7 @@ PackLinuxElf32::buildLinuxLoader(
     set_te32(&h.sz_cpr, h.sz_cpr);
     set_te32(&h.sz_unc, h.sz_unc);
     memcpy(cprLoader, &h, sizeof(h)); // cprLoader will become FOLDEXEC
-  }
+  }  // end (0 < szfold)
 
     initLoader(proto, szproto, -1, sz_cpr);
     NO_printf("FOLDEXEC unc=%#x  cpr=%#x\n", sz_unc, sz_cpr);
@@ -1620,7 +1628,7 @@ PackLinuxElf32::buildLinuxLoader(
         addLoader("ELFMAINZ,FOLDEXEC,IDENTSTR");
             defineSymbols(ft);
     }
-    else { // ELF1 de-compressor
+    else { // main program with ELF1 de-compressor
         addStubEntrySections(ft, methods_used | (1u << ph_forced_method(ph.method)) );
         if (!xct_off) { // main program
             defineSymbols(ft);
@@ -1658,10 +1666,12 @@ PackLinuxElf64::buildLinuxLoader(
 //   EXP_TAIL  FIXME: unfilter
 //   SO_TAIL
 //   SO_MAIN  C-language supervision based on PT_LOADs
-        char sec[120];
+        char sec[120]; memset(sec, 0, sizeof(sec));  // debug convenience
         int len = 0;
         unsigned m_decompr = methods_used | (1u << ph_forced_method(ph.method));
         len += snprintf(sec, sizeof(sec), "%s", "SO_HEAD,ptr_NEXT,EXP_HEAD");
+
+        // Start of dasiy-chain fall-through.
         if (((1u<<M_NRV2B_LE32)|(1u<<M_NRV2B_8)|(1u<<M_NRV2B_LE16)) & m_decompr) {
             len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "NRV2B");
         }
@@ -1675,11 +1685,15 @@ PackLinuxElf64::buildLinuxLoader(
             len += snprintf(&sec[len], sizeof(sec) - len, ",%s",
                 "LZMA_DAISY,LZMA_ELF00,LZMA_DEC20,LZMA_DEC30");
         }
-        len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "EXP_TAIL,SO_TAIL,SO_MAIN");
+        len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "EXP_TAIL");
+        // End of daisy-chain fall-through.
+
+        len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "UMF_LINUX");
         if (hasLoaderSection("STRCON")) {
             len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "STRCON");
         }
-        (void)len;
+        len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "SO_TAIL,SO_MAIN");
+        (void)len;  // Pacify the anal-retentive static analyzer which hates a good idiom.
         NO_printf("\n%s\n", sec);
         addLoader(sec, nullptr);
         relocateLoader();
@@ -1694,7 +1708,7 @@ PackLinuxElf64::buildLinuxLoader(
          ||  this->e_machine==Elf64_Ehdr::EM_X86_64
          ||  this->e_machine==Elf64_Ehdr::EM_AARCH64
          ||  this->e_machine==Elf64_Ehdr::EM_PPC64
-         ) { // main program with ELF2 de-compressor
+         ) { // main program with ELF2 de-compressor (folded portion)
         initLoader(fold, szfold);
         char sec[120]; memset(sec, 0, sizeof(sec));  // debug convenience
         int len = 0;
@@ -1780,7 +1794,7 @@ PackLinuxElf64::buildLinuxLoader(
     NO_printf("FOLDEXEC unc=%#x  cpr=%#x\n", sz_unc, sz_cpr);
     linker->addSection("FOLDEXEC", mb_cprLoader, sizeof(b_info) + sz_cpr, 0);
     if (xct_off
-       && (0
+       && (this->e_machine==Elf64_Ehdr::EM_NONE
           || this->e_machine==Elf64_Ehdr::EM_X86_64
           || this->e_machine==Elf64_Ehdr::EM_AARCH64
           || this->e_machine==Elf64_Ehdr::EM_PPC64
@@ -1798,13 +1812,13 @@ PackLinuxElf64::buildLinuxLoader(
         &&  elfout.ehdr.e_ident[Elf64_Ehdr::EI_DATA]==Elf64_Ehdr::ELFDATA2MSB) {
             addLoader("ELFMAINZe");
         }
-        if (!xct_off) {
+        if (!xct_off) { // main program
             defineSymbols(ft);
         }
     }
     else { // main program with ELF1 de-compressor
         addStubEntrySections(ft, methods_used | (1u << ph_forced_method(ph.method)) );
-        if (!xct_off) {
+        if (!xct_off) { // main program
             defineSymbols(ft);
         }
     }
@@ -5661,7 +5675,7 @@ int PackLinuxElf64::pack2_shlib(OutputFile *fo, Filter &ft, unsigned pre_xct_top
                 fi->seek(p_offset, SEEK_SET);
                 fi->read(ibuf,  sz_elf_hdrs);  total_in  += sz_elf_hdrs;
                 fo->write(ibuf, sz_elf_hdrs);  total_out += sz_elf_hdrs;
-                fo->seek(sz_phdrx, SEEK_CUR);  total_out += sz_phdrx;
+                fo->seek(sz_phdrx, SEEK_CUR);  total_out += sz_phdrx;  // leave space
 
                 // Compare PackUnix::packExtent, especially "if (u_len)" .
                 //
