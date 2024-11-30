@@ -58,6 +58,8 @@ __NR_close= 3
 __NR_mmap=      9
 __NR_mprotect= 10
 __NR_munmap=   11
+__NR_msync=    26  // 0x1a
+  MS_SYNC= 4
 __NR_brk=      12
 __NR_memfd_create= 0x13f  // 319
 __NR_ftruncate= 0x4d  // 77
@@ -270,6 +272,8 @@ Punmap: .globl Punmap  // page-align the lo end
         add %rax,%arg2
 munmap: .globl munmap
         movb $ __NR_munmap,%al; 5: jmp 5f
+msync: .globl msync
+        movb $__NR_msync,%al; 5: jmp 5f
 exit: .globl exit
         movb $ __NR_exit,%al; 5: jmp 5f
 brk: .globl brk

@@ -349,6 +349,7 @@ SYS_mmap=      90
 SYS_munmap=    91
 SYS_ftruncate= 93
 SYS_mprotect= 125
+SYS_msync=    144
 SYS_memfd_create= 360
 
 mmap: .globl mmap
@@ -365,6 +366,8 @@ munmap: .globl munmap
         li 0,SYS_munmap; 5: b 5f
 mprotect: .globl mprotect
         li 0,SYS_mprotect; 5: b 5f
+msync: .globl msync
+        li 0,SYS_msync; 5: b 5f
 memfd_create: .globl memfd_create
         li r0,SYS_memfd_create; 5: b 5f
 ftruncate: .globl ftruncate

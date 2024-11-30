@@ -131,6 +131,7 @@ struct stat { // __NR_stat = 106 + NR_SYSCALL_BASE
 // We want to supersede in *.elf-fold.S, not use include/linux.h
 #define NO_WANT_CLOSE 1
 #define NO_WANT_MPROTECT 1
+#define NO_WANT_MSYNC 1
 #define NO_WANT_OPEN 1
 #define NO_WANT_READ 1
 #include "include/linux.h"  // syscalls; i386 inlines via "int 0x80"

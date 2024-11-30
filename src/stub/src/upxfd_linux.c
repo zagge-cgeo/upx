@@ -83,6 +83,7 @@ extern void my_bkpt(void const *, ...);
 #define NO_WANT_READ 1
 #define NO_WANT_CLOSE 1
 #define NO_WANT_MPROTECT 1
+#define NO_WANT_MSYNC 1
 #endif  //}
 #include "include/linux.h"  // syscall decls; i386 inlines via "int 0x80"
 

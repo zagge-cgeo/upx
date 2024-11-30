@@ -438,6 +438,7 @@ __NR_fsync=    118 + __NR_SYSCALL_BASE
 __NR_fdatasync=148 + __NR_SYSCALL_BASE
 __NR_uname=    122 + __NR_SYSCALL_BASE  // 0x7a
 __NR_mprotect= 125 + __NR_SYSCALL_BASE  // 0x7d
+__NR_msync=    144 + __NR_SYSCALL_BASE  // 0x90
 __NR_mmap2=    192 + __NR_SYSCALL_BASE  // 0xc0
 __NR_fstat=    197 + __NR_SYSCALL_BASE  // 0xc5
 __NR_memfd_create= 385 + __NR_SYSCALL_BASE  // 0x181

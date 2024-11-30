@@ -186,6 +186,7 @@ struct timespec {
 #define __NR_uname              122
 #define __NR_adjtimex           124
 #define __NR_mprotect           125
+#define __NR_msync              144
 #define __NR_nanosleep          162
 #define __NR_memfd_create       356  /*0x164*/
 
@@ -363,6 +364,7 @@ static inline _syscall3(off_t,lseek,int,fd,off_t,offset,int,whence)
 static inline _syscall2(int,memfd_create,char const *,name,unsigned,flags);
 static inline _syscall2(int,mkdir,char const *,name,unsigned,mode);
 static inline _syscall3(int,mprotect,void *,addr,size_t,len,int,prot)
+static inline _syscall3(int,msync,void const *,addr,size_t,len,unsigned,flags)
 static inline _syscall2(int,munmap,void *,start,size_t,length)
 static inline _syscall2(int,nanosleep,const struct timespec *,rqtp,struct timespec *,rmtp)
 static inline _syscall3(int,open,const char *,file,int,flag,int,mode)
@@ -527,7 +529,25 @@ static int mprotect(void const *addr, size_t len, int prot)
     );
     return v0;
 }
-#endif  /* NO_WANT_MPROTECT */
+#endif  /*} NO_WANT_MPROTECT */
+
+#ifndef NO_WANT_MSYNC  /*{*/
+static int msync(void const *addr, size_t len, int prot)
+{
+#define __NR_msync (144+ 4000)
+    register void const *const a0 asm("a0") = addr;
+    register size_t      const a1 asm("a1") = len;
+    register int         const a2 asm("a2") = prot;
+    register size_t            v0 asm("v0") = __NR_msync;
+    __asm__ __volatile__(
+        "bal sysgo"
+    : "+r"(v0)
+    : "r"(a0), "r"(a1), "r"(a2)
+    : "a3", "ra"
+    );
+    return v0;
+}
+#endif  /*} NO_WANT_MSYNC */
 
 #ifndef NO_WANT_OPEN  /*{*/
 static ssize_t open(char const *path, int kind, int mode)
@@ -577,6 +597,7 @@ off_t lseek(int fd, off_t offset, int whence);
 int memfd_create(char const *, unsigned);
 int munmap(void *, size_t);
 int mprotect(void const *, size_t, int);
+int msync(void const *, size_t, unsigned);
 int open(char const *, int, int);
 int openat(int fd, char const *, unsigned, unsigned);
 ssize_t read(int, void *, size_t);

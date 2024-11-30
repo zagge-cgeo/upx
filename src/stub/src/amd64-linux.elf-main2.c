@@ -38,6 +38,7 @@
 // such as Ubuntu-20.04, Linux kernel 5.15.0-67, #74-20.04.1, 2023-02-22
 extern int upxfd_create(char const *tag, unsigned flags);
 #define MFD_EXEC 0x0010
+#define MS_SYNC 4
 
 extern void *memcpy(void *dst, void const *src, size_t n);
 // Pprotect is mprotect but uses page-aligned address (Linux requirement)
@@ -242,11 +243,12 @@ ERR_LAB
         xo->buf  += h.sz_unc;
         xo->size -= h.sz_unc;
     }
+    DPRINTF("unpackExtent done xo->buf=%%p\\n", xo->buf);
 }
 
 #if defined(__x86_64__)  //{
 static void *
-make_hatch_x86_64(
+make_hatch(
     ElfW(Phdr) const *const phdr,
     char *next_unc,
     unsigned const frag_mask
@@ -277,7 +279,7 @@ make_hatch_x86_64(
 }
 #elif defined(__powerpc64__)  //}{
 static void *
-make_hatch_ppc64(
+make_hatch(
     ElfW(Phdr) const *const phdr,
     char *next_unc,
     unsigned const frag_mask
@@ -314,7 +316,7 @@ make_hatch_ppc64(
 #define NBPI 4
 #define NINSTR 3
 static void *
-make_hatch_arm64(
+make_hatch(
     ElfW(Phdr) const *const phdr,
     char *next_unc,
     unsigned const frag_mask
@@ -606,13 +608,7 @@ do_xmap(
         }
 
         if (xi && phdr->p_flags & PF_X) {
-#if defined(__x86_64)  //{
-            void *const hatch = make_hatch_x86_64(phdr, xo.buf, ~page_mask);
-#elif defined(__powerpc64__)  //}{
-            void *const hatch = make_hatch_ppc64(phdr, xo.buf, ~page_mask);
-#elif defined(__aarch64__)  //}{
-            void *const hatch = make_hatch_arm64(phdr, xo.buf, ~page_mask);
-#endif  //}
+            void *const hatch = make_hatch(phdr, xo.buf, ~page_mask);
             if (0!=hatch) {
                 // Always update AT_NULL, especially for compressed PT_INTERP.
                 // Clearing lo bit of av is for i386 only; else is superfluous.
@@ -621,6 +617,7 @@ do_xmap(
 
             // SELinux: Map the contents of mfd as per *phdr.
             DPRINTF("hatch protect addr=%%p  mlen=%%p\\n", addr, mlen);
+            msync(addr, mlen, MS_SYNC); // be sure file gets de-compressed bytes
             munmap(addr, mlen);  // toss the VMA that has PROT_WRITE
             if (addr != mmap(addr, mlen, prot, MAP_FIXED|MAP_SHARED, mfd, 0)) {
                 err_exit(9);

@@ -123,6 +123,9 @@ mmap_privanon: .globl mmap_privanon
         orr w3,w3,w6  // flags |= MAP_{PRIVATE|ANON}  [QNX vs Linux]
     // FALL THROUGH to mmap
 
+msync: .globl msync
+        do_sys __NR_msync; ret
+
         .globl mmap
 mmap:
         ldr x8,PAGE_MASK
@@ -468,6 +471,7 @@ __NR_readlink = 0x4e + __NR_SYSCALL_BASE  // 78
 
 __NR_mmap     = 0xde + __NR_SYSCALL_BASE  // 222
 __NR_mprotect = 0xe2 + __NR_SYSCALL_BASE  // 226
+__NR_msync    = 0xe3 + __NR_SYSCALL_BASE  // 227
 __NR_munmap   = 0xd7 + __NR_SYSCALL_BASE  // 215
 __NR_memfd_create= 0x117 + __NR_SYSCALL_BASE  // 279
 __NR_ftruncate= 0x2e + __NR_SYSCALL_BASE  // 46

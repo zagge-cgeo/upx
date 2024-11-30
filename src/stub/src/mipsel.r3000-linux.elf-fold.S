@@ -69,6 +69,7 @@ __NR_memfd_create=354+__NR_Linux
 __NR_mmap=       90+ __NR_Linux
 __NR_mkdir=      39+ __NR_Linux
 __NR_mprotect = 125+ __NR_Linux
+__NR_msync =    144 + __NR_Linux
 __NR_munmap   =  91+ __NR_Linux
 __NR_oldstat=    18+ __NR_Linux
 __NR_open     =   5+ __NR_Linux
@@ -416,6 +417,8 @@ mkdir: .globl mkdir
         b sysgo; li v0,__NR_mkdir
 mprotect: .globl mprotect
         b sysgo; li v0,__NR_mprotect
+msync: .globl msync
+        b sysgo; li v0,__NR_msync
 munmap: .globl munmap
         b sysgo; li v0,__NR_munmap
 stat: .globl stat

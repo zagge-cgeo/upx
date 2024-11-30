@@ -37,10 +37,12 @@
 #define NO_WANT_CLOSE 1
 #define NO_WANT_EXIT 1
 #define NO_WANT_MPROTECT 1
+#define NO_WANT_MSYNC 1
 #define NO_WANT_WRITE 1
 #include "include/linux.h"
 
 #define MFD_EXEC 0x0010
+#define MS_SYNC 4
 #define nullptr 0
 
 extern void *memcpy(void *dst, void const *src, size_t n);
@@ -51,6 +53,7 @@ extern unsigned Pprotect(void *, size_t, unsigned);
 extern size_t Pwrite(unsigned, void const *, size_t);
 extern ssize_t write(int, void const *, size_t);
 extern int munmap(void *, size_t);
+extern int msync(void const *, size_t, unsigned);
 extern int close(int);
 extern void exit(int code) __attribute__ ((__noreturn__));
 #  define mmap_privanon(addr,len,prot,flgs) mmap((addr),(len),(prot), \
@@ -286,10 +289,11 @@ static char *
 make_hatch(
     ElfW(Phdr) const *const phdr,
     char *next_unc,
-    unsigned frag_mask
+    unsigned page_mask
 )
 {
     unsigned *hatch = 0;
+    unsigned frag_mask = ~page_mask;
     unsigned code[2] = {
         0x586180cd,  // int #0x80; popa; pop %eax
         0x90e0ff3e,  // notrack jmp *%eax; nop
@@ -324,10 +328,11 @@ static void *
 make_hatch(
     ElfW(Phdr) const *const phdr,
     char *next_unc,
-    unsigned frag_mask
+    unsigned page_mask
 )
 {
     unsigned const sys_munmap = get_sys_munmap();
+    unsigned frag_mask = ~page_mask;
     unsigned code[2] = {
         sys_munmap,  // syscall __NR_unmap
         0xe8bd8003,  // ldmia sp!,{r0,r1,pc}
@@ -361,8 +366,9 @@ static void *
 make_hatch(
     ElfW(Phdr) const *const phdr,
     char *next_unc,
-    unsigned frag_mask)
+    unsigned page_mask)
 {
+    unsigned frag_mask = ~page_mask;
     unsigned code[3];
     // avoid gcc initializing array by copying .rodata
     code[0] = 0x0000000c;  // syscall
@@ -401,8 +407,9 @@ static void *
 make_hatch(
     ElfW(Phdr) const *const phdr,
     char *next_unc,
-    unsigned frag_mask)
+    unsigned page_mask)
 {
+    unsigned frag_mask = ~page_mask;
     unsigned code[2];
     // avoid gcc initializing array by copying .rodata
     code[0] = 0x44000002;  // sc
@@ -702,7 +709,7 @@ do_xmap(
         }
 
         if (xi && phdr->p_flags & PF_X) {
-            char *hatch = make_hatch(phdr, xo.buf, ~page_mask);
+            char *hatch = make_hatch(phdr, xo.buf, page_mask);
             if (0!=hatch) {
                 // Always update AT_NULL, especially for compressed PT_INTERP.
                 // Clearing lo bit of av is for i386 only; else is superfluous.
@@ -711,6 +718,7 @@ do_xmap(
 
             // SELinux: Map the contents of mfd as per *phdr.
             DPRINTF("hatch protect addr=%%p  mlen=%%p\\n", addr, mlen);
+            msync(addr, mlen, MS_SYNC);  // be sure file gets de-compressed bytes
             munmap(addr, mlen);  // toss the VMA that has PROT_WRITE
             if (addr != mmap(addr, mlen, prot, MAP_FIXED|MAP_SHARED, mfd, 0)) {
                 err_exit(9);
