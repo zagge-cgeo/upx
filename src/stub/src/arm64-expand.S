@@ -109,13 +109,14 @@ decompress:  // (src *, cpr_len, dst *, &dstlen);
 // NYI: eof_n2b, eof_n2d, eof_n2e should be unified.
 eof_n2b: // .globl eof_n2b .type eof_n2b,%function
 eof:  // MATCH_90  end of a compressed extent; need sync_cache after unfilter
-        ldr x3,[sp],#NBPW  // &input_eof
+        ldr x3,[sp,#0*NBPW]  // &input_eof
         sub x0,src,x3  // src -= eof;  // return 0: good; else: bad
-        ldr x1,[sp],#NBPW  // original dst
+        ldr x1,[sp,#1*NBPW]  // original dst
         sub dst,dst,x1  // dst -= original dst; actual length of output
-        ldr x1,[sp],#NBPW  // &dstlen
+        ldr x1,[sp,#2*NBPW]  // &dstlen
         str dstw,[x1]  // actual length used at dst  XXX: 4GB
-        ldr lr,[sp],#NBPW
+        ldr lr,[sp,#3*NBPW]
+        add sp,sp,#4*NBPW
         ret
 
 
