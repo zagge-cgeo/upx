@@ -314,7 +314,7 @@ protected:
         upx_uint64_t val = get_te64(p);
         if (val >> 32)
             throwCantPack("64-bit value too big %#llx", val);
-        return (unsigned)val;
+        return (unsigned) val;
     }
 
 protected:
