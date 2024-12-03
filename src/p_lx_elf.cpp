@@ -1532,6 +1532,8 @@ PackLinuxElf32::buildLinuxLoader(
                 "LZMA_DAISY,LZMA_ELF00,LZMA_DEC20,LZMA_DEC30");
         }
         len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "EXP_TAIL");
+
+        // $ARCH-linux.elf-main2.c calls upx_mmap_and_fd, not direct memfd_create
         len += snprintf(&sec[len], sizeof(sec) - len, ",%s",
             (sec_arm_attr || is_asl || opt->o_unix.android_shlib)
                 ? "UMF_ANDROID"
@@ -1609,9 +1611,12 @@ PackLinuxElf32::buildLinuxLoader(
           || this->e_machine==Elf32_Ehdr::EM_MIPS
       ) { // main program with ELF2 de-compressor
         addLoader("ELFMAINX");
-        addLoader((sec_arm_attr || is_asl || opt->o_unix.android_shlib)
-            ? "UMF_ANDROID"
-            : "UMF_LINUX");
+
+        // Only if $ARCH-linux.elf-entry.S calls upx_mmap_and_fd instead of memfd_create
+        if (this->e_machine != Elf32_Ehdr::EM_PPC)  // FIXME: also MIPS?
+            addLoader((sec_arm_attr || is_asl || opt->o_unix.android_shlib)
+                ? "UMF_ANDROID"
+                : "UMF_LINUX");
         addLoader("ELFMAINZ,FOLDEXEC,IDENTSTR");
             defineSymbols(ft);
     }
