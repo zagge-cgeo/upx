@@ -7,7 +7,7 @@ Name             Origin             Length             Attributes
 Linker script and memory map
 
 
-.text           0x0000000000000000      0xc38
+.text           0x0000000000000000      0xc50
  .text          0x0000000000000000      0x348 tmp/arm.v4a-linux.elf-fold.o
                 0x0000000000000004                get_page_mask
                 0x00000000000002e8                memcpy
@@ -20,34 +20,35 @@ Linker script and memory map
                 0x0000000000000024                Pprotect
                 0x0000000000000024                mprotect
  .text          0x0000000000000348        0x0 tmp/arm.v4a-expand.o
- .text          0x0000000000000348      0x8f0 tmp/arm.v4a-linux.elf-main2.o
-                0x0000000000000bd4                underlay
-                0x0000000000000aa4                upx_main
+ .text          0x0000000000000348      0x908 tmp/arm.v4a-linux.elf-main2.o
+                0x0000000000000bec                underlay
+                0x0000000000000abc                upx_main
 
-SYSCALLS        0x0000000000000000      0x214
- SYSCALLS       0x0000000000000000      0x214 tmp/arm.v4a-linux.elf-fold.o
-                0x00000000000000ec                munmap
+SYSCALLS        0x0000000000000000      0x228
+ SYSCALLS       0x0000000000000000      0x228 tmp/arm.v4a-linux.elf-fold.o
+                0x0000000000000100                munmap
                 0x0000000000000000                get_sys_munmap
                 0x0000000000000090                getpid
-                0x0000000000000128                readlink
-                0x00000000000001b8                __udivsi3
+                0x000000000000013c                readlink
+                0x00000000000001cc                __udivsi3
                 0x000000000000007c                ftruncate
                 0x00000000000000a4                lseek
-                0x000000000000018c                __clear_cache
-                0x0000000000000150                uname
-                0x0000000000000178                write
+                0x00000000000001a0                __clear_cache
+                0x0000000000000164                uname
+                0x000000000000018c                write
                 0x0000000000000068                fstat
                 0x0000000000000040                fdatasync
                 0x00000000000000b8                memfd_create
-                0x0000000000000114                read
-                0x0000000000000164                unlink
-                0x00000000000001b0                my_bkpt
+                0x0000000000000128                read
+                0x0000000000000178                unlink
+                0x00000000000000ec                msync
+                0x00000000000001c4                my_bkpt
                 0x0000000000000054                fsync
-                0x000000000000013c                stat
+                0x0000000000000150                stat
                 0x0000000000000030                exit
                 0x0000000000000008                brk
-                0x0000000000000100                open
-                0x00000000000001b8                div10
+                0x0000000000000114                open
+                0x00000000000001cc                div10
                 0x00000000000000d8                mkdir
                 0x000000000000001c                close
 

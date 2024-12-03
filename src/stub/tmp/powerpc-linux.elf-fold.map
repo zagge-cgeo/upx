@@ -7,16 +7,16 @@ Name             Origin             Length             Attributes
 Linker script and memory map
 
 
-.text           0x0000000000000000     0x12d4
+.text           0x0000000000000000     0x12e8
  .text          0x0000000000000000      0x294 tmp/powerpc-linux.elf-fold.o
                 0x0000000000000048                Pmap
                 0x000000000000000c                get_page_mask
                 0x0000000000000024                Pprotect
                 0x000000000000006c                Punmap
  .text          0x0000000000000294        0x0 tmp/powerpc-expand.o
- .text          0x0000000000000294     0x1040 tmp/powerpc-linux.elf-main2.o
-                0x000000000000078c                underlay
-                0x00000000000010c0                upx_main
+ .text          0x0000000000000294     0x1054 tmp/powerpc-linux.elf-main2.o
+                0x0000000000000798                underlay
+                0x00000000000010d4                upx_main
 
 UMF_LINUX       0x0000000000000000      0x108
  UMF_LINUX      0x0000000000000000      0x108 tmp/powerpc-linux.elf-upxfd_linux.o
@@ -39,18 +39,19 @@ LOAD tmp/powerpc-expand.o
 LOAD tmp/powerpc-linux.elf-main2.o
 OUTPUT(tmp/powerpc-linux.elf-fold.bin elf32-powerpc)
 
-SYSCALLS        0x0000000000000000       0xb4
- SYSCALLS       0x0000000000000000       0xb4 tmp/powerpc-linux.elf-fold.o
-                0x0000000000000050                munmap
-                0x000000000000006c                memcpy
+SYSCALLS        0x0000000000000000       0xbc
+ SYSCALLS       0x0000000000000000       0xbc tmp/powerpc-linux.elf-fold.o
+                0x0000000000000058                munmap
+                0x0000000000000074                memcpy
                 0x0000000000000010                readlink
                 0x0000000000000020                ftruncate
-                0x0000000000000058                mmap
+                0x0000000000000060                mmap
                 0x0000000000000030                write
                 0x0000000000000018                memfd_create
                 0x0000000000000038                read
-                0x0000000000000090                memset
-                0x00000000000000ac                my_bkpt
+                0x0000000000000098                memset
+                0x0000000000000050                msync
+                0x00000000000000b4                my_bkpt
                 0x0000000000000000                exit
                 0x0000000000000008                brk
                 0x0000000000000040                open

@@ -7,41 +7,45 @@ Name             Origin             Length             Attributes
 Linker script and memory map
 
 
-.text           0x0000000000000000      0xe40
- .text          0x0000000000000000      0xe40 tmp/mipsel.r3000-linux.elf-fold.o
+.text           0x0000000000000000      0xd58
+ .text          0x0000000000000000      0xd58 tmp/mipsel.r3000-linux.elf-fold.o
                 0x00000000000000d0                get_page_mask
-                0x0000000000000d20                upx_mmap_and_fd_android
                 0x00000000000000f0                get_upxfn_path
-                0x0000000000000cb4                underlay
-                0x0000000000000b1c                upx_main
+                0x0000000000000cec                underlay
+                0x0000000000000b54                upx_main
                 0x0000000000000010                get4unal
                 0x0000000000000128                close
 
-SYSCALLS        0x0000000000000000      0x178
- SYSCALLS       0x0000000000000000      0x178 tmp/mipsel.r3000-linux.elf-fold.o
-                0x0000000000000138                munmap
+SYSCALLS        0x0000000000000000      0x180
+ SYSCALLS       0x0000000000000000      0x180 tmp/mipsel.r3000-linux.elf-fold.o
+                0x0000000000000140                munmap
                 0x0000000000000110                getpid
                 0x0000000000000060                memcpy
-                0x0000000000000158                readlink
+                0x0000000000000160                readlink
                 0x0000000000000088                mempcpy
                 0x0000000000000108                ftruncate
                 0x0000000000000118                lseek
                 0x00000000000000bc                mmap
                 0x00000000000000b0                mmap_privanon
-                0x0000000000000160                uname
-                0x0000000000000170                write
+                0x0000000000000168                uname
+                0x0000000000000178                write
                 0x0000000000000120                memfd_create
-                0x0000000000000150                read
-                0x0000000000000168                unlink
+                0x0000000000000158                read
+                0x0000000000000170                unlink
                 0x0000000000000040                memset
+                0x0000000000000138                msync
                 0x0000000000000034                my_bkpt
                 0x0000000000000000                Pprotect
-                0x0000000000000140                stat
+                0x0000000000000148                stat
                 0x00000000000000f8                exit
                 0x0000000000000100                brk
-                0x0000000000000148                open
+                0x0000000000000150                open
                 0x0000000000000130                mprotect
                 0x0000000000000128                mkdir
+
+UMF_LINUX       0x0000000000000000      0x130
+ UMF_LINUX      0x0000000000000000      0x130 tmp/mipsel.r3000-linux.elf-fold.o
+                0x0000000000000000                upx_mmap_and_fd_linux
 
 EXP_HEAD        0x0000000000000000       0xfc
  EXP_HEAD       0x0000000000000000       0xfc tmp/mipsel.r3000-linux.elf-fold.o
@@ -93,18 +97,5 @@ OUTPUT(tmp/mipsel.r3000-linux.elf-fold.bin elf32-littlemips)
 .reginfo        0x0000000000000000       0x18
  .reginfo       0x0000000000000000       0x18 tmp/mipsel.r3000-linux.elf-fold.o
 
-.mdebug.eabi32  0x0000000000000000        0x0
- .mdebug.eabi32
-                0x0000000000000000        0x0 tmp/mipsel.r3000-linux.elf-fold.o
-
-.gcc_compiled_long32
-                0x0000000000000000        0x0
- .gcc_compiled_long32
-                0x0000000000000000        0x0 tmp/mipsel.r3000-linux.elf-fold.o
-
-.comment        0x0000000000000000       0x34
- .comment       0x0000000000000000       0x34 tmp/mipsel.r3000-linux.elf-fold.o
-
-UMF_LINUX       0x0000000000000000      0x10c
- UMF_LINUX      0x0000000000000000      0x10c tmp/mipsel.r3000-linux.elf-fold.o
-                0x0000000000000000                upx_mmap_and_fd_linux
+.comment        0x0000000000000000       0x23
+ .comment       0x0000000000000000       0x23 tmp/mipsel.r3000-linux.elf-fold.o
