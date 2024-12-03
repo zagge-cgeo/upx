@@ -96,13 +96,13 @@ struct timespec {
 // So PAGE_SIZE is not constant in 64-bit mode of __powerpc64__.
     // empty: not constant, must use run-time value from AT_PAGESZ
 #elif defined(__mips__)  //}{
-#define PAGE_MASK       (~0ul<<16)   // discards the offset, keeps the page
+#define PAGE_MASK       (~0ul<<16)   /* discards the offset, keeps the page */
 #define PAGE_SIZE       ( 1ul<<16)
 #elif defined(__amd64__)  //}{
-#define PAGE_MASK       (~0ul<<12)   // discards the offset, keeps the page
+#define PAGE_MASK       (~0ul<<12)   /* discards the offset, keeps the page */
 #define PAGE_SIZE       ( 1ul<<12)
 #elif defined(__i386__) || defined(__powerpc__) || defined(__arm__)  //}{
-#define PAGE_MASK       (~0ul<<12)   // discards the offset, keeps the page
+#define PAGE_MASK       (~0ul<<12)   /* discards the offset, keeps the page */
 #define PAGE_SIZE       ( 1ul<<12)
 #endif  //}
 
@@ -412,12 +412,14 @@ static void *mmap(
         "\tsw $8,0x10($29)\n"
         "\tsw $9,0x14($29)\n"
         "\tsyscall\n"
-        "\taddiu $29,$29, 0x20\n"
-        "\tb sysret\n"
-    "sysgo:"
+        ".set noreorder\n"
+          "\tb sysret_incl\n"
+          "\t  addiu $29,$29, 0x20\n"
+        ".set reorder\n"
+    "sysgo_incl:"
       /*"break\n"*/  /* debug only */
         "\tsyscall\n"
-    "sysret: .set noat\n"
+    "sysret_incl: .set noat\n"
         "\tsltiu $1,$7,1\n"   /* 1: no error;  0: error; $7 == a3 */
         "\taddiu $1,$1,-1\n"  /* 0: no error; -1: error */
         "\tor $2,$2,$1\n"     /* $2 == v0; good result, else -1 for error */
@@ -438,7 +440,7 @@ static ssize_t read(int fd, void *buf, size_t len)
     register size_t const a2 asm("a2") = len;
     register size_t       v0 asm("v0") = __NR_read;
     __asm__ __volatile__(
-        "bal sysgo"
+        "bal sysgo_incl"
     : "+r"(v0)
     : "r"(a0), "r"(a1), "r"(a2)
     : "a3", "ra"
@@ -454,7 +456,7 @@ static void *brk(void *addr)
     register void *const a0 asm("a0") = addr;
     register void *      v0 asm("v0") = (void *)__NR_brk;
     __asm__ __volatile__(
-        "bal sysgo"
+        "bal sysgo_incl"
     : "+r"(v0)
     : "r"(a0)
     : "a3", "ra"
@@ -470,7 +472,7 @@ static int close(int fd)
     register int const a0 asm("a0") = fd;
     register int       v0 asm("v0") = __NR_close;
     __asm__ __volatile__(
-        "bal sysgo"
+        "bal sysgo_incl"
     : "+r"(v0)
     : "r"(a0)
     : "a3", "ra"
@@ -487,7 +489,7 @@ static void exit(int code)
     register int const a0 asm("a0") = code;
     register int       v0 asm("v0") = __NR_exit;
     __asm__ __volatile__(
-        "bal sysgo"
+        "bal sysgo_incl"
     :
     : "r"(v0), "r"(a0)
     : "a3", "ra"
@@ -504,7 +506,7 @@ static int munmap(void *addr, size_t len)
     register size_t const a1 asm("a1") = len;
     register size_t       v0 asm("v0") = __NR_munmap;
     __asm__ __volatile__(
-        "bal sysgo"
+        "bal sysgo_incl"
     : "+r"(v0)
     : "r"(a0), "r"(a1)
     : "a3", "ra"
@@ -522,7 +524,7 @@ static int mprotect(void const *addr, size_t len, int prot)
     register int         const a2 asm("a2") = prot;
     register size_t            v0 asm("v0") = __NR_mprotect;
     __asm__ __volatile__(
-        "bal sysgo"
+        "bal sysgo_incl"
     : "+r"(v0)
     : "r"(a0), "r"(a1), "r"(a2)
     : "a3", "ra"
@@ -540,7 +542,7 @@ static int msync(void const *addr, size_t len, int prot)
     register int         const a2 asm("a2") = prot;
     register size_t            v0 asm("v0") = __NR_msync;
     __asm__ __volatile__(
-        "bal sysgo"
+        "bal sysgo_incl"
     : "+r"(v0)
     : "r"(a0), "r"(a1), "r"(a2)
     : "a3", "ra"
@@ -558,7 +560,7 @@ static ssize_t open(char const *path, int kind, int mode)
     register int         const a2 asm("a2") = mode;
     register size_t            v0 asm("v0") = __NR_open;
     __asm__ __volatile__(
-        "bal sysgo"
+        "bal sysgo_incl"
     : "+r"(v0)
     : "r"(a0), "r"(a1), "r"(a2)
     : "a3", "ra"
@@ -577,7 +579,7 @@ static ssize_t write(int fd, void const *buf, size_t len)
     register size_t       const a2 asm("a2") = len;
     register size_t             v0 asm("v0") = __NR_write;
     __asm__ __volatile__(
-        "bal sysgo"
+        "bal sysgo_incl"
     : "+r"(v0)
     : "r"(a0), "r"(a1), "r"(a2)
     : "a3", "ra"
@@ -741,15 +743,15 @@ typedef struct
 // !!! must be the same as in p_unix.h !!!
 #define OVERHEAD        2048
 
-#define UPX_MAGIC_LE32  0x21585055          // "UPX!"
+#define UPX_MAGIC_LE32  0x21585055          /* "UPX!" */
 
 #if 1
 // patch constants for our loader (le32 format)
-//#define UPX1            0x31585055          // "UPX1"
-#define UPX2            0x32585055          // "UPX2"
-#define UPX3            0x33585055          // "UPX4"
-#define UPX4            0x34585055          // "UPX4"
-//#define UPX5            0x35585055          // "UPX5"
+//#define UPX1            0x31585055          /* "UPX1" */
+#define UPX2            0x32585055          /* "UPX2" */
+#define UPX3            0x33585055          /* "UPX4" */
+#define UPX4            0x34585055          /* "UPX4" */
+//#define UPX5            0x35585055          /* "UPX5" */
 #else
 // transform into relocations when using ElfLinker
 extern const unsigned UPX2;
