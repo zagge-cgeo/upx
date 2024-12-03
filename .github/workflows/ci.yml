@@ -22,7 +22,10 @@ env:
     # 2024-09-17
   #ZIG_DIST_VERSION: 0.14.0-dev.1579+f3445f8f6
     # 2024-11-21
-   ZIG_DIST_VERSION: 0.14.0-dev.2271+f845fa04a
+  #ZIG_DIST_VERSION: 0.14.0-dev.2271+f845fa04a
+    # 2024-12-02  https://ziglang.org/download/
+    # required format: "^  ZIG_..." with exactly 2 leading spaces
+  ZIG_DIST_VERSION: 0.14.0-dev.2370+5c6b25d9b
 
 jobs:
   job-rebuild-and-verify-stubs:
