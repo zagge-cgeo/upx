@@ -1487,14 +1487,10 @@ PackLinuxElf32::buildLinuxLoader(
         len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "EXP_TAIL");
         // End of daisy-chain fall-through.
 
-        if (this->e_machine==Elf32_Ehdr::EM_386
-        ||  this->e_machine==Elf32_Ehdr::EM_ARM) {
-            len += snprintf(&sec[len], sizeof(sec) - len, ",%s",
-                (opt->o_unix.android_old ? "UMF_ANDROID" : "UMF_LINUX"));
-        }
-        else {
-            len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "UMF_LINUX");
-        }
+        len += snprintf(&sec[len], sizeof(sec) - len, ",%s",
+            (sec_arm_attr || is_asl || opt->o_unix.android_shlib)
+                ? "UMF_ANDROID"
+                : "UMF_LINUX");
         if (hasLoaderSection("STRCON")) {
             len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "STRCON");
         }
@@ -1536,14 +1532,10 @@ PackLinuxElf32::buildLinuxLoader(
                 "LZMA_DAISY,LZMA_ELF00,LZMA_DEC20,LZMA_DEC30");
         }
         len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "EXP_TAIL");
-        if (this->e_machine==Elf32_Ehdr::EM_386
-        ||  this->e_machine==Elf32_Ehdr::EM_ARM) {
-            len += snprintf(&sec[len], sizeof(sec) - len, ",%s",
-                (opt->o_unix.android_old ? "UMF_ANDROID" : "UMF_LINUX"));
-        }
-        else {
-            len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "UMF_LINUX");
-        }
+        len += snprintf(&sec[len], sizeof(sec) - len, ",%s",
+            (sec_arm_attr || is_asl || opt->o_unix.android_shlib)
+                ? "UMF_ANDROID"
+                : "UMF_LINUX");
         if (hasLoaderSection("SYSCALLS")) {
             len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "SYSCALLS");
         }
@@ -1605,13 +1597,9 @@ PackLinuxElf32::buildLinuxLoader(
           )
     ) { // shlib with ELF2 de-compressor
         addLoader("ELFMAINX");
-        if (this->e_machine==Elf32_Ehdr::EM_386
-        ||  this->e_machine==Elf32_Ehdr::EM_ARM) {
-            addLoader((opt->o_unix.android_old ? "UMF_ANDROID" : "UMF_LINUX"));
-        }
-        else {
-            addLoader("UMF_LINUX");
-        }
+        addLoader((sec_arm_attr || is_asl || opt->o_unix.android_shlib)
+            ? "UMF_ANDROID"
+            : "UMF_LINUX");
         addLoader("ELFMAINZ,FOLDEXEC,IDENTSTR");
     }
     else if (this->e_machine==Elf32_Ehdr::EM_NONE
@@ -1621,10 +1609,9 @@ PackLinuxElf32::buildLinuxLoader(
           || this->e_machine==Elf32_Ehdr::EM_MIPS
       ) { // main program with ELF2 de-compressor
         addLoader("ELFMAINX");
-        if (this->e_machine==Elf32_Ehdr::EM_386
-        ||  this->e_machine==Elf32_Ehdr::EM_ARM) {
-            addLoader((opt->o_unix.android_old ? "UMF_ANDROID" : "UMF_LINUX"));
-        }
+        addLoader((sec_arm_attr || is_asl || opt->o_unix.android_shlib)
+            ? "UMF_ANDROID"
+            : "UMF_LINUX");
         addLoader("ELFMAINZ,FOLDEXEC,IDENTSTR");
             defineSymbols(ft);
     }

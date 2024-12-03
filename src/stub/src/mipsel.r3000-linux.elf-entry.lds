@@ -9,4 +9,7 @@ SECTIONS
     *(ELFMAINX)
     *(.text)
   }
+  ELFMAINZ : {
+    *(ELFMAINZ)
+  }
 }

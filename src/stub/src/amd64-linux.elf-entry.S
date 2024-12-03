@@ -42,6 +42,7 @@ __NR_ftruncate= 77
 __NR_exit=     60
 __NR_mprotect= 10
 __NR_mmap=      9
+__NR_msync=    26  // 0x1a
 __NR_close=     3
 __NR_open=      2
 __NR_write=     1

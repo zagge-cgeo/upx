@@ -391,7 +391,8 @@ mmap: .globl mmap
         b sysret
           addiu sp,sp,sp_frame
 
-sysgo:
+sysgo:  // src/mipsel.r3000-linux.elf-fold.S
+sysgo2:
         syscall
 sysret:
         bgez a3,sysOK

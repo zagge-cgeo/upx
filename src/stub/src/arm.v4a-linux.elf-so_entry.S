@@ -246,6 +246,7 @@ f_decompress:
 //  MATCH_07  envp
 
 upx_mmap_and_fd: .globl upx_mmap_and_fd
+        // UMF_LINX or UMF_ANDROID goes here
 
 // IDENTSTR goes here
 

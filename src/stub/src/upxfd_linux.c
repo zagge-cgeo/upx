@@ -30,7 +30,7 @@ extern void my_bkpt(void const *, ...);
 #define ANDROID_FRIEND 0
 #define addr_string(string) ({ \
     char const *str; \
-    asm("bal 0f; .asciz \"" string "\"; .balign 4\n0: move %0,$31" \
+    asm(".set noreorder; bal 0f; .asciz \"" string "\"; .balign 4\n0: move %0,$31; .set reorder" \
 /*out*/ : "=r"(str) \
 /* in*/ : \
 /*und*/ : "ra"); \

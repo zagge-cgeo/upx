@@ -114,9 +114,11 @@ M_NRV2E_LE32=8
 __NR_Linux = 4000
 __NR_close    =   6+ __NR_Linux
 __NR_exit     =   1+ __NR_Linux
-__NR_memfd_create= 354 + __NR_Linux
+__NR_ftruncate=  93+ __NR_Linux
+__NR_memfd_create= 354+ __NR_Linux
 __NR_mmap     =  90+ __NR_Linux
 __NR_mprotect = 125+ __NR_Linux
+__NR_msync    = 144+ __NR_LINUX
 __NR_open     =   5+ __NR_Linux
 __NR_write    =   4+ __NR_Linux
 __NR_cacheflush = 147+ __NR_Linux
@@ -185,10 +187,9 @@ eof_n2b:
           addiu sp,4
 
         .balign 4
-upx_mmap_and_fd:
-// section UMF_LINUX or UMF_ANDROID goes here
+upx_mmap_and_fd: .globl upx_mmap_and_fd
+        // section UMF_LINUX or UMF_ANDROID goes here
 
-  section ELFMAINZ
   section ELFMAINZ; .set noreorder
 L72:
         li a0,2  # fd stderr
@@ -260,6 +261,16 @@ unfold:  # IN: $r_fexp,$r_auxv,$r_PMASK,$r_FOLD
 
         jr ra
           addu $r_ADRX,$r_elfa,$r_ADRX  # compressed data
+
+memfd_create: .globl memfd_create
+        li v0,__NR_memfd_create; syscall
+        j ra
+          nop
+
+ftruncate: .globl ftruncate
+        li v0,__NR_ftruncate; syscall
+        j ra
+          nop
 
 zfind:  # result in $r_auxv
         lw v1,(a0); addiu a0,a0,NBPW

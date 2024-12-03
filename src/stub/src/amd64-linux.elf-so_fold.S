@@ -103,6 +103,7 @@ __NR_close= 3
 
 __NR_mmap=      9
 __NR_mprotect= 10
+__NR_msync=    26  // 0x1a
 __NR_munmap=   11
 __NR_mremap=  216
 __NR_memfd_create= 0x13f  // 319
@@ -169,6 +170,8 @@ ftruncate: .globl ftruncate
         push $__NR_ftruncate; 5: jmp 5f
 memfd_create: .globl memfd_create
         push $__NR_memfd_create; 5: jmp 5f
+msync: .globl msync
+        push $__NR_msync; 5: jmp 5f
 close: .globl close
         push $ __NR_close; 5: jmp 5f
 openat: .globl openat

@@ -93,6 +93,7 @@ __NR_memfd_create= 385 + __NR_SYSCALL_BASE
 __NR_mkdir=    39 + __NR_SYSCALL_BASE
 __NR_mmap2=   192 + __NR_SYSCALL_BASE
 __NR_mprotect=125 + __NR_SYSCALL_BASE
+__NR_msync=   144 + __NR_SYSCALL_BASE  // 0x90
 __NR_open=      5 + __NR_SYSCALL_BASE
 __NR_read=      3 + __NR_SYSCALL_BASE
 __NR_stat=    106 + __NR_SYSCALL_BASE
@@ -377,6 +378,7 @@ mempcpy: .globl mempcpy  // (dst, src, n)
 .globl getpid;    getpid:    do_sys __NR_getpid; ret
 .globl lseek;     lseek:     do_sys __NR_lseek; ret
 .globl mkdir;     mkdir:     do_sys __NR_mkdir; ret
+.globl msync;     msync:     do_sys __NR_msync; ret
 .globl open;      open:      do_sys __NR_open; ret
 .globl read;      read:      do_sys __NR_read; ret
 .globl stat;      stat:      do_sys __NR_stat; ret

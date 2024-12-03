@@ -103,6 +103,7 @@ __NR_unlinkat = 0x23 + __NR_SYSCALL_BASE  // 35
 
 __NR_mmap     = 0xde + __NR_SYSCALL_BASE  // 222
 __NR_mprotect = 0xe2 + __NR_SYSCALL_BASE  // 226
+__NR_msync    = 0xe3 + __NR_SYSCALL_BASE  // 227
 __NR_munmap   = 0xd7 + __NR_SYSCALL_BASE  // 215
 __NR_memfd_create = 0x117 + __NR_SYSCALL_BASE  // 279
 __NR_ftruncate= 0x2e + __NR_SYSCALL_BASE  // 46
@@ -153,6 +154,9 @@ Punmap: .globl Punmap
         add x1,x1,x8
 munmap: .globl munmap
         do_sys __NR_munmap; ret
+
+msync: .globl msync
+        do_sys __NR_msync; ret
 
 // Sometimes Linux enforces page-aligned address
 Pprotect: .globl Pprotect
