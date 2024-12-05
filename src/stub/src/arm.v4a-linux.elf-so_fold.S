@@ -318,7 +318,7 @@ tmp  .req r3
     and sp,tmp,#-2*NBPW
     str r0,[sp,#-NBPW]!  // save old sp for pop at return
 
-    mov r2,frag  
+    mov r2,frag
     and r1,ptr,pmsk  // beginning of page
     add r0,sp,#NBPW  // &saved_area
     bl memcpy
