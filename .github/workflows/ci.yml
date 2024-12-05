@@ -221,7 +221,7 @@ jobs:
           # NOTE: macos does not have "env -C"; only with brew coreutils
           # NOTE: macos-11 does not have "readlink -f"; only on macos >= 12 or with brew coreutils
           # { os: macos-11, gcc: gcc-10, gxx: g++-10, testsuite: true } # macos-11 is EOL; scheduled for removal from GitHub actions
-          - { os: macos-12, gcc: gcc-12, gxx: g++-12, testsuite: true }
+          # { os: macos-12, gcc: gcc-12, gxx: g++-12, testsuite: true } # macos-12 "internal error"; removed (or scheduled)
           - { os: macos-13, testsuite: true } # use default Xcode-15; NOTE: gcc-12 on macos-13 does not work with Xcode-15
           - { os: macos-13, gcc: gcc-12, gxx: g++-12, testsuite: true, xcode_version: 14.3.1 }
           # { os: macos-14, gcc: gcc-13, gxx: g++-13, testsuite: true }                        # gcc-13: INTERNAL ERROR in ld64
@@ -500,17 +500,17 @@ jobs:
           - { zig_target: aarch64-windows-gnu }
           - { zig_target: arm-linux-musleabihf, zig_flags: -mcpu=cortex_a5, qemu: qemu-arm }
           - { zig_target: armeb-linux-musleabihf, zig_flags: -mcpu=cortex_a5, qemu: qemu-armeb }
-          - { zig_target: i386-linux-gnu.2.3.4, zig_flags: -march=i586 }
+          # { zig_target: i386-linux-gnu.2.3.4, zig_flags: -march=i586 }  # ".2.3.4" invalid 2024-12-03
           - { zig_target: i386-linux-musl, zig_flags: -march=i586, qemu: qemu-i386 }
           - { zig_target: i386-windows-gnu }
-          - { zig_target: mips-linux-musl, qemu: qemu-mips }
-          - { zig_target: mips-linux-muslsf, zig_flags: -msoft-float, qemu: qemu-mips }
-          - { zig_target: mipsel-linux-musl, qemu: qemu-mipsel }
-          - { zig_target: mipsel-linux-muslsf, zig_flags: -msoft-float, qemu: qemu-mipsel }
-          - { zig_target: powerpc-linux-musl, qemu: qemu-ppc }
+          - { zig_target: mips-linux-musleabi, qemu: qemu-mips }
+          - { zig_target: mips-linux-musleabihf, zig_flags: -msoft-float, qemu: qemu-mips }
+          - { zig_target: mipsel-linux-musleabi, qemu: qemu-mipsel }
+          - { zig_target: mipsel-linux-musleabihf, zig_flags: -msoft-float, qemu: qemu-mipsel }
+          - { zig_target: powerpc-linux-musleabi, qemu: qemu-ppc }
           - { zig_target: powerpc64-linux-musl, qemu: qemu-ppc64 }
           - { zig_target: powerpc64le-linux-musl, qemu: qemu-ppc64le }
-          - { zig_target: x86_64-linux-gnu.2.3.4, qemu: qemu-x86_64 } # can use QEMU because of gcompat
+          # { zig_target: x86_64-linux-gnu.2.3.4, qemu: qemu-x86_64 } # can use QEMU because of gcompat  # ".2.3.4" invalid 2024-12-03
           - { zig_target: x86_64-linux-musl, qemu: qemu-x86_64 }
           - { zig_target: x86_64-macos.11.0-none }
           - { zig_target: x86_64-windows-gnu }
