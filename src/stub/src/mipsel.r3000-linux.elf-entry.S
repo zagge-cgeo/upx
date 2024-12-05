@@ -186,9 +186,10 @@ eof_n2b:
         jr ra
           addiu sp,4
 
-        .balign 4
-upx_mmap_and_fd: .globl upx_mmap_and_fd
-        // section UMF_LINUX or UMF_ANDROID goes here
+// Not needed because call memfd_create directly instead of upx_mmap_and_fd
+//        .balign 4
+//upx_mmap_and_fd: .globl upx_mmap_and_fd
+//        // section UMF_LINUX or UMF_ANDROID goes here
 
   section ELFMAINZ; .set noreorder
 L72:

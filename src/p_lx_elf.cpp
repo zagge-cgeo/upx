@@ -1613,7 +1613,8 @@ PackLinuxElf32::buildLinuxLoader(
         addLoader("ELFMAINX");
 
         // Only if $ARCH-linux.elf-entry.S calls upx_mmap_and_fd instead of memfd_create
-        if (this->e_machine != Elf32_Ehdr::EM_PPC)  // FIXME: also MIPS?
+        if (this->e_machine != Elf32_Ehdr::EM_PPC
+        &&  this->e_machine != Elf32_Ehdr::EM_MIPS)
             addLoader((sec_arm_attr || is_asl || opt->o_unix.android_shlib)
                 ? "HUMF_A,UMF_ANDROID"
                 : "HUMF_L,UMF_LINUX");

@@ -1588,11 +1588,9 @@ tc.mips.r3000-linux.elf.gcc += -fno-exceptions -fno-asynchronous-unwind-tables
 tc.mips.r3000-linux.elf.gcc += -Wall -W -Wcast-align -Wcast-qual -Wstrict-prototypes -Wwrite-strings -Werror
 
 mips.r3000-linux.elf-entry.h : $(srcdir)/src/mips.r3000-linux.elf-entry.lds \
-	    $(srcdir)/src/$$T.S \
-	    tmp/mips.r3000-linux.elf-upxfd_linux.s
+	    $(srcdir)/src/$$T.S
 	@echo; echo TARGET: $@; echo
 	mipsel-linux-gcc-4.1.1 -E -D__mips__  -D__MIPSEB__ -D_TARGET_LINUX_ $(srcdir)/src/$T.S \
-	    | cat - tmp/mips.r3000-linux.elf-upxfd_linux.s \
 	    | mipsel-elf-as-20060406 -EB -O -mno-pdr  -o tmp/mips.r3000-linux.elf-entry.o
 	$(call tc,gpp_mkdep) --mode=c --MMD=$@ --MF=tmp/$T.d $(srcdir)/src/$T.S
 	multiarch-ld-2.17 -r --format=elf32-bigmips -Map tmp/$T.map -o tmp/$T.bin \
@@ -1600,21 +1598,6 @@ mips.r3000-linux.elf-entry.h : $(srcdir)/src/mips.r3000-linux.elf-entry.lds \
 	   tmp/mips.r3000-linux.elf-entry.o
 	$(call tc,f-embed_objinfo_without_xstrip,tmp/$T.bin)
 	$(call tc,bin2h) tmp/$T.bin $@
-
-tmp/mips.r3000-linux.elf-upxfd_linux.s : $(srcdir)/src/upxfd_linux.c
-	@echo; echo TARGET: $@; echo
-	cp $< tmp/mips.r3000-linux.elf-upxfd_linux.c
-	( cd tmp; \
-	    mipsel-linux-gcc-4.1.1 -meb -march=r3000 -mno-abicalls -mabi=eabi -G0 -nostdinc -MMD \
-	        -fno-exceptions -fno-asynchronous-unwind-tables \
-	        -Wall -W -Wcast-align -Wcast-qual -Wstrict-prototypes -Wwrite-strings -Werror \
-		-I../src -S -O mips.r3000-linux.elf-upxfd_linux.c; \
-	    sed  < mips.r3000-linux.elf-upxfd_linux.s  > mips.r3000-linux.elf-upxfd_linux.ii \
-	        -e 's/^\t\.text/  section UMF_LINUX/' \
-	        -e 's/	j[ 	][ 	]*$$L/	b $$L/' \
-	        -e 's/	jal[ 	][ 	]*\([^\$$]\)/	bal \1/' ; \
-	    mv mips.r3000-linux.elf-upxfd_linux.ii mips.r3000-linux.elf-upxfd_linux.s \
-	)
 
 mips.r3000-linux.elf-fold.h : $(srcdir)/src/$$T.lds \
 	    $(srcdir)/src/$$T.S \
@@ -1642,6 +1625,26 @@ mips.r3000-linux.elf-fold.h : $(srcdir)/src/$$T.lds \
 # "unrecognized program segment header size"	$(call tc,sstrip) tmp/$T.bin
 	$(call tc,bin2h) tmp/$T.bin $@
 
+tmp/mips.r3000-linux.elf-upxfd_linux.s : $(srcdir)/src/upxfd_linux.c
+	@echo; echo TARGET: $@; echo
+	cp $< tmp/mips.r3000-linux.elf-upxfd_linux.c
+	( cd tmp; \
+	    mipsel-linux-gcc-4.1.1 -mel -march=r3000 -mno-abicalls -mabi=eabi -G0 -nostdinc -MMD \
+	        -fno-exceptions -fno-asynchronous-unwind-tables \
+	        -Wall -W -Wcast-align -Wcast-qual -Wstrict-prototypes -Wwrite-strings -Werror \
+		-D__mips__ -D__MIPS__ -D__MIPSEL__ -D_TARGET_LINUX_\
+		-I../src -S -O mips.r3000-linux.elf-upxfd_linux.c -o - \
+	    | cat ../src/mips.r3000-linux.elf-help_umf.S - \
+	    | sed  > mips.r3000-linux.elf-upxfd_linux.s \
+	        -e '/section .gcc_compiled/d' \
+	        -e '/section .mdebug.eabi/d' \
+	        -e '/^\t\.file\t/d' \
+	        -e 's/^\t\.text/  .section UMF_LINUX, "ax"/' \
+		-e 's/[ \t]j[ \t][ \t]*$$31/	jr $$31/' \
+	        -e 's/[ \t]j[ \t]/	b /' \
+	        -e 's/[ \t]jal[ \t]/	bal /' \
+	)
+
 tmp/mips.r3000-linux.elf-main2.s: $(srcdir)/src/i386-linux.elf-main2.c
 	@echo; echo TARGET: $@; echo
 	cp $< tmp/mips.r3000-linux.elf-main2.c
@@ -1657,8 +1660,9 @@ tmp/mips.r3000-linux.elf-main2.s: $(srcdir)/src/i386-linux.elf-main2.c
 	        -e '/^\t\.file\t/d' \
 	        -e 's/L[0-9][0-9]*/L7&/g' \
 	        -e $$(cat ../src/dollar-dollar.sed) \
-	        -e 's/	j[ 	][ 	]*$$L/	b $$L/' \
-	        -e 's/	jal[ 	][ 	]*\([^\$$]\)/	bal \1/' \
+		-e 's/[ \t]j[ \t][ \t]*$$31/	jr $$31/' \
+	        -e 's/[ \t]j[ \t]/	b /' \
+	        -e 's/[ \t]jal[ \t]/	bal /' \
 	    ; \
 	    mv mips.r3000-linux.elf-main2.ii mips.r3000-linux.elf-main2.s \
 	)
@@ -1702,12 +1706,10 @@ tc.mipsel.r3000-linux.elf.gcc += -fno-exceptions -fno-asynchronous-unwind-tables
 tc.mipsel.r3000-linux.elf.gcc += -Wall -W -Wcast-align -Wcast-qual -Wstrict-prototypes -Wwrite-strings -Werror
 
 mipsel.r3000-linux.elf-entry.h : $(srcdir)/src/mipsel.r3000-linux.elf-entry.lds \
-	    $(srcdir)/src/$$T.S \
-	    tmp/mipsel.r3000-linux.elf-upxfd_linux.s
+	    $(srcdir)/src/$$T.S
 	@echo; echo TARGET: $@; echo
 	mipsel-linux-gcc-4.1.1 -E -mel -march=r3000 -mno-abicalls -mabi=eabi -G0 -nostdinc -MMD \
 	    -D__mipsel__  -D__MIPSEL__ -D_TARGET_LINUX_ $(srcdir)/src/$T.S \
-	    | cat - tmp/mipsel.r3000-linux.elf-upxfd_linux.s \
 	    | mipsel-elf-as-20060406 -EL -O -mno-pdr  -o tmp/mipsel.r3000-linux.elf-entry.o
 	$(call tc,gpp_mkdep) --mode=c --MMD=$@ --MF=tmp/$T.d $(srcdir)/src/$T.S
 	multiarch-ld-2.17 -r --format=elf32-littlemips -Map tmp/$T.map -o tmp/$T.bin \
@@ -1715,25 +1717,6 @@ mipsel.r3000-linux.elf-entry.h : $(srcdir)/src/mipsel.r3000-linux.elf-entry.lds 
 	   tmp/mipsel.r3000-linux.elf-entry.o
 	$(call tc,f-embed_objinfo_without_xstrip,tmp/$T.bin)
 	$(call tc,bin2h) tmp/$T.bin $@
-
-tmp/mipsel.r3000-linux.elf-upxfd_linux.s : $(srcdir)/src/upxfd_linux.c
-	@echo; echo TARGET: $@; echo
-	cp $< tmp/mipsel.r3000-linux.elf-upxfd_linux.c
-	( cd tmp; \
-	    mipsel-linux-gcc-4.1.1 -mel -march=r3000 -mno-abicalls -mabi=eabi -G0 -nostdinc -MMD \
-	        -fno-exceptions -fno-asynchronous-unwind-tables \
-	        -Wall -W -Wcast-align -Wcast-qual -Wstrict-prototypes -Wwrite-strings -Werror \
-		-D__mips__ -D__MIPS__ -D__MIPSEL__ -D_TARGET_LINUX_\
-		-I../src -S -O mipsel.r3000-linux.elf-upxfd_linux.c; \
-	    sed  < mipsel.r3000-linux.elf-upxfd_linux.s  > mipsel.r3000-linux.elf-upxfd_linux.ii \
-	        -e '/section .gcc_compiled/d' \
-	        -e '/section .mdebug.eabi/d' \
-	        -e '/^\t\.file\t/d' \
-	        -e 's/^\t\.text/  section UMF_LINUX/' \
-	        -e 's/	j[ 	][ 	]*$$L/	b $$L/' \
-	        -e 's/	jal[ 	][ 	]*\([^\$$]\)/	bal \1/' ; \
-	    mv mipsel.r3000-linux.elf-upxfd_linux.ii mipsel.r3000-linux.elf-upxfd_linux.s \
-	)
 
 mipsel.r3000-linux.elf-fold.h : $(srcdir)/src/$$T.lds \
 	    $(srcdir)/src/$$T.S \
@@ -1761,6 +1744,26 @@ mipsel.r3000-linux.elf-fold.h : $(srcdir)/src/$$T.lds \
 # "unrecognized program segment header size"	$(call tc,sstrip) tmp/$T.bin
 	$(call tc,bin2h) tmp/$T.bin $@
 
+tmp/mipsel.r3000-linux.elf-upxfd_linux.s : $(srcdir)/src/upxfd_linux.c
+	@echo; echo TARGET: $@; echo
+	cp $< tmp/mipsel.r3000-linux.elf-upxfd_linux.c
+	( cd tmp; \
+	    mipsel-linux-gcc-4.1.1 -mel -march=r3000 -mno-abicalls -mabi=eabi -G0 -nostdinc -MMD \
+	        -fno-exceptions -fno-asynchronous-unwind-tables \
+	        -Wall -W -Wcast-align -Wcast-qual -Wstrict-prototypes -Wwrite-strings -Werror \
+		-D__mips__ -D__MIPS__ -D__MIPSEL__ -D_TARGET_LINUX_\
+		-I../src -S -O mipsel.r3000-linux.elf-upxfd_linux.c -o - \
+	    | cat ../src/mipsel.r3000-linux.elf-help_umf.S - \
+	    | sed  > mipsel.r3000-linux.elf-upxfd_linux.s \
+	        -e '/section .gcc_compiled/d' \
+	        -e '/section .mdebug.eabi/d' \
+	        -e '/^\t\.file\t/d' \
+	        -e 's/^\t\.text/  .section UMF_LINUX, "ax"/' \
+		-e 's/[ \t]j[ \t][ \t]*$$31/	jr $$31/' \
+	        -e 's/[ \t]j[ \t]/	b /' \
+	        -e 's/[ \t]jal[ \t]/	bal /' \
+	)
+
 tmp/mipsel.r3000-linux.elf-main2.s: $(srcdir)/src/$$T.c $(srcdir)/src/i386-linux.elf-main2.c
 	@echo; echo TARGET: $@; echo
 	$(call tc,gcc) -S -D__mipsel__ -D_TARGET_LINUX_ -O $< -o - \
@@ -1769,8 +1772,9 @@ tmp/mipsel.r3000-linux.elf-main2.s: $(srcdir)/src/$$T.c $(srcdir)/src/i386-linux
 	          -e '/^\t\.file\t/d' \
 	          -e 's/L[0-9][0-9]*/L7&/g' \
 	          -e $$(cat src/dollar-dollar.sed) \
-	          -e 's/	j[ 	][ 	]*$$L/	b $$L/' \
-	          -e 's/	jal[ 	][ 	]*\([^\$$]\)/	bal \1/' \
+		-e 's/[ \t]j[ \t][ \t]*$$31/	jr $$31/' \
+	        -e 's/[ \t]j[ \t]/	b /' \
+	        -e 's/[ \t]jal[ \t]/	bal /' \
 		  >$@
 
 
@@ -1884,6 +1888,7 @@ powerpc-linux.elf-entry.h : $(srcdir)/src/$$T.S
 
 powerpc-linux.elf-fold.h : $(srcdir)/src/$$T.lds \
 	    tmp/$$T.o \
+	    tmp/powerpc-linux.elf-help_umf.o \
 	    tmp/powerpc-linux.elf-upxfd_linux.o \
 	    tmp/powerpc-expand.o \
 	    tmp/powerpc-linux.elf-main2.o
@@ -1898,6 +1903,9 @@ tmp/powerpc-linux.elf-fold.o : $(srcdir)/src/$$T.S
 tmp/powerpc-linux.elf-main2.o : $(srcdir)/src/$$T.c
 	$(call tc,gcc) -c $< -o $@
 	$(call tc,f-objstrip,$@)
+
+tmp/powerpc-linux.elf-help_umf.o: $(srcdir)/src/$$T.S
+	$(call tc,gcc) -c $< -o $@
 
 tmp/powerpc-linux.elf-upxfd_linux.o : $(srcdir)/src/upxfd_linux.c
 	$(call tc,gcc) -c -O $< -o $@
@@ -2036,8 +2044,9 @@ tmp/powerpc64le-linux.elf-main2.s: $(srcdir)/src/$$T.c $(srcdir)/src/amd64-linux
 	    | sed -e '/^\t\.file\t/d' \
 	          -e 's/L[0-9][0-9]*/L7&/g' \
 	          -e $$(cat src/dollar-dollar.sed) \
-	          -e 's/	j[ 	][ 	]*$$L/	b $$L/' \
-	          -e 's/	jal[ 	][ 	]*\([^\$$]\)/	bal \1/' \
+		-e 's/[ \t]j[ \t][ \t]*$$31/	jr $$31/' \
+	        -e 's/[ \t]j[ \t]/	b /' \
+	        -e 's/[ \t]jal[ \t]/	bal /' \
 		  >$@
 
 powerpc64-linux.elf%.h : tc_list = powerpc64-linux.elf default
@@ -2092,8 +2101,9 @@ tmp/powerpc64-linux.elf-main2.s: $(srcdir)/src/$$T.c $(srcdir)/src/amd64-linux.e
 	    | sed -e '/^\t\.file\t/d' \
 	          -e 's/L[0-9][0-9]*/L7&/g' \
 	          -e $$(cat src/dollar-dollar.sed) \
-	          -e 's/	j[ 	][ 	]*$$L/	b $$L/' \
-	          -e 's/	jal[ 	][ 	]*\([^\$$]\)/	bal \1/' \
+		-e 's/[ \t]j[ \t][ \t]*$$31/	jr $$31/' \
+	        -e 's/[ \t]j[ \t]/	b /' \
+	        -e 's/[ \t]jal[ \t]/	bal /' \
 		  >$@
 
 # /***********************************************************************
