@@ -169,7 +169,8 @@ decompress:  // (src *, cpr_len, dst *, &dstlen);
   .globl eof
 eof:  // end of a compressed extent
         POP {tmp}  // &input_eof
-        mov r0,src; SUB2 r0,tmp  // src -= eof;  // return 0: good; else: bad
+        mov r0,src; SUB2S r0,tmp  // src -= eof
+          beq 0f; bkpt; 0:  // return 0: good; else: bad
         POP {tmp}  // original dst
         POP {r1}; SUB2 dst,tmp  // dst -= original dst
         POP {tmp}; str dst,[tmp]  // actual length used at dst  XXX: 4GB

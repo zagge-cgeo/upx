@@ -245,6 +245,14 @@ f_decompress:
 //  MATCH_01  argv
 //  MATCH_07  envp
 
+// get_page_mask should never be called by so_entry, because the 1st arg
+// (the pointer) to upx_mmap_and_fd is 0.  But in the general case
+// there must be a get_page_mask subroutine.  Return something plausible.
+get_page_mask: .globl get_page_mask
+        mvn r0,#0
+        mov r0,r0,lsl #12
+        ret
+
 upx_mmap_and_fd: .globl upx_mmap_and_fd
         // UMF_LINX or UMF_ANDROID goes here
 

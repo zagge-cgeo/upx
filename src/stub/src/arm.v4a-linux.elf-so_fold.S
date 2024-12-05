@@ -303,48 +303,50 @@ mmap_privanon: .globl mmap_privanon
         mvn r4,#0  @ fd= -1
         b mmap_do
 
-tmp  .req r3
 
-size .req r4
-ptr  .req r5
-ulen .req r6
-pflg .req r7
-
-underlay: .globl underlay // (unsigned size, char *ptr, unsigned ulen, unsigned p_flags)  // ulen <= PAGE_SIZE
+underlay: .globl underlay  // (unsigned size, char *ptr, unsigned page_mask);
     stmdb sp!,{r0,r1,r2,r3,r4,r5,r6,r7, lr}
     ldmia sp!, {r4,r5,r6,r7}  // r4= r0; r5= r1; r6= r2; r7= r3;
-    mov r0,sp
-
-    sub tmp,sp,ulen
+size .req r4
+ptr  .req r5
+pmsk .req r6
+frag .req r7
+tmp  .req r3
+    mov r0,sp  // old sp
+    bics frag,ptr,pmsk; beq 3f  // page fragment
+    sub tmp,sp,frag
     and sp,tmp,#-2*NBPW
-    str r0,[sp,#-NBPW]!  // save sp for pop at return
+    str r0,[sp,#-NBPW]!  // save old sp for pop at return
 
-    add r0,sp,#NBPW
-    // mov r1,ptr  // not yet overwritten
-    // mov r2,ulen  // not yet overwritten
+    mov r2,frag  
+    and r1,ptr,pmsk  // beginning of page
+    add r0,sp,#NBPW  // &saved_area
     bl memcpy
+3:
 
-    mov r0,ptr
-    mov r1,size
+    and r0,ptr,pmsk  // beginning of page
+    add r1,size,frag  // include fragment
     mov r2,#PROT_WRITE|PROT_READ
-    tst pflg,#PF_X  // if eventually PROT_EXEC,
-    orrne r2,r2,#PROT_EXEC  // ... then Linux ARM wants it now, too
     mov r3,#MAP_FIXED
     bl mmap_privanon  // r0= ptr because MAP_FIXED
+    mov ptr,r0
 
-    add r1,sp,#NBPW
-    mov r2,ulen
+    cmp frag,#0; beq 3f
+    mov r0,ptr  // mapped address
+    add r1,sp,#NBPW  // &saved_area
+    mov r2,frag
     bl memcpy
-
-    ldr sp,[sp]
+    ldr sp,[sp]  // original sp
+3:
+    mov r0,ptr  // start of mapped region
     ldmia sp!,{r4,r5,r6,r7, pc}
 
     .unreq tmp
 
     .unreq size
     .unreq ptr
-    .unreq ulen
-    .unreq pflg
+    .unreq pmsk
+    .unreq frag
 
 my_alloca: .globl my_alloca
         sub r0,sp,r0

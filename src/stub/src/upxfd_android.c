@@ -183,6 +183,7 @@ extern int stat(char const *path, struct stat *statbuf);
 extern int mkdir(char const *path, unsigned mode);
 extern int uname(struct utsname *);
 extern char * get_upxfn_path(void);
+extern long get_page_mask(void);
 
 unsigned long upx_mmap_and_fd_android( // returns (mapped_addr | (1+ fd))
     void *ptr  // desired address
@@ -190,9 +191,6 @@ unsigned long upx_mmap_and_fd_android( // returns (mapped_addr | (1+ fd))
     , char *pathname  // 0 ==> get_upxfn_path()
 )
 {
-    // This used to be a parameter, but was always 0
-    unsigned const frag_mask = 0u;
-
     unsigned long addr = 0;  // for result
     // Early 32-bit Android did not implement memfd_create
     int fd = -ENOSYS;
@@ -256,9 +254,13 @@ unsigned long upx_mmap_and_fd_android( // returns (mapped_addr | (1+ fd))
 #endif  //}
 
     // Set the file length
-    unsigned const frag = frag_mask & (unsigned)(long)ptr;
-    ptr -= frag;  // page-aligned
-    datlen += frag;
+    my_bkpt((void const *)0x1302, ptr, datlen);
+    if (ptr) {
+        unsigned const page_mask = get_page_mask();
+        unsigned const frag = ~page_mask & (unsigned)(long)ptr;
+        ptr -= frag;  // becomes page-aligned
+        datlen += frag;
+    }
     if (datlen) {
         if (not_android) { // Linux ftruncate() is well-behaved
             int rv = ftruncate(fd, datlen);
@@ -268,21 +270,19 @@ unsigned long upx_mmap_and_fd_android( // returns (mapped_addr | (1+ fd))
         }
 #if ANDROID_FRIEND  //{
         else { // !not_android: ftruncate has varying system call number on 32-bit
-            memset(u.buf, 0, BUFLEN);
-            unsigned wlen = datlen;
-            while (0 < wlen) {
-                int x = (wlen < BUFLEN) ? wlen : BUFLEN;
-                if (x != write(fd, u.buf, x)) {
-                    return -ENOSPC;
-                }
-                wlen -= x;
-            }
+            lseek(fd, -1+ datlen, SEEK_SET);  // last byte
+            char zero = 0;
+            write(fd, &zero, 1);  // force allocation
             lseek(fd, 0, SEEK_SET);  // go back to the beginning
         }
 #endif  //}
     }
-    if (frag_mask && ptr) { // Preserve entire page that contains *ptr
-        write(fd, ptr, 1+ frag_mask);
+    if (ptr) {
+        unsigned const page_mask = get_page_mask();
+        if (~page_mask & (unsigned)(long)ptr) {
+            // Preserve entire page that contains *ptr
+            write(fd, ptr, -page_mask);
+        }
     }
     addr = (unsigned long)mmap(ptr, datlen , PROT_WRITE | PROT_READ,
         MAP_SHARED | (ptr ? MAP_FIXED : 0), fd, 0);

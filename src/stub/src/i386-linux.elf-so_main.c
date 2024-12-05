@@ -34,7 +34,7 @@
 
 extern void my_bkpt(void const *arg1, ...);
 
-#define DEBUG 0
+#define DEBUG 1
 
 // Pprotect is mprotect, but page-aligned on the lo end (Linux requirement)
 unsigned Pprotect(void *, size_t, unsigned);
@@ -223,6 +223,7 @@ ERR_LAB
 
         if (h.sz_cpr < h.sz_unc) { // Decompress block
             size_t out_len = h.sz_unc;  // EOF for lzma
+            //my_bkpt((void const *)0x1204, &xi, &xo, out_len);
             int const j = f_expand((unsigned char *)xi->buf - sizeof(h),
                 (unsigned char *)xo->buf, &out_len);
             if (j != 0 || out_len != (nrv_uint)h.sz_unc) {
@@ -239,6 +240,7 @@ ERR_LAB
         xo->buf  += h.sz_unc;
         xo->size -= h.sz_unc;
     }
+    DPRINTF("  end unpackExtent\\n", 0);
 }
 
 #if defined(__i386__) //}{
@@ -474,6 +476,8 @@ fini_SELinux(
     ElfW(Addr) base
 )
 {
+    DPRINTF("fini_SELinux  size=%%p  ptr=%%p  phdr=%%p  mfd=%%p  base=%%p\\n",
+            size, ptr, phdr, mfd, base);
     if (phdr->p_flags & PF_X) {
         // Map the contents of mfd as per *phdr.
         Punmap(ptr, size);
@@ -492,6 +496,7 @@ prep_SELinux(unsigned size, char *ptr, unsigned len) // returns mfd
     // Cannot set PROT_EXEC except via mmap() into a region (Linux "vma")
     // that has never had PROT_WRITE.  So use a Linux-only "memory file"
     // to hold the contents.
+    DPRINTF("prep_SELinux  size=%%p  ptr=%%p  len=%%p\\n", size, ptr,len);
     char *val = upx_mmap_and_fd(ptr, size, nullptr);
     unsigned mfd = 0xfff & (unsigned)val;
     val -= mfd; --mfd;
@@ -581,6 +586,10 @@ upx_so_main(  // returns &escape_hatch
 
     for (; phdr < phdrN; ++phdr)
     if (phdr->p_type == PT_LOAD && !(phdr->p_flags & PF_W)) {
+        if  (!base) {
+            base = (ElfW(Addr))va_load - phdr->p_vaddr;
+            DPRINTF("base=%%p\\n", base);
+        }
         unsigned hi_offset = phdr->p_filesz + phdr->p_offset;
         struct b_info al_bi;  // for aligned data from binfo
         // Need un-aligned read of b_info to determine compression sizes.
@@ -591,10 +600,6 @@ upx_so_main(  // returns &escape_hatch
         x1.buf = (void *)(hi_offset + base - al_bi.sz_unc);
         x0.size =                            al_bi.sz_cpr;
 
-        if  (!base) {
-            base = (ElfW(Addr))va_load - phdr->p_vaddr;
-            DPRINTF("base=%%p\\n", base);
-        }
         DPRINTF("phdr@%%p  p_offset=%%p  p_vaddr=%%p  p_filesz=%%p  p_memsz=%%p\\n",
             phdr, phdr->p_offset, phdr->p_vaddr, phdr->p_filesz, phdr->p_memsz);
         DPRINTF("x0=%%p  x1=%%p\\n", &x0, &x1);
@@ -612,12 +617,13 @@ upx_so_main(  // returns &escape_hatch
                 else {
                     underlay(x1.size, x1.buf, page_mask);  // also makes PROT_WRITE
                 }
+                Extent const xt = x1;
                 unpackExtent(&x0, &x1);
                 if (!hatch && phdr->p_flags & PF_X) {
                     hatch = make_hatch(phdr, x1.buf, ~page_mask);
                 }
-                my_bkpt((void const *)0x1235, &x1);
-                fini_SELinux(x1.size, x1.buf, phdr, mfd, base);  // FIXME: x1 changed!
+                //my_bkpt((void const *)0x1235, &x1);
+                fini_SELinux(xt.size, xt.buf, phdr, mfd, base);
             }
         }
         else { // 2nd and later PT_LOADs

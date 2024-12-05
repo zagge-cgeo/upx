@@ -1489,8 +1489,8 @@ PackLinuxElf32::buildLinuxLoader(
 
         len += snprintf(&sec[len], sizeof(sec) - len, ",%s",
             (sec_arm_attr || is_asl || opt->o_unix.android_shlib)
-                ? "UMF_ANDROID"
-                : "UMF_LINUX");
+                ? "HUMF_A,UMF_ANDROID"
+                : "HUMF_L,UMF_LINUX");
         if (hasLoaderSection("STRCON")) {
             len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "STRCON");
         }
@@ -1536,8 +1536,8 @@ PackLinuxElf32::buildLinuxLoader(
         // $ARCH-linux.elf-main2.c calls upx_mmap_and_fd, not direct memfd_create
         len += snprintf(&sec[len], sizeof(sec) - len, ",%s",
             (sec_arm_attr || is_asl || opt->o_unix.android_shlib)
-                ? "UMF_ANDROID"
-                : "UMF_LINUX");
+                ? "HUMF_A,UMF_ANDROID"
+                : "HUMF_L,UMF_LINUX");
         if (hasLoaderSection("SYSCALLS")) {
             len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "SYSCALLS");
         }
@@ -1600,8 +1600,8 @@ PackLinuxElf32::buildLinuxLoader(
     ) { // shlib with ELF2 de-compressor
         addLoader("ELFMAINX");
         addLoader((sec_arm_attr || is_asl || opt->o_unix.android_shlib)
-            ? "UMF_ANDROID"
-            : "UMF_LINUX");
+            ? "HUMF_A,UMF_ANDROID"
+            : "HUMF_L,UMF_LINUX");
         addLoader("ELFMAINZ,FOLDEXEC,IDENTSTR");
     }
     else if (this->e_machine==Elf32_Ehdr::EM_NONE
@@ -1615,8 +1615,8 @@ PackLinuxElf32::buildLinuxLoader(
         // Only if $ARCH-linux.elf-entry.S calls upx_mmap_and_fd instead of memfd_create
         if (this->e_machine != Elf32_Ehdr::EM_PPC)  // FIXME: also MIPS?
             addLoader((sec_arm_attr || is_asl || opt->o_unix.android_shlib)
-                ? "UMF_ANDROID"
-                : "UMF_LINUX");
+                ? "HUMF_A,UMF_ANDROID"
+                : "HUMF_L,UMF_LINUX");
         addLoader("ELFMAINZ,FOLDEXEC,IDENTSTR");
             defineSymbols(ft);
     }
@@ -1680,7 +1680,7 @@ PackLinuxElf64::buildLinuxLoader(
         len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "EXP_TAIL");
         // End of daisy-chain fall-through.
 
-        len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "UMF_LINUX");
+        len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "HUMF_L,UMF_LINUX");
         if (hasLoaderSection("STRCON")) {
             len += snprintf(&sec[len], sizeof(sec) - len, ",%s", "STRCON");
         }
@@ -5288,7 +5288,7 @@ unsigned PackLinuxElf::pack2_shlib_overlay_write(OutputFile *fo, MemBuffer &mb,
     memset(&tmp, 0, sizeof(tmp));
     set_te32(&tmp.sz_unc, u_len);
     set_te32(&tmp.sz_cpr, c_len);
-    tmp.b_method = M_NRV2B_LE32;
+    tmp.b_method = (EM_ARM == e_machine) ? M_NRV2B_8 : M_NRV2B_LE32;
     tmp.b_extra = 0;
     fo->write(&tmp, sizeof(tmp));   total_out += sizeof(tmp);
     b_len += sizeof(b_info);
