@@ -34,7 +34,7 @@
 
 extern void my_bkpt(void const *arg1, ...);
 
-#define DEBUG 1
+#define DEBUG 0
 
 // Pprotect is mprotect, but page-aligned on the lo end (Linux requirement)
 unsigned Pprotect(void *, size_t, unsigned);
@@ -223,7 +223,6 @@ ERR_LAB
 
         if (h.sz_cpr < h.sz_unc) { // Decompress block
             size_t out_len = h.sz_unc;  // EOF for lzma
-            //my_bkpt((void const *)0x1204, &xi, &xo, out_len);
             int const j = f_expand((unsigned char *)xi->buf - sizeof(h),
                 (unsigned char *)xo->buf, &out_len);
             if (j != 0 || out_len != (nrv_uint)h.sz_unc) {
@@ -433,31 +432,35 @@ extern unsigned get_page_mask(void);
 extern void *memcpy(void *dst, void const *src, size_t n);
 extern void *memset(void *dst, unsigned val, size_t n);
 
-#ifndef __arm__  //{
+#if defined(__powerpc64__) || defined(__powerpc__)  // {
+#define SAVED_SIZE (1<<16)  /* 64 KB */
+#else  // }{
+#define SAVED_SIZE (1<<14)  /* 16 KB: RaspberryPi 5 */
+#endif  // }
+
+#ifndef __arm__  // {
 // Segregate large local array, to avoid code bloat due to large displacements.
 static void
 underlay(unsigned size, char *ptr, unsigned page_mask)
 {
-    //my_bkpt((void const *)0x1231, size, ptr, page_mask);
-    unsigned len = ~page_mask & (unsigned)ptr;
-    if (len) {
-        unsigned saved[(1<<16)/sizeof(unsigned)];  // maximum PAGE_SIZE
-        memcpy(saved, (void *)(page_mask & (long)ptr), len);
-        mmap(ptr, size, PROT_WRITE|PROT_READ,
+    unsigned frag = ~page_mask & (unsigned)(long)ptr;
+    if (frag) {
+        unsigned char saved[SAVED_SIZE];
+        ptr -= frag;
+        memcpy(saved, ptr, frag);
+        mmap(ptr, frag + size, PROT_WRITE|PROT_READ,
             MAP_FIXED|MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
-        memcpy(ptr, saved, len);
+        memcpy(ptr, saved, frag);
     }
-    else {
-        mmap(ptr, size, PROT_WRITE|PROT_READ,
+    else { // already page-aligned
+        mmap(ptr, frag + size, PROT_WRITE|PROT_READ,
             MAP_FIXED|MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
     }
 }
-#else  //}{
+#else  //}{ // use assembler because large local array on __arm__ is horrible
 extern void
 underlay(unsigned size, char *ptr, unsigned page_mask);
 #endif  //}
-
-extern int ftruncate(int fd, size_t length);
 
 // Exchange the bits with values 4 (PF_R, PROT_EXEC) and 1 (PF_X, PROT_READ)
 // Use table lookup into a PIC-string that pre-computes the result.
@@ -491,17 +494,25 @@ fini_SELinux(
 }
 
 unsigned
-prep_SELinux(unsigned size, char *ptr, unsigned len) // returns mfd
+prep_SELinux(unsigned size, char *ptr, ElfW(Addr) page_mask) // returns mfd
 {
     // Cannot set PROT_EXEC except via mmap() into a region (Linux "vma")
     // that has never had PROT_WRITE.  So use a Linux-only "memory file"
     // to hold the contents.
-    DPRINTF("prep_SELinux  size=%%p  ptr=%%p  len=%%p\\n", size, ptr,len);
-    char *val = upx_mmap_and_fd(ptr, size, nullptr);
-    unsigned mfd = 0xfff & (unsigned)val;
+    char saved[SAVED_SIZE];
+    char *page = (char *)(page_mask & (ElfW(Addr))ptr);
+    unsigned frag = (unsigned)(ptr - page);
+    if (frag) {
+        memcpy(saved, page, frag);
+    }
+    char *val = upx_mmap_and_fd(page, frag + size, nullptr);
+    unsigned mfd = 0xfff & (unsigned)(ElfW(Addr))val;
     val -= mfd; --mfd;
-    if (len)
-        Pwrite(mfd, ptr, len);  // Save lo fragment of contents on first page.
+    if (val != page) {
+        my_bkpt((void const *)0x1262, val, page, ptr, frag);
+    }
+    if (frag)
+        write(mfd, saved, frag);  // Save lo fragment of contents on page.
     return mfd;
 }
 
@@ -529,7 +540,7 @@ upx_so_main(  // returns &escape_hatch
     ElfW(Ehdr) *elf_tmp  // scratch for ElfW(Ehdr) and ElfW(Phdrs)
 )
 {
-    unsigned long const page_mask = get_page_mask();
+    ElfW(Addr) const page_mask = get_page_mask();
     char *const va_load = (char *)&so_info->off_reloc - so_info->off_reloc;
     So_info so_infc;  // So_info Copy
     memcpy(&so_infc, so_info, sizeof(so_infc));  // before de-compression overwrites
@@ -539,8 +550,8 @@ upx_so_main(  // returns &escape_hatch
     unsigned const cpr_len = (char *)so_info - cpr_ptr;
     typedef void (*Dt_init)(int argc, char *argv[], char *envp[]);
     Dt_init const dt_init = (Dt_init)(void *)(so_info->off_user_DT_INIT + va_load);
-    DPRINTF("upx_so_main  va_load=%%p  so_infc=%%p  cpr_ptr=%%p  cpr_len=%%x  xct_off=%%x\\n",
-        va_load, &so_infc, cpr_ptr, cpr_len, xct_off);
+    DPRINTF("upx_so_main  va_load=%%p  so_info= %%p  so_infc=%%p  cpr_ptr=%%p  cpr_len=%%x  xct_off=%%x  dt_init=%%p\\n",
+        va_load, so_info, &so_infc, cpr_ptr, cpr_len, xct_off, dt_init);
     // DO NOT USE *so_info AFTER THIS!!  It gets overwritten.
 
     // Copy compressed data before de-compression overwrites it.
@@ -588,58 +599,41 @@ upx_so_main(  // returns &escape_hatch
     if (phdr->p_type == PT_LOAD && !(phdr->p_flags & PF_W)) {
         if  (!base) {
             base = (ElfW(Addr))va_load - phdr->p_vaddr;
-            DPRINTF("base=%%p\\n", base);
+            DPRINTF("base= %%p\\n", base);
         }
-        unsigned hi_offset = phdr->p_filesz + phdr->p_offset;
-        struct b_info al_bi;  // for aligned data from binfo
+        unsigned const va_top = phdr->p_filesz + phdr->p_vaddr;
         // Need un-aligned read of b_info to determine compression sizes.
+        struct b_info al_bi;  // for aligned data from binfo
         x0.size = sizeof(struct b_info);
         xread(&x0, (char *)&al_bi, x0.size);  // aligned binfo
         x0.buf -= sizeof(al_bi);  // back up (the xread() was a peek)
-        x1.size = hi_offset - xct_off;
-        x1.buf = (void *)(hi_offset + base - al_bi.sz_unc);
-        x0.size =                            al_bi.sz_cpr;
+        x0.size = al_bi.sz_cpr;
+        x1.size = al_bi.sz_unc;
+        x1.buf = (void *)(va_top + base - al_bi.sz_unc);
 
-        DPRINTF("phdr@%%p  p_offset=%%p  p_vaddr=%%p  p_filesz=%%p  p_memsz=%%p\\n",
+        DPRINTF("\\nphdr@%%p  p_offset=%%p  p_vaddr=%%p  p_filesz=%%p  p_memsz=%%p\\n",
             phdr, phdr->p_offset, phdr->p_vaddr, phdr->p_filesz, phdr->p_memsz);
         DPRINTF("x0=%%p  x1=%%p\\n", &x0, &x1);
-        //my_bkpt((void const *)0x1230, phdr, &x0, &x1);
 
-        unsigned frag = ~page_mask & (unsigned)x1.buf;
-        unsigned mfd = 0;
-        if (!n_load) { // 1st PT_LOAD is special.
-            // Already ELF headers are in place, perhaps already followed
-            // by non-compressed loader tables below xct_off.
-            if (xct_off < hi_offset) { // 1st PT_LOAD also has compressed code, too
-                if (phdr->p_flags & PF_X) {
-                    mfd = prep_SELinux(x1.size, x1.buf, frag);
-                }
-                else {
-                    underlay(x1.size, x1.buf, page_mask);  // also makes PROT_WRITE
-                }
-                Extent const xt = x1;
-                unpackExtent(&x0, &x1);
-                if (!hatch && phdr->p_flags & PF_X) {
-                    hatch = make_hatch(phdr, x1.buf, ~page_mask);
-                }
-                //my_bkpt((void const *)0x1235, &x1);
-                fini_SELinux(xt.size, xt.buf, phdr, mfd, base);
+        if ((phdr->p_filesz + phdr->p_offset) <= xct_off) { // va_top <= xct_off
+            if (!n_load) {
+                ++n_load;
+                continue;  // 1st PT_LOAD is non-compressed loader tables ONLY!
             }
         }
-        else { // 2nd and later PT_LOADs
-            x1.buf = (void *)(phdr->p_vaddr + base);
-            x1.size = phdr->p_filesz;
-            if (phdr->p_flags & PF_X) {
-                mfd = prep_SELinux(x1.size, x1.buf, frag);
-            }
-            else {
-                underlay(x1.size, x1.buf, page_mask);  // also makes PROT_WRITE
-            }
-            unpackExtent(&x0, &x1);
-            if (!hatch && phdr->p_flags &PF_X) {
-                hatch = make_hatch(phdr, x1.buf, ~page_mask);
-            }
-            fini_SELinux(al_bi.sz_unc, (void *)(phdr->p_vaddr + base), phdr, mfd, base);
+
+        int mfd = 0;
+        if (phdr->p_flags & PF_X) {
+            mfd = prep_SELinux(x1.size, x1.buf, page_mask);
+        }
+        else {
+            underlay(x1.size, x1.buf, page_mask);  // also makes PROT_WRITE
+        }
+        Extent xt = x1;
+        unpackExtent(&x0, &x1);  // updates *x0 and *x1
+        if (!hatch && phdr->p_flags & PF_X) {
+            hatch = make_hatch(phdr, x1.buf, ~page_mask);
+            fini_SELinux(xt.size, xt.buf, phdr, mfd, base);
         }
         ++n_load;
     }

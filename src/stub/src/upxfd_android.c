@@ -254,7 +254,6 @@ unsigned long upx_mmap_and_fd_android( // returns (mapped_addr | (1+ fd))
 #endif  //}
 
     // Set the file length
-    my_bkpt((void const *)0x1302, ptr, datlen);
     if (ptr) {
         unsigned const page_mask = get_page_mask();
         unsigned const frag = ~page_mask & (unsigned)(long)ptr;

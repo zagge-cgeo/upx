@@ -405,21 +405,35 @@ get_page_mask(void)  // the mask which KEEPS the page, discards the offset
 extern void *memcpy(void *dst, void const *src, size_t n);
 extern void *memset(void *dst, unsigned val, size_t n);
 
+// maximum page sizes
+#if defined(__powerpc64__) || defined(__powerpc__)
+#define SAVED_SIZE (1<<16)  /* 64 KB */
+#else
+#define SAVED_SIZE (1<<14)  /* 16 KB */
+#endif
+
 #ifndef __arm__  //{
 // Segregate large local array, to avoid code bloat due to large displacements.
 static void
-underlay(unsigned size, char *ptr, unsigned len)  // len <= PAGE_SIZE
+underlay(unsigned size, char *ptr, unsigned page_mask)
 {
-    DPRINTF("underlay size=%%u  ptr=%%p  len=%%u\\n", size, ptr, len);
-    unsigned saved[4096/sizeof(unsigned)];
-    memcpy(saved, ptr, len);
-    mmap(ptr, size, PROT_WRITE|PROT_READ,
-        MAP_FIXED|MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
-    memcpy(ptr, saved, len);
+    unsigned frag = ~page_mask & (unsigned)(long)ptr;
+    if (frag) {
+        unsigned saved[SAVED_SIZE / sizeof(unsigned)];  // want alignment
+        ptr -= frag;
+        memcpy(saved, ptr, frag);
+        mmap(ptr, frag + size, PROT_WRITE|PROT_READ,
+            MAP_FIXED|MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+        memcpy(ptr, saved, frag);
+    }
+    else { // already page-aligned
+        mmap(ptr, frag + size, PROT_WRITE|PROT_READ,
+            MAP_FIXED|MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+    }
 }
-#else  //}{
+#else  //}{ // use assembler because large local array on __arm__ is horrible
 extern void
-underlay(unsigned size, char *ptr, unsigned len);
+underlay(unsigned size, char *ptr, unsigned page_mask);
 #endif  //}
 
 // Exchange the bits with values 4 (PF_R, PROT_EXEC) and 1 (PF_X, PROT_READ)
@@ -439,6 +453,8 @@ fini_SELinux(
     ElfW(Addr) base
 )
 {
+    DPRINTF("fini_SELinux  size=%%p  ptr=%%p  phdr=%%p  mfd=%%p  base=%%p\\n",
+            size, ptr, phdr, mfd, base);
     if (phdr->p_flags & PF_X) {
         // Map the contents of mfd as per *phdr.
         Punmap(ptr, size);
@@ -457,7 +473,7 @@ prep_SELinux(unsigned size, char *ptr, ElfW(Addr) page_mask) // returns mfd
     // Cannot set PROT_EXEC except via mmap() into a region (Linux "vma")
     // that has never had PROT_WRITE.  So use a Linux-only "memory file"
     // to hold the contents.
-    unsigned saved[65536/sizeof(unsigned)];
+    unsigned saved[SAVED_SIZE / sizeof(unsigned)];  // want alignment
     char *page = (char *)(page_mask & (ElfW(Addr))ptr);
     unsigned frag = (unsigned)(ptr - page);
     if (frag) {
@@ -555,6 +571,11 @@ upx_so_main(  // returns &escape_hatch
 
     for (; phdr < phdrN; ++phdr)
     if (phdr->p_type == PT_LOAD && !(phdr->p_flags & PF_W)) {
+        if  (!base) {
+            base = (ElfW(Addr))va_load - phdr->p_vaddr;
+            DPRINTF("base=%%p\\n", base);
+        }
+        unsigned const va_top = phdr->p_filesz + phdr->p_vaddr;
         // Need un-aligned read of b_info to determine compression sizes.
         struct b_info al_bi;  // for aligned data from binfo
         x0.size = sizeof(struct b_info);
@@ -562,22 +583,19 @@ upx_so_main(  // returns &escape_hatch
         x0.buf -= sizeof(al_bi);  // back up (the xread() was a peek)
         x0.size = al_bi.sz_cpr;
         x1.size = al_bi.sz_unc;
+        x1.buf = (void *)(va_top + base - al_bi.sz_unc);
 
         DPRINTF("\\nphdr@%%p  p_offset=%%p  p_vaddr=%%p  p_filesz=%%p  p_memsz=%%p\\n",
             phdr, phdr->p_offset, phdr->p_vaddr, phdr->p_filesz, phdr->p_memsz);
         DPRINTF("x0=%%p  x1=%%p\\n", &x0, &x1);
 
-        if  (!base) {
-            base = (ElfW(Addr))va_load - phdr->p_vaddr;
-            DPRINTF("base=%%p\\n", base);
-        }
-        x1.buf = (void *)(phdr->p_filesz + phdr->p_vaddr + base - x1.size);
-        if ((phdr->p_filesz + phdr->p_offset) <= xct_off) { // hi_offset <= xct_off
+        if ((phdr->p_filesz + phdr->p_offset) <= xct_off) { // va_top <= xct_off
             if (!n_load) {
                 ++n_load;
                 continue;  // 1st PT_LOAD is non-compressed loader tables ONLY!
             }
         }
+
         int mfd = 0;
         if (phdr->p_flags & PF_X) {
             mfd = prep_SELinux(x1.size, x1.buf, page_mask);
@@ -589,7 +607,7 @@ upx_so_main(  // returns &escape_hatch
         unpackExtent(&x0, &x1);
         if (!hatch && phdr->p_flags & PF_X) {
             hatch = make_hatch(phdr, x1.buf, ~page_mask);
-            fini_SELinux(xt.size, xt.buf, phdr, mfd, base);  // FIXME: x1 was changed by unpackExtent!
+            fini_SELinux(xt.size, xt.buf, phdr, mfd, base);
         }
         ++n_load;
     }
