@@ -43,7 +43,7 @@ void *Pmap(void *, size_t, int, int, int, off_t);
 int Punmap(void *, size_t);
 extern int msync(void const *, size_t, unsigned);
 #define MS_SYNC 4
-#define	EINVAL		22	/* Invalid argument */
+#define EINVAL 22  /* Invalid argument */
 
 #if defined(__i386__) || defined(__mips__) || defined(__powerpc__) //{
 #  define mmap_privanon(addr,len,prot,flgs) mmap((addr),(len),(prot), \
