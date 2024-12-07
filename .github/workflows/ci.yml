@@ -504,13 +504,13 @@ jobs:
           - { zig_target: i386-linux-musl, zig_flags: -march=i586, qemu: qemu-i386 }
           - { zig_target: i386-windows-gnu }
           - { zig_target: mips-linux-musleabi, qemu: qemu-mips }
-          - { zig_target: mips-linux-musleabihf, zig_flags: -msoft-float, qemu: qemu-mips }
+          # { zig_target: mips-linux-musleabihf, qemu: qemu-mips }  # default -mdouble-float conflicts "zig_flags: -msoft-float"
           - { zig_target: mipsel-linux-musleabi, qemu: qemu-mipsel }
-          - { zig_target: mipsel-linux-musleabihf, zig_flags: -msoft-float, qemu: qemu-mipsel }
+          # { zig_target: mipsel-linux-musleabihf, qemu: qemu-mipsel }  # default -mdouble-float conflicts "zig_flags: -msoft-float"
           - { zig_target: powerpc-linux-musleabi, qemu: qemu-ppc }
           - { zig_target: powerpc64-linux-musl, qemu: qemu-ppc64 }
           - { zig_target: powerpc64le-linux-musl, qemu: qemu-ppc64le }
-          # { zig_target: x86_64-linux-gnu.2.3.4, qemu: qemu-x86_64 } # can use QEMU because of gcompat  # ".2.3.4" invalid 2024-12-03
+          # { zig_target: x86_64-linux-gnu.2.3.4, qemu: qemu-x86_64 } # gcompat enables QEMU  # ".2.3.4" invalid 2024-12-03
           - { zig_target: x86_64-linux-musl, qemu: qemu-x86_64 }
           - { zig_target: x86_64-macos.11.0-none }
           - { zig_target: x86_64-windows-gnu }
