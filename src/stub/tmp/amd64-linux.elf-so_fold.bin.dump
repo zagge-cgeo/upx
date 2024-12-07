@@ -3,21 +3,21 @@ file format elf64-x86-64
 Sections:
 Idx Name          Size      VMA               LMA               File off  Algn  Flags
   0 UMF_LINUX     0d2  0  0  040  2**2  CONTENTS
-  1 SO_MAIN       07e4  0  0  0120  2**4  CONTENTS
-  2 SO_HEAD       02c  0  0  0904  2**0  CONTENTS
-  3 ptr_NEXT      0  0  0  0930  2**0  CONTENTS
-  4 SO_TAIL       0b1  0  0  0930  2**0  CONTENTS
-  5 EXP_HEAD      0e9  0  0  09e1  2**0  CONTENTS
-  6 NRV2E         0e8  0  0  0aca  2**0  CONTENTS
-  7 NRV2D         0db  0  0  0bb2  2**0  CONTENTS
-  8 NRV2B         0c4  0  0  0c8d  2**0  CONTENTS
-  9 LZMA_DAISY    0a  0  0  0d51  2**0  CONTENTS
- 10 LZMA_ELF00    065  0  0  0d5b  2**0  CONTENTS
- 11 LZMA_DEC10    09f7  0  0  0dc0  2**0  CONTENTS
- 12 LZMA_DEC20    09f7  0  0  017b7  2**0  CONTENTS
- 13 LZMA_DEC30    019  0  0  021ae  2**0  CONTENTS
- 14 EXP_TAIL      014  0  0  021c8  2**2  CONTENTS
- 15 STRCON        0d  0  0  021dc  2**0  CONTENTS
+  1 SO_MAIN       07f4  0  0  0120  2**4  CONTENTS
+  2 SO_HEAD       02c  0  0  0914  2**0  CONTENTS
+  3 ptr_NEXT      0  0  0  0940  2**0  CONTENTS
+  4 SO_TAIL       0b1  0  0  0940  2**0  CONTENTS
+  5 EXP_HEAD      0e9  0  0  09f1  2**0  CONTENTS
+  6 NRV2E         0e8  0  0  0ada  2**0  CONTENTS
+  7 NRV2D         0db  0  0  0bc2  2**0  CONTENTS
+  8 NRV2B         0c4  0  0  0c9d  2**0  CONTENTS
+  9 LZMA_DAISY    0a  0  0  0d61  2**0  CONTENTS
+ 10 LZMA_ELF00    065  0  0  0d6b  2**0  CONTENTS
+ 11 LZMA_DEC10    09f7  0  0  0dd0  2**0  CONTENTS
+ 12 LZMA_DEC20    09f7  0  0  017c7  2**0  CONTENTS
+ 13 LZMA_DEC30    019  0  0  021be  2**0  CONTENTS
+ 14 EXP_TAIL      014  0  0  021d8  2**2  CONTENTS
+ 15 STRCON        0d  0  0  021ec  2**0  CONTENTS
 SYMBOL TABLE:
 0000000000000000 l    d  EXP_HEAD 0 EXP_HEAD
 0000000000000000 l    d  LZMA_DEC30 0 LZMA_DEC30
@@ -39,14 +39,14 @@ SYMBOL TABLE:
 0000000000000000 g       EXP_HEAD 0 f_expand
 0000000000000074 g       SO_TAIL 0 munmap
 0000000000000014 g       EXP_TAIL 0 upx_mmap_and_fd
-00000000000003f8 g     F SO_MAIN 09c fini_SELinux
+00000000000003f8 g     F SO_MAIN 0ac fini_SELinux
 000000000000001c g       SO_TAIL 0 memcpy
 0000000000000031 g       SO_TAIL 0 O_BINFO
 000000000000007c g       SO_TAIL 0 ftruncate
 000000000000003f g       SO_TAIL 0 mmap
 0000000000000000 g     F UMF_LINUX 0d2 upx_mmap_and_fd_linux
 0000000000000000 g     F SO_TAIL 0 eof
-0000000000000494 g     F SO_MAIN 0b9 prep_SELinux
+00000000000004a4 g     F SO_MAIN 0b9 prep_SELinux
 0000000000000096 g       SO_TAIL 0 write
 00000000000003db g     F SO_MAIN 01d PF_to_PROT
 0000000000000080 g       SO_TAIL 0 memfd_create
@@ -63,7 +63,7 @@ SYMBOL TABLE:
 0000000000000051 g       SO_TAIL 0 open
 00000000000000ad g       SO_TAIL 0 mprotect
 000000000000008b g       SO_TAIL 0 close
-000000000000054d g     F SO_MAIN 0297 upx_so_main
+000000000000055d g     F SO_MAIN 0297 upx_so_main
 
 RELOCATION RECORDS FOR [UMF_LINUX]:
 OFFSET           TYPE              VALUE
@@ -92,22 +92,23 @@ OFFSET           TYPE              VALUE
 0000000000000374 R_X86_64_PLT32    mmap+0xfffffffffffffffc
 0000000000000382 R_X86_64_PLT32    memcpy+0xfffffffffffffffc
 00000000000003a7 R_X86_64_PLT32    mmap+0xfffffffffffffffc
-000000000000042b R_X86_64_PLT32    Punmap+0xfffffffffffffffc
-0000000000000433 R_X86_64_PLT32    PF_to_PROT+0xfffffffffffffffc
-000000000000044e R_X86_64_PLT32    Pmap+0xfffffffffffffffc
-0000000000000456 R_X86_64_PLT32    close+0xfffffffffffffffc
-0000000000000460 R_X86_64_PLT32    PF_to_PROT+0xfffffffffffffffc
-0000000000000472 R_X86_64_PLT32    Pprotect+0xfffffffffffffffc
-00000000000004cc R_X86_64_PLT32    memcpy+0xfffffffffffffffc
-00000000000004de R_X86_64_PLT32    upx_mmap_and_fd+0xfffffffffffffffc
-000000000000050d R_X86_64_PLT32    my_bkpt+0xfffffffffffffffc
-000000000000051f R_X86_64_PLT32    write+0xfffffffffffffffc
-00000000000005d1 R_X86_64_PLT32    mmap+0xfffffffffffffffc
-00000000000005e2 R_X86_64_PLT32    memcpy+0xfffffffffffffffc
-0000000000000725 R_X86_64_PLT32    prep_SELinux+0xfffffffffffffffc
-0000000000000781 R_X86_64_PLT32    make_hatch+0xfffffffffffffffc
-000000000000079e R_X86_64_PLT32    fini_SELinux+0xfffffffffffffffc
-00000000000007bb R_X86_64_PLT32    Punmap+0xfffffffffffffffc
+0000000000000430 R_X86_64_PLT32    msync+0xfffffffffffffffc
+000000000000043b R_X86_64_PLT32    Punmap+0xfffffffffffffffc
+0000000000000443 R_X86_64_PLT32    PF_to_PROT+0xfffffffffffffffc
+000000000000045e R_X86_64_PLT32    Pmap+0xfffffffffffffffc
+0000000000000466 R_X86_64_PLT32    close+0xfffffffffffffffc
+0000000000000470 R_X86_64_PLT32    PF_to_PROT+0xfffffffffffffffc
+0000000000000482 R_X86_64_PLT32    Pprotect+0xfffffffffffffffc
+00000000000004dc R_X86_64_PLT32    memcpy+0xfffffffffffffffc
+00000000000004ee R_X86_64_PLT32    upx_mmap_and_fd+0xfffffffffffffffc
+000000000000051d R_X86_64_PLT32    my_bkpt+0xfffffffffffffffc
+000000000000052f R_X86_64_PLT32    write+0xfffffffffffffffc
+00000000000005e1 R_X86_64_PLT32    mmap+0xfffffffffffffffc
+00000000000005f2 R_X86_64_PLT32    memcpy+0xfffffffffffffffc
+0000000000000735 R_X86_64_PLT32    prep_SELinux+0xfffffffffffffffc
+0000000000000791 R_X86_64_PLT32    make_hatch+0xfffffffffffffffc
+00000000000007ae R_X86_64_PLT32    fini_SELinux+0xfffffffffffffffc
+00000000000007cb R_X86_64_PLT32    Punmap+0xfffffffffffffffc
 
 RELOCATION RECORDS FOR [SO_HEAD]:
 OFFSET           TYPE              VALUE

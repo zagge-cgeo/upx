@@ -93,6 +93,7 @@ __NR_memfd_create= 385 + __NR_SYSCALL_BASE
 __NR_mkdir=    39 + __NR_SYSCALL_BASE
 __NR_mmap2=   192 + __NR_SYSCALL_BASE
 __NR_mprotect=125 + __NR_SYSCALL_BASE
+__NR_msync=   144 + __NR_SYSCALL_BASE  // 0x90
 __NR_open=      5 + __NR_SYSCALL_BASE
 __NR_openat=  322 + __NR_SYSCALL_BASE
 __NR_read=      3 + __NR_SYSCALL_BASE

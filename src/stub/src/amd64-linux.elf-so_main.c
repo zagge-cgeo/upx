@@ -36,7 +36,9 @@
 extern unsigned Pprotect(void *, size_t, unsigned);
 extern void *Pmap(void *, size_t, unsigned, unsigned, int, size_t);
 extern int Punmap(void *, size_t);
+extern int msync(void const *, size_t, unsigned);
 extern size_t Pwrite(unsigned, void const *, size_t);
+#define MS_SYNC 4
 
 extern void f_int3(int arg);
 
@@ -457,6 +459,10 @@ fini_SELinux(
             size, ptr, phdr, mfd, base);
     if (phdr->p_flags & PF_X) {
         // Map the contents of mfd as per *phdr.
+
+        msync(ptr, size, MS_SYNC); // be sure file gets de-compressed bytes
+            // Android 14 gets -EINVAL; ignore it
+
         Punmap(ptr, size);
         Pmap(ptr, size, PF_to_PROT(phdr), MAP_FIXED|MAP_PRIVATE, mfd, 0);
         close(mfd);
