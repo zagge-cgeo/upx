@@ -1594,8 +1594,8 @@ mips.r3000-linux.elf-entry.h : \
 	    $(srcdir)/src/$$T.S
 	@echo; echo TARGET: $@; echo
 	mipsel-linux-gcc-4.1.1 -E -meb -march=r3000 -mno-abicalls -mabi=eabi -G0 -nostdinc -MMD \
-	    -D__mipsel__  -D__MIPS__ -D_TARGET_LINUX_ $(srcdir)/src/$T.S \
-	    | mips-elf-as-20060406 -EL -O -mno-pdr  -o tmp/mips.r3000-linux.elf-entry.bin
+	    -D__mips__  -D__MIPS__ -D_TARGET_LINUX_ $(srcdir)/src/$T.S \
+	    | mipsel-elf-as-20060406 -EB -O -mno-pdr  -o tmp/mips.r3000-linux.elf-entry.bin
 	$(call tc,gpp_mkdep) --mode=c --MMD=$@ --MF=tmp/$T.d $(srcdir)/src/$T.S
 	$(call tc,f-embed_objinfo_without_xstrip,tmp/$T.bin)
 	$(call tc,bin2h) tmp/$T.bin $@
@@ -1613,7 +1613,7 @@ mips.r3000-linux.elf-fold.h : $(srcdir)/src/$$T.lds \
 	    src/mips.r3000-expand.S
 	(cd tmp; ln -sf ../src/arch arch)
 	$(call tc,gcc) -E \
-	        -D__mips__ -D__MIPSEB__ -D_TARGET_LINUX_ \
+	        -D__mips__ -D__MIPS__ -D_TARGET_LINUX_ \
 	        tmp/mips.r3000-linux.elf-fold-2.S \
 	    | sed -e $$(cat src/dollar-dollar.sed) > tmp/mips.r3000-linux.elf-fold-3.S
 	# info: as-2.16.1 as used by gcc-4.1.1 does _not_ work`
@@ -1633,7 +1633,7 @@ tmp/mips.r3000-linux.elf-upxfd_linux.s : $(srcdir)/src/upxfd_linux.c
 	    mipsel-linux-gcc-4.1.1 -mel -march=r3000 -mno-abicalls -mabi=eabi -G0 -nostdinc -MMD \
 	        -fno-exceptions -fno-asynchronous-unwind-tables \
 	        -Wall -W -Wcast-align -Wcast-qual -Wstrict-prototypes -Wwrite-strings -Werror \
-		-D__mips__ -D__MIPS__ -D__MIPSEL__ -D_TARGET_LINUX_\
+		-D__mips__ -D__MIPS__ -D__MIPSEB__ -D_TARGET_LINUX_\
 		-I../src -S -O mips.r3000-linux.elf-upxfd_linux.c -o - \
 	    | cat ../src/mips.r3000-linux.elf-help_umf.S - \
 	    | sed  > mips.r3000-linux.elf-upxfd_linux.s \
@@ -1679,7 +1679,7 @@ mips.r3000-linux.shlib%.h : tc_bfdname = elf32-bigmips
 mips.r3000-linux.shlib%.h : $(srcdir)/src/$$T.S
 ifeq (1,1)
 	# info: we really need as-2.17 here
-	$(call tc,pp-as) -D_TARGET_LINUX_ -D__MIPSEB__ $< -o - | $(RTRIM) > tmp/$T.i
+	$(call tc,pp-as) -D_TARGET_LINUX_ -D__mips__ -D__MIPSEB__ $< -o - | $(RTRIM) > tmp/$T.i
 	$(call tc,as) tmp/$T.i -o tmp/$T.bin
 	$(call tc,gpp_mkdep) --mode=c --MMD=$@ --MF=tmp/$T.d $<
 else
@@ -1701,7 +1701,7 @@ mipsel.r3000-linux.elf%.h : tc_bfdname = elf32-littlemips
 tc.mipsel.r3000-linux.elf.as   = mipsel-elf-as-20060406 -EL -O -mno-pdr \
 	-D__mips__  -D__MIPSEL__ -D_TARGET_LINUX_
 tc.mipsel.r3000-linux.elf.pp-as= mipsel-elf-as-20060406 -EL -mabi=eabi -Wall -mno-pdr
-tc.mipsel.r3000-linux.elf.gcc  = mipsel-linux-gcc-4.1.1 -mel -D__MIPS__ -D__MIPSEL__ -D_TARGET_LINUX_ \
+tc.mipsel.r3000-linux.elf.gcc  = mipsel-linux-gcc-4.1.1 -mel -D__mips__ -D__MIPSEL__ -D_TARGET_LINUX_ \
 	-march=r3000 -mno-abicalls -mabi=eabi -G0 -nostdinc -MMD -MT $@
 tc.mipsel.r3000-linux.elf.gcc += -fno-exceptions -fno-asynchronous-unwind-tables
 tc.mipsel.r3000-linux.elf.gcc += -Wall -W -Wcast-align -Wcast-qual -Wstrict-prototypes -Wwrite-strings -Werror
@@ -1711,7 +1711,7 @@ mipsel.r3000-linux.elf-entry.h : \
 	    $(srcdir)/src/$$T.S
 	@echo; echo TARGET: $@; echo
 	mipsel-linux-gcc-4.1.1 -E -mel -march=r3000 -mno-abicalls -mabi=eabi -G0 -nostdinc -MMD \
-	    -D__mipsel__  -D__MIPSEL__ -D_TARGET_LINUX_ $(srcdir)/src/$T.S \
+	    -D__mips__  -D__MIPSEL__ -D_TARGET_LINUX_ $(srcdir)/src/$T.S \
 	    | mipsel-elf-as-20060406 -EL -O -mno-pdr  -o tmp/mipsel.r3000-linux.elf-entry.bin
 	$(call tc,gpp_mkdep) --mode=c --MMD=$@ --MF=tmp/$T.d $(srcdir)/src/$T.S
 	$(call tc,f-embed_objinfo_without_xstrip,tmp/$T.bin)
@@ -1750,7 +1750,7 @@ tmp/mipsel.r3000-linux.elf-upxfd_linux.s : $(srcdir)/src/upxfd_linux.c
 	    mipsel-linux-gcc-4.1.1 -mel -march=r3000 -mno-abicalls -mabi=eabi -G0 -nostdinc -MMD \
 	        -fno-exceptions -fno-asynchronous-unwind-tables \
 	        -Wall -W -Wcast-align -Wcast-qual -Wstrict-prototypes -Wwrite-strings -Werror \
-		-D__mips__ -D__MIPS__ -D__MIPSEL__ -D_TARGET_LINUX_\
+		-D__mips__ -D__MIPSEL__ -D_TARGET_LINUX_\
 		-I../src -S -O mipsel.r3000-linux.elf-upxfd_linux.c -o - \
 	    | cat ../src/mipsel.r3000-linux.elf-help_umf.S - \
 	    | sed  > mipsel.r3000-linux.elf-upxfd_linux.s \
@@ -1765,7 +1765,7 @@ tmp/mipsel.r3000-linux.elf-upxfd_linux.s : $(srcdir)/src/upxfd_linux.c
 
 tmp/mipsel.r3000-linux.elf-main2.s: $(srcdir)/src/$$T.c $(srcdir)/src/i386-linux.elf-main2.c
 	@echo; echo TARGET: $@; echo
-	$(call tc,gcc) -S -D__mipsel__ -D_TARGET_LINUX_ -O $< -o - \
+	$(call tc,gcc) -S -D__mips__ -D__MIPSEL__ -D_TARGET_LINUX_ -O $< -o - \
 	    | sed -e '/section .gcc_compiled/d' \
 	          -e '/section .mdebug.eabi/d' \
 	          -e '/^\t\.file\t/d' \

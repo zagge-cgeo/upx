@@ -2,15 +2,15 @@ file format elf32-bigmips
 
 Sections:
 Idx Name          Size      VMA       LMA       File off  Algn  Flags
-  0 ELFMAINX      0174  0  0  034  2**2  CONTENTS
-  1 ELFMAINZ      0174  0174  0174  01a8  2**2  CONTENTS
+  0 ELFMAINX      0174  0  0  034  2**0  CONTENTS
+  1 ELFMAINZ      0174  0  0  01a8  2**2  CONTENTS
 SYMBOL TABLE:
 00000000 l    d  ELFMAINX 0 ELFMAINX
-00000174 l    d  ELFMAINZ 0 ELFMAINZ
-00000000         *UND* 0 O_BINFO
-00000284 g     O ELFMAINZ 0 ftruncate
-00000274 g     O ELFMAINZ 0 memfd_create
+00000000 l    d  ELFMAINZ 0 ELFMAINZ
 00000000 g     O ELFMAINX 0 _start
+00000100 g     O ELFMAINZ 0 memfd_create
+00000110 g     O ELFMAINZ 0 ftruncate
+00000000         *UND* 0 O_BINFO
 
 RELOCATION RECORDS FOR [ELFMAINX]:
 OFFSET   TYPE              VALUE
