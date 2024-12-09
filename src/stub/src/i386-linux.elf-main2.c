@@ -33,12 +33,19 @@
 #define DEBUG 0
 #endif  //}
 
-#define NO_WANT_MMAP 1
+#ifdef __mips__  //{
+// We want to supersede in *.elf-fold.S, not use include/linux.h
 #define NO_WANT_CLOSE 1
 #define NO_WANT_EXIT 1
+#define NO_WANT_MMAP 1
 #define NO_WANT_MPROTECT 1
 #define NO_WANT_MSYNC 1
+#define NO_WANT_OPEN 1
+#define NO_WANT_READ 1
 #define NO_WANT_WRITE 1
+extern int open(char const *pathname, int flags, unsigned mode);
+extern int read(int fd, void *buf, unsigned count);
+#endif  //}
 #include "include/linux.h"
 
 #define MFD_EXEC 0x0010

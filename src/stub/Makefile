@@ -286,8 +286,10 @@ define tc.default.f-embed_objinfo_without_xstrip
 	chmod a-x $1
 	$(call tc,objcopy) -R .text -R .data -R .bss \
 	    -R .comment -R .note -R .note.GNU-stack -R .reginfo \
+	    -R .gnu.attributes -R .MIPS.abiflags \
             -R .mdebug.eabi32 -R .gcc_compiled_long32 $1
 	$(call tc,objcopy) --strip-unneeded --keep-symbol=_start --keep-symbol=upx_so_main $1
+
 #
 # Disassemble for human readability
 # objdump
@@ -1587,15 +1589,14 @@ tc.mips.r3000-linux.elf.gcc  = mipsel-linux-gcc-4.1.1 -meb -march=r3000 -mno-abi
 tc.mips.r3000-linux.elf.gcc += -fno-exceptions -fno-asynchronous-unwind-tables
 tc.mips.r3000-linux.elf.gcc += -Wall -W -Wcast-align -Wcast-qual -Wstrict-prototypes -Wwrite-strings -Werror
 
-mips.r3000-linux.elf-entry.h : $(srcdir)/src/mips.r3000-linux.elf-entry.lds \
+# No need for 'ld' because the only sections (ELFMAINX, ELFMAINZ) are both in elf-entry.S
+mips.r3000-linux.elf-entry.h : \
 	    $(srcdir)/src/$$T.S
 	@echo; echo TARGET: $@; echo
-	mipsel-linux-gcc-4.1.1 -E -D__mips__  -D__MIPSEB__ -D_TARGET_LINUX_ $(srcdir)/src/$T.S \
-	    | mipsel-elf-as-20060406 -EB -O -mno-pdr  -o tmp/mips.r3000-linux.elf-entry.o
+	mipsel-linux-gcc-4.1.1 -E -meb -march=r3000 -mno-abicalls -mabi=eabi -G0 -nostdinc -MMD \
+	    -D__mipsel__  -D__MIPS__ -D_TARGET_LINUX_ $(srcdir)/src/$T.S \
+	    | mips-elf-as-20060406 -EL -O -mno-pdr  -o tmp/mips.r3000-linux.elf-entry.bin
 	$(call tc,gpp_mkdep) --mode=c --MMD=$@ --MF=tmp/$T.d $(srcdir)/src/$T.S
-	multiarch-ld-2.17 -r --format=elf32-bigmips -Map tmp/$T.map -o tmp/$T.bin \
-           -T src/mips.r3000-linux.elf-entry.lds \
-	   tmp/mips.r3000-linux.elf-entry.o
 	$(call tc,f-embed_objinfo_without_xstrip,tmp/$T.bin)
 	$(call tc,bin2h) tmp/$T.bin $@
 
@@ -1705,16 +1706,14 @@ tc.mipsel.r3000-linux.elf.gcc  = mipsel-linux-gcc-4.1.1 -mel -D__MIPS__ -D__MIPS
 tc.mipsel.r3000-linux.elf.gcc += -fno-exceptions -fno-asynchronous-unwind-tables
 tc.mipsel.r3000-linux.elf.gcc += -Wall -W -Wcast-align -Wcast-qual -Wstrict-prototypes -Wwrite-strings -Werror
 
-mipsel.r3000-linux.elf-entry.h : $(srcdir)/src/mipsel.r3000-linux.elf-entry.lds \
+# No need for 'ld' because the only sections (ELFMAINX, ELFMAINZ) are both in elf-entry.S
+mipsel.r3000-linux.elf-entry.h : \
 	    $(srcdir)/src/$$T.S
 	@echo; echo TARGET: $@; echo
 	mipsel-linux-gcc-4.1.1 -E -mel -march=r3000 -mno-abicalls -mabi=eabi -G0 -nostdinc -MMD \
 	    -D__mipsel__  -D__MIPSEL__ -D_TARGET_LINUX_ $(srcdir)/src/$T.S \
-	    | mipsel-elf-as-20060406 -EL -O -mno-pdr  -o tmp/mipsel.r3000-linux.elf-entry.o
+	    | mipsel-elf-as-20060406 -EL -O -mno-pdr  -o tmp/mipsel.r3000-linux.elf-entry.bin
 	$(call tc,gpp_mkdep) --mode=c --MMD=$@ --MF=tmp/$T.d $(srcdir)/src/$T.S
-	multiarch-ld-2.17 -r --format=elf32-littlemips -Map tmp/$T.map -o tmp/$T.bin \
-           -T src/mipsel.r3000-linux.elf-entry.lds \
-	   tmp/mipsel.r3000-linux.elf-entry.o
 	$(call tc,f-embed_objinfo_without_xstrip,tmp/$T.bin)
 	$(call tc,bin2h) tmp/$T.bin $@
 

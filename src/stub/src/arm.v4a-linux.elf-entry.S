@@ -271,6 +271,14 @@ f_expand:
 #define NO_METHOD_CHECK 1
 #include "arch/arm/v4a/nrv2b_d8.S"
 
+// get_page_mask should never be called by _entry, because the 1st arg
+// (the pointer) to upx_mmap_and_fd is 0.  But in the general case
+// there must be a get_page_mask subroutine.  Return something plausible.
+get_page_mask: .globl get_page_mask
+        mvn r0,#0
+        mov r0,r0,lsl #12
+        ret
+
         .balign 4
 upx_mmap_and_fd: .globl upx_mmap_and_fd
 // section UMF_LINUX or UMF_ANDROID goes here

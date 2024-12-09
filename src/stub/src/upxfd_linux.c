@@ -30,7 +30,7 @@ extern void my_bkpt(void const *, ...);
 #define ANDROID_FRIEND 0
 #define addr_string(string) ({ \
     char const *str; \
-    asm(".set noreorder; bal 0f; .asciz \"" string "\"; .balign 4\n0: move %0,$31; .set reorder" \
+    asm(".set noreorder; bal 0f; nop; .asciz \"" string "\"; .balign 4\n0: move %0,$31; .set reorder" \
 /*out*/ : "=r"(str) \
 /* in*/ : \
 /*und*/ : "ra"); \
@@ -80,10 +80,15 @@ extern void my_bkpt(void const *, ...);
 #endif  //}
 
 #ifdef __mips__  //{
-#define NO_WANT_READ 1
 #define NO_WANT_CLOSE 1
+#define NO_WANT_EXIT 1
+#define NO_WANT_MMAP 1
 #define NO_WANT_MPROTECT 1
 #define NO_WANT_MSYNC 1
+#define NO_WANT_OPEN 1
+#define NO_WANT_READ 1
+#define NO_WANT_WRITE 1
+extern int open(char const *pathname, int flags, unsigned mode);
 #endif  //}
 #include "include/linux.h"  // syscall decls; i386 inlines via "int 0x80"
 

@@ -30,7 +30,7 @@ void my_bkpt(void const *, ...);
 #define ANDROID_FRIEND 0
 #define addr_string(string) ({ \
     char const *str; \
-    asm("bal 0f; .asciz \"" string "\"; .balign 4\n0: move %0,$31" \
+    asm(".set noreorder; bal 0f; nop; .asciz \"" string "\"; .balign 4\n0: move %0,$31; .set reorder" \
 /*out*/ : "=r"(str) \
 /* in*/ : \
 /*und*/ : "ra"); \
@@ -128,12 +128,17 @@ struct stat { // __NR_stat = 106 + NR_SYSCALL_BASE
 #define AT_FDCWD -100
 #define restrict /**/
 //
+#ifdef __mips__  //{
 // We want to supersede in *.elf-fold.S, not use include/linux.h
 #define NO_WANT_CLOSE 1
+#define NO_WANT_EXIT 1
+#define NO_WANT_MMAP 1
 #define NO_WANT_MPROTECT 1
 #define NO_WANT_MSYNC 1
 #define NO_WANT_OPEN 1
 #define NO_WANT_READ 1
+#define NO_WANT_WRITE 1
+#endif  //}
 #include "include/linux.h"  // syscalls; i386 inlines via "int 0x80"
 extern int open(char const *, int, int);
 
