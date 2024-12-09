@@ -8,7 +8,7 @@ Idx Name          Size      VMA       LMA       File off  Algn  Flags
   3 HUMF_L        04  0  0  023c  2**0  CONTENTS
   4 UMF_ANDROID   054c  0  0  0240  2**2  CONTENTS
   5 UMF_LINUX     0cc  0  0  078c  2**2  CONTENTS
-  6 ELFMAINX      023c  0  0  0858  2**2  CONTENTS
+  6 ELFMAINX      0248  0  0  0858  2**2  CONTENTS
 SYMBOL TABLE:
 00000000 l    d  ELFMAINZ 0 ELFMAINZ
 00000000 l    d  UMF_ANDROID 0 UMF_ANDROID
@@ -17,10 +17,10 @@ SYMBOL TABLE:
 00000000 l    d  ELFMAINY 0 ELFMAINY
 00000000 l    d  HUMF_A 0 HUMF_A
 00000000 l    d  HUMF_L 0 HUMF_L
-00000000         *UND* 0 get_page_mask
+0000023c g       ELFMAINX 0 get_page_mask
 00000000         *UND* 0 MFLG
 000000ec g       ELFMAINZ 0 getpid
-0000023c g       ELFMAINX 0 upx_mmap_and_fd
+00000248 g       ELFMAINX 0 upx_mmap_and_fd
 00000008 g       ELFMAINZ 0 memcpy
 00000000         *UND* 0 O_BINFO
 0000004c g       ELFMAINZ 0 mempcpy
