@@ -409,6 +409,13 @@ my_bkpt: .globl my_bkpt
         int3  // my_bkpt
         ret
 
+// get_page_mask should never be called by _entry, because the 1st arg
+// (the pointer) to upx_mmap_and_fd is 0.  But in the general case
+// there must be a get_page_mask subroutine.  Return something plausible.
+get_page_mask: .globl get_page_mask
+        mov $0xfffff000,%eax
+        ret
+
         .balign 4
 upx_mmap_and_fd: .globl upx_mmap_and_fd
         // section UMF_LINUX or UMF_ANDROID goes here
