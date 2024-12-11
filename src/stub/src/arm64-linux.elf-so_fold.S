@@ -43,6 +43,49 @@ MAP_FIXED=     0x10
 #define call bl
 
   section SO_HEAD
+ZERO:
+PAGE_MASK: .quad 0xfffffffffffff000  // default
+upxfn_path:.quad 0  // displacement from "zero"
+
+fold_begin: .globl fold
+        b fold
+
+get_page_mask: .globl get_page_mask
+        ldr x0,PAGE_MASK
+        ret
+
+Punmap: .globl Punmap
+        ldr x8,PAGE_MASK
+        and x8,x0,x8
+        sub x0,x0,x8
+        add x1,x1,x8
+munmap: .globl munmap
+        do_sys __NR_munmap; ret
+
+// Sometimes Linux enforces page-aligned address
+Pprotect: .globl Pprotect
+mprotect: .globl mprotect
+        ldr x8,PAGE_MASK
+        and x8,x0,x8
+        sub x0,x0,x8
+        add x1,x1,x8
+        do_sys __NR_mprotect; ret
+
+mmap_privanon: .globl mmap_privanon
+        mov w4,#MAP_PRIVATE|MAP_ANONYMOUS
+        orr w3,w3,w4  // combine with input (such as MAP_FIXED)
+        mov w4,#-1  // fd= -1
+        mov x5,#0  // offset= 0
+        // FALL THROUGH to mmap
+
+Pmap: .globl Pmap
+        ldr x8,PAGE_MASK
+        and x8,x0,x8
+        sub x0,x0,x8
+        add x1,x1,x8
+mmap: .globl mmap
+        do_sys __NR_mmap; ret
+
 fold:  // enter here (x0= &so_info; x1= &{argc,argv,envp,lr}
 //%esp:
 //  MATCH_04  ptr unfolded_code
@@ -124,6 +167,14 @@ Pwrite: .globl Pwrite
 write:
         do_sys __NR_write; ret
 
+        .globl open
+FD_CWD= -100
+open:
+        mov w3,w2
+        mov w2,w1
+        mov x1,x0
+        mov w0,#FD_CWD
+          // fall into 'openat'
         .globl openat
 openat:
         do_sys __NR_openat; ret
@@ -148,42 +199,13 @@ brk:
 readlink:
         do_sys __NR_readlink; ret
 
-Punmap: .globl Punmap
-        and x8,x0,#-1+ (1<<12)  // FIXME: variable PAGE_MASK
-        sub x0,x0,x8
-        add x1,x1,x8
-munmap: .globl munmap
-        do_sys __NR_munmap; ret
-
 msync: .globl msync
         do_sys __NR_msync; ret
-
-// Sometimes Linux enforces page-aligned address
-Pprotect: .globl Pprotect
-mprotect: .globl mprotect
-        and x8,x0,#-1+ (1<<12)  // FIXME: variable PAGE_MASK
-        sub x0,x0,x8
-        add x1,x1,x8
-        do_sys __NR_mprotect; ret
 
         .globl __sync_cache_range
 __sync_cache_range:  // (void *lo, void *hi)
 #include "arm64-sync-cache-range.S"
         ret
-
-mmap_privanon: .globl mmap_privanon
-        mov w4,#MAP_PRIVATE|MAP_ANONYMOUS
-        orr w3,w3,w4  // combine with input (such as MAP_FIXED)
-        mov w4,#-1  // fd= -1
-        mov x5,#0  // offset= 0
-        // FALL THROUGH to mmap
-
-Pmap: .globl Pmap
-        and x8,x0,#-1+ (1<<12)  // FIXME: variable PAGE_MASK
-        sub x0,x0,x8
-        add x1,x1,x8
-mmap: .globl mmap
-        do_sys __NR_mmap; ret
 
 get_sys_munmap: .globl get_sys_munmap  // r0= system call instruction
 #if defined(ARMEL_DARWIN)  /*{*/

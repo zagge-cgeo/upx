@@ -23,6 +23,8 @@ NBPW= 8
 //   MATCH_07  envp
 
   section SO_HEAD
+PAGE_MASK: .quad 0xfffffffffffff000
+    .quad 0  // ? FIXME
 fold:
     pop %rbx  // MATCH_11  ptr unfolded code
     pop %rbp  // MATCH_10  len unfolded code
@@ -44,6 +46,10 @@ fold:
         //  pop %arg2  // MATCH_01  argv
         //  pop %arg3  // MATCH_07  envp
         //  ret  // ==> user_DT_INIT
+
+get_page_mask: .globl get_page_mask
+    mov PAGE_MASK(%rip),%rax
+    ret
 
   section ptr_NEXT
 //    pop %rax; call *%rax

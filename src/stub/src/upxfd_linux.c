@@ -100,6 +100,8 @@ extern int open(char const *pathname, int flags, unsigned mode);
 
 extern int memfd_create(char const *, unsigned);
 extern int ftruncate(int, size_t);
+extern unsigned long get_page_mask(void);
+
 // Implementation for Linux-native, where memfd_create
 // (or /dev/shm) works.  Saves space in contrast to
 // upxfd_android (or Android emulator), which must
@@ -132,7 +134,8 @@ unsigned long upx_mmap_and_fd_linux( // returns (mapped_addr | (1+ fd))
     }
     ptr = mmap(ptr, datlen, PROT_READ|PROT_WRITE,
         (ptr ? MAP_FIXED : 0)|MAP_SHARED, fd, 0);
-    if (PAGE_MASK <= (unsigned long)ptr) {
+    unsigned long const page_mask = get_page_mask();
+    if (page_mask <= (unsigned long)ptr) {
         return (unsigned long)ptr;  // errno
     }
     return (unsigned long)ptr + (1+ (unsigned)fd);

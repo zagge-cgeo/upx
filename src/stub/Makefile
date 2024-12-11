@@ -429,10 +429,19 @@ amd64-linux.elf-entry.h: $(srcdir)/src/$$T.S
 	$(call tc,f-embed_objinfo,tmp/$T.bin)
 	$(call tc,bin2h) tmp/$T.bin $@
 
-amd64-linux.elf-so_entry.h: $(srcdir)/src/$$T.S
-	@echo; echo TARGET=$@  PATH=$(PATH); echo
-	$(call tc,gcc) -c -x assembler-with-cpp $< -o tmp/$T.bin
-	$(call tc,f-embed_objinfo,tmp/$T.bin)
+amd64-linux.elf-so_entry.h : $(srcdir)/src/amd64-linux.elf-so_entry.lds \
+	    $(srcdir)/src/$$T.S \
+	    tmp/amd64-linux.elf-help_umf.o \
+	    tmp/amd64-linux.elf-upxfd_android.o \
+	    tmp/amd64-linux.elf-upxfd_linux.o
+	$(call tc,gcc) -c  $(srcdir)/src/$T.S -o tmp/$T.o
+	multiarch-ld-2.17 -r -Map tmp/$T.map -o tmp/$T.bin \
+	    -T src/amd64-linux.elf-so_entry.lds \
+	    tmp/$T.o \
+	    tmp/amd64-linux.elf-help_umf.o \
+	    tmp/amd64-linux.elf-upxfd_android.o \
+	    tmp/amd64-linux.elf-upxfd_linux.o
+	$(call tc,f-embed_objinfo_without_xstrip,tmp/$T.bin)
 	$(call tc,bin2h) tmp/$T.bin $@
 
 amd64-linux.elf-fold.h : $(srcdir)/src/$$T.lds \
@@ -449,6 +458,7 @@ amd64-linux.elf-fold.h : $(srcdir)/src/$$T.lds \
 amd64-linux.elf-so_fold.h : $(srcdir)/src/$$T.lds \
 	    tmp/$$T.o \
 	    tmp/amd64-expand.o \
+	    tmp/amd64-linux.elf-help_umf.o \
 	    tmp/amd64-linux.elf-upxfd_linux.o \
 	    tmp/amd64-linux.elf-so_main.o
 	@echo; echo TARGET=$@  PATH=$(PATH); echo
@@ -466,6 +476,19 @@ tmp/amd64-linux.elf-so_fold.o : $(srcdir)/src/$$T.S
 
 tmp/amd64-expand.o: $(srcdir)/src/$$T.S
 	$(call tc,gcc) -c $< -o $@
+
+tmp/amd64-linux.elf-help_umf.o: $(srcdir)/src/$$T.S
+	$(call tc,gcc) -c $< -o $@
+
+tmp/amd64-linux.elf-upxfd_android.o : $(srcdir)/src/upxfd_android.c
+	$(call tc,gcc) -c -O $< -o $@
+	$(call tc,objcopy) --rename-section .text=UMF_ANDROID -R .comment -R .data -R .bss -R .note.GNU-stack $@
+	$(call tc,objdump) -Dr $(tc_objdump_disasm_options) $@ | $(RTRIM) > $@.disasm
+
+tmp/amd64-linux.elf-upxfd_linux.o : $(srcdir)/src/upxfd_linux.c
+	$(call tc,gcc) -c -O $< -o $@
+	$(call tc,objcopy) --rename-section .text=UMF_LINUX -R .comment -R .data -R .bss -R .note.GNU-stack $@
+	$(call tc,objdump) -Dr $(tc_objdump_disasm_options) $@ | $(RTRIM) > $@.disasm
 
 tmp/amd64-linux.elf-fold.o : $(srcdir)/src/$$T.S
 	$(call tc,gcc) -c $< -o $@
@@ -810,7 +833,8 @@ tc.arm64-linux.elf.gcc  = arm64-linux-gcc-4.9.2 -nostdinc -DDAISY_CHAIN=1 -MMD -
 tc.arm64-linux.elf.gcc += -fno-exceptions -fno-asynchronous-unwind-tables
 tc.arm64-linux.elf.gcc += -Wall -W -Wcast-align -Wcast-qual -Wstrict-prototypes -Wwrite-strings -Werror
 
-+tc.arm64-expand.gcc = $(tc.arm64-linux.elf.gcc)
+tc.arm64-expand.gcc = $(tc.arm64-linux.elf.gcc)
+tc.arm64-linux.elf-upxfd_linux.gcc = $(tc.arm64-linux.elf.gcc)
 
 tc.arm64-linux.elf-fold.ld       = arm64-linux-ld-2.25
 tc.arm64-linux.elf-so_fold.ld    = arm64-linux-ld-2.25
@@ -821,6 +845,7 @@ tc.arm64-linux.elf-fold.objcopy      = arm64-linux-objcopy-2.25 -F elf64-littlea
 tc.arm64-linux.elf-so_fold.objcopy   = arm64-linux-objcopy-2.25 -F elf64-littleaarch64
 tc.arm64-linux.elf-main2.objcopy     = arm64-linux-objcopy-2.25 -F elf64-littleaarch64
 tc.arm64-linux.elf-so_main.objcopy   = arm64-linux-objcopy-2.25 -F elf64-littleaarch64
+tc.arm64-linux.elf-upxfd_linux.objcopy = arm64-linux-objcopy-2.25 -F elf64-littleaarch64
 
 tc.arm64-linux.elf-entry.objdump     = arm64-linux-objdump-2.25
 tc.arm64-linux.elf-so_entry.objdump  = arm64-linux-objdump-2.25
@@ -828,6 +853,7 @@ tc.arm64-linux.elf-fold.objdump      = arm64-linux-objdump-2.25
 tc.arm64-linux.elf-so_fold.objdump   = arm64-linux-objdump-2.25
 tc.arm64-linux.elf-main2.objdump     = arm64-linux-objdump-2.25
 tc.arm64-linux.elf-so_main.objdump   = arm64-linux-objdump-2.25
+tc.arm64-linux.elf-upxfd_linux.objdump = arm64-linux-objdump-2.25
 tc.arm64-expand.objdump              = arm64-linux-objdump-2.25
 
 arm64-linux.elf-entry.h : $(srcdir)/src/$$T.S
@@ -849,8 +875,17 @@ arm64-linux.elf-fold.h : $(srcdir)/src/$$T.lds \
 	$(call tc,f-embed_objinfo_without_xstrip_keep_dot_text,tmp/$T.bin)
 	$(call tc,bin2h) tmp/$T.bin $@
 
-arm64-linux.elf-so_fold.h : tmp/$$T.o tmp/arm64-linux.elf-so_main.o $(srcdir)/src/$$T.lds tmp/arm64-expand.o
-	$(call tc,ld) -r          -T $(srcdir)/src/$T.lds -Map tmp/$T.map $(filter %.o,$^) -o tmp/$T.bin
+arm64-linux.elf-so_fold.h : $(srcdir)/src/$$T.lds \
+	    tmp/$$T.o \
+	    tmp/arm64-expand.o \
+	    tmp/arm64-linux.elf-help_umf.o \
+	    tmp/arm64-linux.elf-upxfd_linux.o \
+	    tmp/arm64-linux.elf-so_main.o
+	@echo; echo TARGET=$@  PATH=$(PATH); echo
+# FIXME: multiarch-ld-2.18 creates a huge file here, so use 2.17
+	$(call tc,ld)     -r -T $(srcdir)/src/$T.lds -Map tmp/$T.map $(filter %.o,$^) -o tmp/$T.bin
+#	multiarch-ld-2.17 -r -T $(srcdir)/src/$T.lds -Map tmp/$T.map $(filter %.o,$^) -o tmp/$T.bin
+	ls -l tmp/$T.bin
 	$(call tc,f-embed_objinfo_without_xstrip,tmp/$T.bin)
 	$(call tc,bin2h) tmp/$T.bin $@
 
@@ -867,7 +902,10 @@ tmp/arm64-expand.o: $(srcdir)/src/$$T.S
 	$(call tc,gcc) -c $< -o $@
 	arm64-linux-objdump-2.25 -Dr $(tc_objdump_disasm_options) tmp/$T.o | $(RTRIM) > tmp/$T.o.disasm
 
-tmp/amd64-linux.elf-upxfd_linux.o : $(srcdir)/src/upxfd_linux.c
+tmp/arm64-linux.elf-help_umf.o: $(srcdir)/src/$$T.S
+	$(call tc,gcc) -c $< -o $@
+
+tmp/arm64-linux.elf-upxfd_linux.o : $(srcdir)/src/upxfd_linux.c
 	$(call tc,gcc) -c -O $< -o $@
 	$(call tc,objcopy) --rename-section .text=UMF_LINUX -R .comment -R .data -R .bss -R .note.GNU-stack $@
 	$(call tc,objdump) -Dr $(tc_objdump_disasm_options) $@ | $(RTRIM) > $@.disasm
