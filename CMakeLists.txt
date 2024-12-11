@@ -21,6 +21,8 @@
 file(REMOVE "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/.upx_cmake_config_done.txt")
 if(DEFINED UPX_CONFIG_CMAKE_MINIMUM_REQUIRED_VERSION)
     cmake_minimum_required(VERSION "${UPX_CONFIG_CMAKE_MINIMUM_REQUIRED_VERSION}" FATAL_ERROR)
+elseif(NOT ${CMAKE_VERSION} VERSION_LESS "3.10")
+    cmake_minimum_required(VERSION "3.10" FATAL_ERROR)
 else()
     cmake_minimum_required(VERSION "3.8" FATAL_ERROR) # CMake >= 3.8 is needed for CXX_STANDARD 17
 endif()
