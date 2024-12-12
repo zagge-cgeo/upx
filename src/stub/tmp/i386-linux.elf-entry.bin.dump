@@ -5,9 +5,9 @@ Idx Name          Size      VMA       LMA       File off  Algn  Flags
   0 HUMF_A        05  0  0  034  2**0  CONTENTS
   1 HUMF_L        05  0  0  039  2**0  CONTENTS
   2 UMF_ANDROID   04bf  0  0  040  2**2  CONTENTS
-  3 UMF_LINUX     0ab  0  0  0500  2**2  CONTENTS
-  4 ELFMAINX      01fc  0  0  05ac  2**2  CONTENTS
-  5 ELFMAINZ      0a  0  0  07a8  2**0  CONTENTS
+  3 UMF_LINUX     0af  0  0  0500  2**2  CONTENTS
+  4 ELFMAINX      0200  0  0  05b0  2**2  CONTENTS
+  5 ELFMAINZ      0a  0  0  07b0  2**0  CONTENTS
 SYMBOL TABLE:
 00000000 l    d  ELFMAINX 0 ELFMAINX
 00000000 l    d  ELFMAINZ 0 ELFMAINZ
@@ -15,13 +15,13 @@ SYMBOL TABLE:
 00000000 l    d  HUMF_L 0 HUMF_L
 00000000 l    d  UMF_ANDROID 0 UMF_ANDROID
 00000000 l    d  UMF_LINUX 0 UMF_LINUX
-00000000         *UND* 0 get_page_mask
-000001fc g       ELFMAINX 0 upx_mmap_and_fd
+000001fa g       ELFMAINX 0 get_page_mask
+00000200 g       ELFMAINX 0 upx_mmap_and_fd
 00000000         *UND* 0 O_BINFO
 000001d8 g       ELFMAINX 0 mempcpy
 00000000 g     F UMF_ANDROID 0235 upx_mmap_and_fd_android
 0000017e g       ELFMAINX 0 mmap
-00000000 g     F UMF_LINUX 0ab upx_mmap_and_fd_linux
+00000000 g     F UMF_LINUX 0af upx_mmap_and_fd_linux
 000001a1 g       ELFMAINX 0 uname
 0000018c g       ELFMAINX 0 get_upxfn_path
 00000000 g       ELFMAINX 0 _start
@@ -54,6 +54,7 @@ OFFSET   TYPE              VALUE
 RELOCATION RECORDS FOR [UMF_LINUX]:
 OFFSET   TYPE              VALUE
 0000008d R_386_PC32        mmap
+00000094 R_386_PC32        get_page_mask
 
 RELOCATION RECORDS FOR [ELFMAINX]:
 OFFSET   TYPE              VALUE

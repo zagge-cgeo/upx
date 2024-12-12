@@ -123,6 +123,20 @@ __NR_readlink= 89
 
 O_BINFO: .globl O_BINFO  # ignored dummy needed by elf-entry.o
 
+Psync: .globl Psync
+        mov PAGE_MASK(%rip),%rax; not %eax; and %edi,%eax
+        sub %rax,%rdi
+        add %rax,%rsi
+msync: .globl msync
+        push $__NR_msync; 5: jmp 5f
+
+Pprotect: .globl Pprotect
+        mov PAGE_MASK(%rip),%rax; not %eax; and %edi,%eax
+        sub %rax,%rdi
+        add %rax,%rsi
+mprotect: .globl mprotect
+        push $ __NR_mprotect; 5: jmp 5f
+
 Pmap: .globl Pmap
         mov %arg1,%rax; and $0xfff,%eax
         sub %rax,%arg1  # page align lo end
@@ -154,7 +168,9 @@ sysgo:  # NOTE: kernel demands 4th arg in %sys4, NOT %arg4
   pop %r9
   pop %r10
 #endif  //}
+        push %rax  // debugging clue: __NR_
         syscall; cmp $-4096,%rax; jb 0f; int3; 0:
+        add $NBPW,%rsp  // toss __NR_
         ret
 
 open: .globl open
@@ -176,8 +192,6 @@ ftruncate: .globl ftruncate
         push $__NR_ftruncate; 5: jmp 5f
 memfd_create: .globl memfd_create
         push $__NR_memfd_create; 5: jmp 5f
-msync: .globl msync
-        push $__NR_msync; 5: jmp 5f
 close: .globl close
         push $ __NR_close; 5: jmp 5f
 openat: .globl openat
@@ -186,14 +200,6 @@ Pwrite: .globl Pwrite
 write: .globl write
         push $__NR_write; 5: jmp 5f
 read: .globl read
-        push $ __NR_read; 5: jmp 5f
-
-// Sometimes Linux enforces page-aligned address for mprotect
-Pprotect: .globl Pprotect
-        mov %rdi,%rax; and $-1+ (1<<12),%rax
-        sub %rax,%rdi
-        add %rax,%rsi
-mprotect: .globl mprotect
-        push $ __NR_mprotect; 5: jmp sysgo
+        push $ __NR_read; 5: jmp sysgo
 
 // section SO_MAIN inserted here

@@ -149,7 +149,7 @@ _start: .globl _start
         call zfind  // out: r0= &envp
         call zfind
 
-// set xPMASK by finding actual page size in Elf64_auxv
+// set xPMASK by finding actual page size in Elf32_auxv
 1:
         ldmia r0!,{r1,r2}
         cmp r1,#AT_PAGESZ; beq 2f
@@ -386,13 +386,19 @@ mempcpy: .globl mempcpy  // (dst, src, n)
 .globl getpid;    getpid:    do_sys __NR_getpid; ret
 .globl lseek;     lseek:     do_sys __NR_lseek; ret
 .globl mkdir;     mkdir:     do_sys __NR_mkdir; ret
-.globl msync;     msync:     do_sys __NR_msync; ret
 .globl open;      open:      do_sys __NR_open; ret
 .globl read;      read:      do_sys __NR_read; ret
 .globl stat;      stat:      do_sys __NR_stat; ret
 .globl uname;     uname:     do_sys __NR_uname; ret
 .globl unlink;    unlink:    do_sys __NR_unlink; ret
 .globl write;     write:     do_sys __NR_write; ret
+
+Psync: .globl Psync
+        mvn r7,#~0; mov r7,r7,lsl #PAGE_SHIFT
+        bic r7,r7,r0  // fragment
+        sub r0,r0,r7
+        add r1,r1,r7
+        do_sys __NR_msync; ret
 
         .globl my_bkpt
 my_bkpt:

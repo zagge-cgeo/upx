@@ -3,12 +3,12 @@ file format elf32-bigarm
 Sections:
 Idx Name          Size      VMA       LMA       File off  Algn  Flags
   0 ELFMAINY      0  0  0  034  2**0  CONTENTS
-  1 ELFMAINZ      0204  0  0  034  2**0  CONTENTS
-  2 HUMF_A        04  0  0  0238  2**0  CONTENTS
-  3 HUMF_L        04  0  0  023c  2**0  CONTENTS
-  4 UMF_ANDROID   0540  0  0  0240  2**2  CONTENTS
-  5 UMF_LINUX     0cc  0  0  0780  2**2  CONTENTS
-  6 ELFMAINX      0248  0  0  084c  2**2  CONTENTS
+  1 ELFMAINZ      0218  0  0  034  2**0  CONTENTS
+  2 HUMF_A        04  0  0  024c  2**0  CONTENTS
+  3 HUMF_L        04  0  0  0250  2**0  CONTENTS
+  4 UMF_ANDROID   0540  0  0  0254  2**2  CONTENTS
+  5 UMF_LINUX     0dc  0  0  0794  2**2  CONTENTS
+  6 ELFMAINX      0248  0  0  0870  2**2  CONTENTS
 SYMBOL TABLE:
 00000000 l    d  ELFMAINZ 0 ELFMAINZ
 00000000 l    d  UMF_ANDROID 0 UMF_ANDROID
@@ -23,30 +23,30 @@ SYMBOL TABLE:
 00000248 g       ELFMAINX 0 upx_mmap_and_fd
 00000008 g       ELFMAINZ 0 memcpy
 00000000         *UND* 0 O_BINFO
+000001a0 g       ELFMAINZ 0 Psync
 0000004c g       ELFMAINZ 0 mempcpy
 000000d8 g       ELFMAINZ 0 ftruncate
 00000100 g       ELFMAINZ 0 lseek
 000002c4 g     F UMF_ANDROID 027c upx_mmap_and_fd_android
-000001bc g       ELFMAINZ 0 mmap
-00000000 g     F UMF_LINUX 0cc upx_mmap_and_fd_linux
-00000178 g       ELFMAINZ 0 uname
+000001d0 g       ELFMAINZ 0 mmap
+00000000 g     F UMF_LINUX 0dc upx_mmap_and_fd_linux
+00000164 g       ELFMAINZ 0 uname
 00000000 g       ELFMAINY 0 end_decompress
-000001a0 g       ELFMAINZ 0 write
+0000018c g       ELFMAINZ 0 write
 000000b0 g       ELFMAINZ 0 fdatasync
 00000000 g       ELFMAINZ 0 get_upxfn_path
 00000068 g       ELFMAINZ 0 memfd_create
 00000004 g       ELFMAINX 0 _start
-00000150 g       ELFMAINZ 0 read
-0000018c g       ELFMAINZ 0 unlink
+0000013c g       ELFMAINZ 0 read
+00000178 g       ELFMAINZ 0 unlink
 0000002c g       ELFMAINZ 0 memset
 00000178 g     F ELFMAINX 0c4 ucl_nrv2b_decompress_8
-00000128 g       ELFMAINZ 0 msync
-000001b4 g       ELFMAINZ 0 my_bkpt
+000001c8 g       ELFMAINZ 0 my_bkpt
 000000c4 g       ELFMAINZ 0 fsync
-00000164 g       ELFMAINZ 0 stat
-00000204 g       ELFMAINZ 0 cpr0
+00000150 g       ELFMAINZ 0 stat
+00000218 g       ELFMAINZ 0 cpr0
 0000009c g       ELFMAINZ 0 exit
-0000013c g       ELFMAINZ 0 open
+00000128 g       ELFMAINZ 0 open
 00000114 g       ELFMAINZ 0 mkdir
 00000088 g       ELFMAINZ 0 close
 
@@ -58,7 +58,7 @@ OFFSET   TYPE              VALUE
 00000040 R_ARM_PC24        ELFMAINZ
 00000050 R_ARM_PC24        ELFMAINZ
 00000060 R_ARM_PC24        ELFMAINZ
-00000200 R_ARM_ABS32       O_BINFO
+00000214 R_ARM_ABS32       O_BINFO
 
 RELOCATION RECORDS FOR [HUMF_A]:
 OFFSET   TYPE              VALUE
@@ -170,8 +170,9 @@ OFFSET   TYPE              VALUE
 0000006c R_ARM_PC24        open
 00000078 R_ARM_PC24        UMF_LINUX
 00000084 R_ARM_PC24        ftruncate
-0000008c R_ARM_PC24        UMF_LINUX
-000000b4 R_ARM_PC24        mmap
+00000090 R_ARM_PC24        UMF_LINUX
+000000b8 R_ARM_PC24        mmap
+000000c0 R_ARM_PC24        get_page_mask
 
 RELOCATION RECORDS FOR [ELFMAINX]:
 OFFSET   TYPE              VALUE

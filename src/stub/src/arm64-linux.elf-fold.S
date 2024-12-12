@@ -123,6 +123,11 @@ mmap_privanon: .globl mmap_privanon
         orr w3,w3,w6  // flags |= MAP_{PRIVATE|ANON}  [QNX vs Linux]
     // FALL THROUGH to mmap
 
+Psync: .globl Psync
+        ldr x8,PAGE_MASK
+        bic x8,x0,x8
+        sub x0,x0,x8
+        add x1,x1,x8
 msync: .globl msync
         do_sys __NR_msync; ret
 

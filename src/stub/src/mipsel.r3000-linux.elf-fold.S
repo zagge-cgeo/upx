@@ -325,6 +325,19 @@ Pprotect: .globl Pprotect
         jr ra
           addiu sp,2*NBPW
 
+Psync: .globl Psync
+        addiu sp,-2*NBPW; sw ra,0*NBPW(sp)
+        bal Lget_page_mask
+          nop
+        not v0,v0  # fragment mask
+        lw ra,0*NBPW(sp)
+        and TMP,a0,v0
+        sub a0,TMP
+        add a1,TMP
+        li v0,__NR_msync; syscall
+        jr ra
+          addiu sp,2*NBPW
+
 my_bkpt: .globl my_bkpt
         break  # my_bkpt
         jr ra

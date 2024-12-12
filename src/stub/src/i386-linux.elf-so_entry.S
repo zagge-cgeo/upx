@@ -284,6 +284,13 @@ old_mmap:  // oldmmap: ebx -> 6 arguments; remove arguments on return
         cmp $PAGE_MASK,%eax; jb 0f; hlt; 0:
         ret $6*4
 
+// get_page_mask should never be called by so_entry, because the 1st arg
+// (the pointer) to upx_mmap_and_fd is 0.  But in the general case
+// there must be a get_page_mask subroutine.  Return something plausible.
+get_page_mask: .globl get_page_mask
+        mov $-(1<<12),%eax  // 4KB page size
+        ret
+
         .balign 4
 upx_mmap_and_fd:
 // section UMF_LINUX or UMF_ANDROID goes here

@@ -134,6 +134,13 @@ Pprotect: .globl Pprotect
         add arg2,arg2,r12
         b mprotect
 
+Psync: .globl Psync
+        ldr r12,PAGE_MASK
+        bic r12,arg1,r12
+        sub arg1,arg1,r12
+        add arg2,arg2,r12
+        b msync
+
 L05:
     sub sp,sp,#MAX_ELF_HDR_32; mov arg3,sp  // &elf_tmp
     call upx_so_main  // (&so_info, &argc); returns &escape_hatch

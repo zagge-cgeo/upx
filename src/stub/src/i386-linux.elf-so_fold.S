@@ -139,6 +139,7 @@ __NR_close= 6
 __NR_memfd_create= 0x164  // 356
 __NR_mmap=     90
 __NR_mprotect=125
+__NR_msync=    0x90  // 144
 __NR_munmap=   91
 __NR_mremap=  163
 
@@ -197,6 +198,17 @@ Pprotect: .globl Pprotect  // from C
     add 2*NBPW(%esp),%ecx  // length
     mov 3*NBPW(%esp),%edx  // bits
     movb $__NR_mprotect,%al; call sys_check_al
+    mov 1*NBPW(%esp),%ebx  // restore reg
+    ret
+
+Psync: .globl Psync
+    xchg %ebx,1*NBPW(%esp)  // save reg, %ebx= address
+    mov %ebx,%ecx  // copy address
+    and $~0<<12,%ebx  // page align  PAGE_MASK
+    sub %ebx,%ecx  // extra length
+    add 2*NBPW(%esp),%ecx  // length
+    mov 3*NBPW(%esp),%edx  // bits
+    movb $__NR_msync,%al; call sys_check_al
     mov 1*NBPW(%esp),%ebx  // restore reg
     ret
 

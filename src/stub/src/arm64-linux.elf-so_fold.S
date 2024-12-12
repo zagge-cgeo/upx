@@ -199,7 +199,11 @@ brk:
 readlink:
         do_sys __NR_readlink; ret
 
-msync: .globl msync
+Psync: .globl Psync
+        ldr x8,PAGE_MASK
+        bic x8,x0,x8
+        sub x0,x0,x8
+        add x1,x1,x8
         do_sys __NR_msync; ret
 
         .globl __sync_cache_range

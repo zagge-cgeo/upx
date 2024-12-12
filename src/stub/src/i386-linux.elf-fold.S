@@ -69,6 +69,7 @@ __NR_olduname=     109
 __NR_oldolduname=   59
 __NR_uname=        122
 __NR_mprotect= 0x7d
+__NR_msync=    0x90  // 144
 __NR_brk= 45
 
 MAP_PRIVATE=   0x02
@@ -297,6 +298,18 @@ Pprotect: .globl Pprotect
     add ecx,[2*NBPW + esp]  // length
     mov edx,[3*NBPW + esp]  // bits
     mov al,__NR_mprotect; call sys_check_al
+    cmp eax, -0x1000; jna 0f; hlt; 0:
+    mov ebx,[1*NBPW + esp]  // restore reg
+    ret
+
+Psync: .globl Psync
+    xchg ebx,[1*NBPW + esp]  // save reg, %ebx= address
+    mov ecx,ebx  // copy address
+    call get_page_mask; and ebx,eax  // round down to page
+    sub ecx,%ebx  // extra length
+    add ecx,[2*NBPW + esp]  // length
+    mov edx,[3*NBPW + esp]  // bits
+    mov al,__NR_msync; call sys_check_al
     cmp eax, -0x1000; jna 0f; hlt; 0:
     mov ebx,[1*NBPW + esp]  // restore reg
     ret

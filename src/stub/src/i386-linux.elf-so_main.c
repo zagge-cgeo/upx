@@ -41,7 +41,7 @@ unsigned Pprotect(void *, size_t, unsigned);
 void *mmap(void *, size_t, int, int, int, off_t);
 void *Pmap(void *, size_t, int, int, int, off_t);
 int Punmap(void *, size_t);
-extern int msync(void const *, size_t, unsigned);
+extern int Psync(void const *, size_t, unsigned);
 #define MS_SYNC 4
 #define EINVAL 22  /* Invalid argument */
 
@@ -487,7 +487,7 @@ fini_SELinux(
     if (phdr->p_flags & PF_X) {
         // Map the contents of mfd as per *phdr.
 
-        msync(ptr, size, MS_SYNC); // be sure file gets de-compressed bytes
+        Psync(ptr, size, MS_SYNC); // be sure file gets de-compressed bytes
             // Android 14 gets -EINVAL; ignore it
 
         Punmap(ptr, size);

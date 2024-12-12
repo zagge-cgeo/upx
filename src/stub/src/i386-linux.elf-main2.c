@@ -55,12 +55,12 @@ extern int read(int fd, void *buf, unsigned count);
 extern void *memcpy(void *dst, void const *src, size_t n);
 // Pprotect is mprotect but uses page-aligned address (Linux requirement)
 extern unsigned Pprotect(void *, size_t, unsigned);
+extern int Psync(void const *, size_t, unsigned);
 //extern void *Pmap(void *, size_t, unsigned, unsigned, int, size_t);
 //extern int Punmap(void *, size_t);
 extern size_t Pwrite(unsigned, void const *, size_t);
 extern ssize_t write(int, void const *, size_t);
 extern int munmap(void *, size_t);
-extern int msync(void const *, size_t, unsigned);
 extern int close(int);
 extern void exit(int code) __attribute__ ((__noreturn__));
 #  define mmap_privanon(addr,len,prot,flgs) mmap((addr),(len),(prot), \
@@ -725,7 +725,7 @@ do_xmap(
 
             // SELinux: Map the contents of mfd as per *phdr.
             DPRINTF("hatch protect addr=%%p  mlen=%%p\\n", addr, mlen);
-            msync(addr, mlen, MS_SYNC);  // be sure file gets de-compressed bytes
+            Psync(addr, mlen, MS_SYNC);  // be sure file gets de-compressed bytes
             munmap(addr, mlen);  // toss the VMA that has PROT_WRITE
             if (addr != mmap(addr, mlen, prot, MAP_FIXED|MAP_SHARED, mfd, 0)) {
                 err_exit(9);

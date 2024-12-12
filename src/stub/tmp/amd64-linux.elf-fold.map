@@ -16,8 +16,8 @@ Linker script and memory map
                 0x000000000000087d                upx_main2
                 0x00000000000002b9                underlay
 
-UMF_LINUX       0x0000000000000000       0xd2
- UMF_LINUX      0x0000000000000000       0xd2 tmp/amd64-linux.elf-upxfd_linux.o
+UMF_LINUX       0x0000000000000000       0xd4
+ UMF_LINUX      0x0000000000000000       0xd4 tmp/amd64-linux.elf-upxfd_linux.o
                 0x0000000000000000                upx_mmap_and_fd_linux
 
 .data           0x0000000000000000        0x0
@@ -35,25 +35,26 @@ LOAD tmp/amd64-linux.elf-upxfd_linux.o
 LOAD tmp/amd64-linux.elf-main2.o
 OUTPUT(tmp/amd64-linux.elf-fold.bin elf64-x86-64)
 
-SYSCALLS        0x0000000000000000       0xc3
- SYSCALLS       0x0000000000000000       0xc3 tmp/amd64-linux.elf-fold.o
+SYSCALLS        0x0000000000000000       0xdc
+ SYSCALLS       0x0000000000000000       0xdc tmp/amd64-linux.elf-fold.o
                 0x000000000000004a                Pmap
-                0x000000000000009b                munmap
-                0x00000000000000af                ftruncate
+                0x00000000000000b4                munmap
+                0x0000000000000076                Psync
+                0x00000000000000c4                ftruncate
                 0x000000000000005b                mmap
-                0x00000000000000bb                write
-                0x00000000000000bf                read
-                0x000000000000009f                msync
+                0x00000000000000d4                write
+                0x00000000000000d8                read
+                0x00000000000000d0                msync
                 0x0000000000000011                upxfd_create
                 0x0000000000000000                my_bkpt
-                0x0000000000000076                Pprotect
-                0x00000000000000bb                Pwrite
-                0x000000000000008b                Punmap
-                0x00000000000000a3                exit
-                0x00000000000000a7                brk
-                0x00000000000000b3                open
-                0x00000000000000b7                mprotect
-                0x00000000000000ab                close
+                0x000000000000008f                Pprotect
+                0x00000000000000d4                Pwrite
+                0x00000000000000a4                Punmap
+                0x00000000000000b8                exit
+                0x00000000000000bc                brk
+                0x00000000000000c8                open
+                0x00000000000000cc                mprotect
+                0x00000000000000c0                close
 
 EXP_HEAD        0x0000000000000000       0xe9
  EXP_HEAD       0x0000000000000000       0xe9 tmp/amd64-expand.o

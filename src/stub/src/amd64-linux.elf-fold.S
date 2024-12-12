@@ -258,6 +258,14 @@ sys_check:
 sysOK:
         ret
 
+Psync: .globl Psync
+        mov PAGE_MASK(%rip),%eax; not %eax  // frag mask
+        movb $__NR_msync,%al; 5: jmp 5f
+        and %arg1l,%eax  // frag
+        sub %rax,%rdi
+        add %rax,%rsi
+        jmp msync
+
 Pprotect: .globl Pprotect
         mov PAGE_MASK(%rip),%eax; not %eax  // frag mask
         and %arg1l,%eax  // frag
@@ -272,8 +280,6 @@ Punmap: .globl Punmap  // page-align the lo end
         add %rax,%arg2
 munmap: .globl munmap
         movb $ __NR_munmap,%al; 5: jmp 5f
-msync: .globl msync
-        movb $__NR_msync,%al; 5: jmp 5f
 exit: .globl exit
         movb $ __NR_exit,%al; 5: jmp 5f
 brk: .globl brk
@@ -286,6 +292,8 @@ open: .globl open
         movb $ __NR_open,%al; 5: jmp 5f
 mprotect: .globl mprotect
         movb $ __NR_mprotect,%al; 5: jmp 5f
+msync: .globl msync
+        movb $__NR_msync,%al; 5: jmp 5f
 Pwrite: .globl Pwrite
 write: .globl write
         mov $__NR_write,%al; 5: jmp 5f

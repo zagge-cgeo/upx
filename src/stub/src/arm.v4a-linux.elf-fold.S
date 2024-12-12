@@ -102,6 +102,13 @@ mprotect: .globl mprotect
         add arg2,arg2,r12
         do_sys __NR_mprotect; ret
 
+Psync: .globl Psync
+        ldr r12,page_mask
+        bic r12,arg1,r12  // lo frag
+        sub arg1,arg1,r12  // page align lo end
+        add arg2,arg2,r12
+        do_sys __NR_msync; ret
+
 mmap_privanon: .globl mmap_privanon
         stmdb sp!,{r4,r5,lr}
         ldr r4,qflg_data  @ MAP_PRIVATE|MAP_ANON for Linux; MAP_PRIVANON for QNX
@@ -472,7 +479,6 @@ getpid:.globl getpid;do_sys __NR_getpid; ret
 lseek: .globl lseek; do_sys __NR_lseek; ret
 memfd_create: .globl memfd_create; do_sys2 __NR_memfd_create; ret
 mkdir: .globl mkdir; do_sys __NR_mkdir; ret
-msync: .globl msync; do_sys __NR_msync; ret
 munmap: .globl munmap; do_sys __NR_munmap; ret  // BEWARE: get_sys_munmap knows where 'svc' lives!
 open:  .globl open;  do_sys __NR_open; ret
 read:  .globl read;  do_sys __NR_read; ret
