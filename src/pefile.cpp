@@ -1224,6 +1224,10 @@ void PeFile::Export::convert(unsigned eoffs, unsigned esize) {
     size += len;
     iv.add_interval(edir.name, len);
 
+    if (upx_uint64_t(edir.functions + edir.names) * 4 >= upx_uint64_t(esize)) {
+        throwInternalError("bad export directory, outside size");
+    }
+
     len = 4 * edir.functions;
     functionptrs = New(char, len + 1);
     memcpy(functionptrs, base + edir.addrtable, len);
