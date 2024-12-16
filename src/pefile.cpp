@@ -1224,7 +1224,9 @@ void PeFile::Export::convert(unsigned eoffs, unsigned esize) {
     size += len;
     iv.add_interval(edir.name, len);
 
-    if (upx_uint64_t(edir.functions + edir.names) * 4 >= upx_uint64_t(esize)) {
+    // this check does not take UPX_RSIZE_MAX_MEM into account
+    const int ptr_size = 4; // size of function/name pointers
+    if ((upx_uint64_t(edir.functions) + upx_uint64_t(edir.names)) * ptr_size >= upx_uint64_t(esize - sizeof(export_dir_t))) {
         throwInternalError("bad export directory, outside size");
     }
 
